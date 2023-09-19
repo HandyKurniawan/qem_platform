@@ -10,11 +10,11 @@ hmmm ...
 
 Example:
 """
-import triq_wrapper
-import qiskit_wrapper
-import mirage_wrapper
+import wrappers.triq_wrapper as triq_wrapper
+import wrappers.qiskit_wrapper as qiskit_wrapper
+import wrappers.mirage_wrapper as mirage_wrapper
 import os
-from qem_platform.commons import read_file, convert_to_json, triq_optimization, qiskit_optimization, apply_qiskit_optimization
+from commons import read_file, convert_to_json, triq_optimization, qiskit_optimization, apply_qiskit_optimization
 import inspect
 from qiskit import Aer, execute, QuantumCircuit, transpile
 from qiskit_ibm_provider import IBMProvider
@@ -166,8 +166,6 @@ class QEM:
 
         now_time = datetime.now().strftime("%Y%m%d%H%M%S")
 
-        file_name = calling_function_name + "-"
-
         try:
             
             p_qiskit_optimization, p_apply_qiskit, p_triq_optimization = None, None, None
@@ -185,8 +183,6 @@ class QEM:
                         sabre = 1 if calling_function_locals[i] == True else 0
                     elif i == "enable_mirage":
                         mirage = 1 if calling_function_locals[i] == True else 0
-
-                    # file_name += "{},".format(calling_function_locals[i])
 
             # Connect to the MySQL database
             conn = mysql.connector.connect(**self.mysql_config)
@@ -288,6 +284,8 @@ if __name__ == "__main__":
     adder_qasm = read_file(adder_qasm_path)
     qem.load_account("be81173902a0621551ef756bf79487c1d3c8d9860521a72758f60179feaa83ffa7d6ec24ecdf8a60acae47c1c94964dda78c278607152303cfd0a950c1cac22e")
     qem.set_circuit(adder_qasm)
+    # qem.run()
+    qem.apply_qiskit(qiskit_optimization_level=0, enable_sabre=False , enable_mirage=True)
 
 # qem.apply_qiskit(qiskit_optimization_level=0, enable_sabre=False , enable_mirage=True)
 # qem.apply_triq(triq_optimization=2, qiskit_optimization_level=3, enable_sabre=True, apply_qiskit="before")
