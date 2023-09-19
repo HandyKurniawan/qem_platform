@@ -13,8 +13,9 @@ Example:
 import wrappers.triq_wrapper as triq_wrapper
 import wrappers.qiskit_wrapper as qiskit_wrapper
 import wrappers.mirage_wrapper as mirage_wrapper
+import wrappers.laura_wrapper as laura_wrapper
 import os
-from commons import read_file, convert_to_json, triq_optimization, qiskit_optimization, apply_qiskit_optimization
+from commons import convert_to_json, triq_optimization, qiskit_optimization, apply_qiskit_optimization
 import inspect
 from qiskit import Aer, execute, QuantumCircuit, transpile
 from qiskit_ibm_provider import IBMProvider
@@ -23,9 +24,9 @@ import mysql.connector
 
 
 class QEM:
-    def __init__(self, hardware_name = "qasm_simulator", output_name = "output"):
+    def __init__(self, token, qasm_source, hardware_name = "qasm_simulator", circuit_name = "circuit"):
         self.hardware_name = hardware_name
-        self.output_name = output_name
+        self.circuit_name = circuit_name
         self.qasm = None 
         self.circuit:QuantumCircuit = None       
         self.qiskit_token = None
@@ -36,6 +37,9 @@ class QEM:
         self.mysql_config = None
         self.header_id = None
         self.user_id = None
+
+        self.load_account(token)
+        self.set_circuit(qasm_source)
 
     def set_circuit(self, qasm):
         qc = None
@@ -70,7 +74,7 @@ class QEM:
 
         # insert to circuit
         cursor.execute('INSERT INTO circuit (name, qasm, depth, total_gates, gates, correct_output) VALUES (%s, %s, %s, %s, %s, %s)',
-                    ("circuit", self.qasm, self.depth, self.total_gate, convert_to_json(self.gates), convert_to_json(self.correct_output) ))
+                    (self.circuit_name, self.qasm, self.depth, self.total_gate, convert_to_json(self.gates), convert_to_json(self.correct_output) ))
         circuit_id = cursor.lastrowid
         
         # insert to header
@@ -154,6 +158,28 @@ class QEM:
             self.qasm, self.hardware_name, qiskit_optimization_level)
 
         self.send_qasm_to_real_backend(updated_qasm)
+
+    def apply_laura(self, laura_optimization = 2, qiskit_optimization_level = 0, enable_sabre = False, apply_qiskit = None):
+        """
+        apply_qiskit:
+            "before" : before laura's version of triq
+            "after"  : after laura's version of triq
+        """    
+        updated_qasm = self.qasm
+
+        if apply_qiskit == "before":
+            updated_qasm = self.apply_qiskit(updated_qasm, qiskit_optimization_level, 
+                                             enable_sabre=enable_sabre, enable_mirage=False, enable_send=False)
+
+        updated_qasm = laura_wrapper.run(updated_qasm, self.hardware_name)
+
+        if apply_qiskit == "after":
+            updated_qasm = self.apply_qiskit(updated_qasm, qiskit_optimization_level, 
+                                             enable_sabre=enable_sabre, enable_mirage=False, enable_send=False)
+
+        self.send_qasm_to_real_backend(updated_qasm)
+
+        return updated_qasm
     
     
     def _save_result_to_db(self, job_id, updated_qasm):
@@ -169,7 +195,7 @@ class QEM:
         try:
             
             p_qiskit_optimization, p_apply_qiskit, p_triq_optimization = None, None, None
-            sabre, mirage, mitiq, qiskit_error_mitigation = None, None, None, None
+            sabre, mirage, mitiq, p_laura_optimization = None, None, None, None
 
             for i in calling_function_locals.keys():
                 if i != "self" and i != "updated_qasm":
@@ -179,6 +205,8 @@ class QEM:
                         p_apply_qiskit = calling_function_locals[i]
                     elif i == "triq_optimization":
                         p_triq_optimization = calling_function_locals[i]
+                    elif i == "laura_optimization":
+                        p_laura_optimization = calling_function_locals[i]
                     elif i == "enable_sabre":
                         sabre = 1 if calling_function_locals[i] == True else 0
                     elif i == "enable_mirage":
@@ -192,14 +220,14 @@ class QEM:
             now_time = datetime.now().strftime("%Y%m%d%H%M%S")
             cursor.execute('''INSERT INTO result_detail (user_id, header_id, job_id, status, 
                            qiskit_optimization, apply_qiskit, triq_optimization, sabre, 
-                           mirage, mitiq, qiskit_error_mitigation, created_datetime) 
+                           mirage, mitiq, laura_optimization, created_datetime) 
                            VALUES (
                            %s, %s, %s, %s, 
                            %s, %s, %s, %s, 
                            %s, %s, %s, %s)''',
                         (self.user_id, self.header_id, job_id, "pending",  
                          p_qiskit_optimization, p_apply_qiskit, p_triq_optimization, sabre,
-                         mirage, mitiq, qiskit_error_mitigation, now_time))
+                         mirage, mitiq, p_laura_optimization, now_time))
             detail_id = cursor.lastrowid
 
             # insert to result_updated_qasm
@@ -250,45 +278,57 @@ class QEM:
         """
         
         """
-        for qiskit_opt in qiskit_optimization:
-            # print('{:15} = {}'.format(opt.name, opt.value))
-            print("running qiskit:qiskit_optimization_level={}, enable_sabre=False , enable_mirage=False..".format(qiskit_opt.value))
-            qem.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=False , enable_mirage=False)
-            print("running qiskit:qiskit_optimization_level={}, enable_sabre=True , enable_mirage=False..".format(qiskit_opt.value))
-            qem.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=True , enable_mirage=False)
-            print("running qiskit:qiskit_optimization_level={}, enable_sabre=False , enable_mirage=True..".format(qiskit_opt.value))
-            qem.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=False, enable_mirage=True)
+        # for qiskit_opt in qiskit_optimization:
+        #     # print('{:15} = {}'.format(opt.name, opt.value))
+        #     print("running qiskit:qiskit_optimization_level={}, enable_sabre=False , enable_mirage=False..".format(qiskit_opt.value))
+        #     self.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=False , enable_mirage=False)
+        #     print("running qiskit:qiskit_optimization_level={}, enable_sabre=True , enable_mirage=False..".format(qiskit_opt.value))
+        #     self.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=True , enable_mirage=False)
+        #     print("running qiskit:qiskit_optimization_level={}, enable_sabre=False , enable_mirage=True..".format(qiskit_opt.value))
+        #     self.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=False, enable_mirage=True)
             
+        # for qiskit_opt in qiskit_optimization:
+        #     print("running apply_mirage:qiskit_optimization_level={}..".format(qiskit_opt.value))
+        #     self.apply_mirage(qiskit_optimization_level=qiskit_opt.value)
 
-        for qiskit_opt in qiskit_optimization:
-            print("running apply_mirage:qiskit_optimization_level={}..".format(qiskit_opt.value))
-            qem.apply_mirage(qiskit_optimization_level=qiskit_opt.value)
+        # for triq_opt in triq_optimization:
+        #     for q in apply_qiskit_optimization:
+        #         if q.value is None:
+        #             print("running apply_triq:triq_optimization={}, qiskit_optimization_level=0, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, q.value ))
+        #             self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=0, enable_sabre=False, apply_qiskit=q.value)
+        #         else:
+        #             for qiskit_opt in qiskit_optimization:
+        #                 print("running apply_triq:triq_optimization={}, qiskit_optimization_level={}, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, qiskit_opt.value, q.value ))
+        #                 self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=qiskit_opt.value, enable_sabre=False, apply_qiskit=q.value)
 
-        for triq_opt in triq_optimization:
-            for q in apply_qiskit_optimization:
-                if q.value is None:
-                    print("running apply_triq:triq_optimization={}, qiskit_optimization_level=0, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, q.value ))
-                    qem.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=0, enable_sabre=False, apply_qiskit=q.value)
-                else:
-                    for qiskit_opt in qiskit_optimization:
-                        print("running apply_triq:triq_optimization={}, qiskit_optimization_level={}, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, qiskit_opt.value, q.value ))
-                        qem.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=qiskit_opt.value, enable_sabre=False, apply_qiskit=q.value)
+        #                 print("running apply_triq:triq_optimization={}, qiskit_optimization_level={}, enable_sabre=True, apply_qiskit={}..".format(triq_opt.value, qiskit_opt.value, q.value ))
+        #                 self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=qiskit_opt.value, enable_sabre=True, apply_qiskit=q.value)
 
-                        print("running apply_triq:triq_optimization={}, qiskit_optimization_level={}, enable_sabre=True, apply_qiskit={}..".format(triq_opt.value, qiskit_opt.value, q.value ))
-                        qem.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=qiskit_opt.value, enable_sabre=True, apply_qiskit=q.value)
+        for q in apply_qiskit_optimization:
+            if q.value is None:
+                print("running apply_triq:laura_optimization={}, qiskit_optimization_level=0, enable_sabre=False, apply_qiskit={}..".format(2, q.value ))
+                self.apply_laura(laura_optimization=2, qiskit_optimization_level=0, enable_sabre=False, apply_qiskit=q.value)
+            else:
+                for qiskit_opt in qiskit_optimization:
+                    print("running apply_triq:laura_optimization={}, qiskit_optimization_level={}, enable_sabre=False, apply_qiskit={}..".format(2, qiskit_opt.value, q.value ))
+                    self.apply_laura(laura_optimization=2, qiskit_optimization_level=qiskit_opt.value, enable_sabre=False, apply_qiskit=q.value)
+
+                    print("running apply_triq:laura_optimization={}, qiskit_optimization_level={}, enable_sabre=True, apply_qiskit={}..".format(2, qiskit_opt.value, q.value ))
+                    self.apply_laura(laura_optimization=2, qiskit_optimization_level=qiskit_opt.value, enable_sabre=True, apply_qiskit=q.value)
 
 
-if __name__ == "__main__":
-    qem = QEM("ibm_perth")
-    adder_qasm_path = os.path.expanduser("~/Quantum_benchmarks/TriQ/adder.qasm")
-    adder_qasm = read_file(adder_qasm_path)
-    qem.load_account("be81173902a0621551ef756bf79487c1d3c8d9860521a72758f60179feaa83ffa7d6ec24ecdf8a60acae47c1c94964dda78c278607152303cfd0a950c1cac22e")
-    qem.set_circuit(adder_qasm)
-    # qem.run()
-    qem.apply_qiskit(qiskit_optimization_level=0, enable_sabre=False , enable_mirage=True)
+# if __name__ == "__main__":
+#     qem = QEM("ibm_perth")
+#     adder_qasm_path = os.path.expanduser("~/Quantum_benchmarks/TriQ/adder.qasm")
+#     adder_qasm = read_file(adder_qasm_path)
+#     qem.load_account("be81173902a0621551ef756bf79487c1d3c8d9860521a72758f60179feaa83ffa7d6ec24ecdf8a60acae47c1c94964dda78c278607152303cfd0a950c1cac22e")
+#     qem.set_circuit(adder_qasm)
+#     # qem.run()
+#     # qem.apply_qiskit(qiskit_optimization_level=0, enable_sabre=False , enable_mirage=True)
+#     qem.apply_triq(triq_optimization=2, qiskit_optimization_level=3, enable_sabre=True, apply_qiskit="before")
 
-# qem.apply_qiskit(qiskit_optimization_level=0, enable_sabre=False , enable_mirage=True)
-# qem.apply_triq(triq_optimization=2, qiskit_optimization_level=3, enable_sabre=True, apply_qiskit="before")
+# # qem.apply_qiskit(qiskit_optimization_level=0, enable_sabre=False , enable_mirage=True)
+# # 
 
 
 

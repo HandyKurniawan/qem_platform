@@ -1,12 +1,12 @@
 """
-file name: triq_wrapper.py
+file name: laura_wrapper.py
 author: Handy, Laura, Fran
 date: 14 September 2023
 
-This module provides all the function necesary to run TriQ
+This module provides all the function necesary to run Laura's version of TriQ
 
 Functions:
-- run(qasm_path, hardware_name, triq_optimization): run the optimization from TriQ
+- run(qasm_path, hardware_name): run the optimization from Laura's version of TriQ
 
 Example:
 """
@@ -36,7 +36,7 @@ def create_dir(path):
         # Create a new directory because it does not exist
         os.makedirs(path)
 
-def run(qasm_str, hardware_name, triq_optimization):
+def run(qasm_str, hardware_name):
     """
     Parameters:
         qasm_path:
@@ -44,15 +44,9 @@ def run(qasm_str, hardware_name, triq_optimization):
         triq_optimization:
     """
 
-    # triq_path = os.path.expanduser("~/TriQ/")
-    triq_path = os.path.expanduser("~/qem_platform/wrappers/triq_wrapper/")
-    # out_path = os.path.expanduser("./result/triq/qasm")
-    # dag_path = os.path.expanduser("./result/triq/dag")
+    triq_path = os.path.expanduser("~/qem_platform/wrappers/laura_wrapper/")
     out_path = os.path.expanduser("./")
     dag_path = os.path.expanduser("./")
-
-    # create_dir(out_path)
-    # create_dir(dag_path)
 
     now_time = datetime.now().strftime("%Y%m%d%H%M%S")
 
@@ -72,9 +66,9 @@ def run(qasm_str, hardware_name, triq_optimization):
     parse_ir(qasm_str, os.path.join(dag_path, dag_name))
 
     # call triq
-    call_triq = [os.path.join(triq_path, "triq"), 
+    call_triq = [os.path.join(triq_path, "laura"), 
                 dag_file_path, 
-                out_file_path, hardware_name, str(triq_optimization)]
+                out_file_path, hardware_name, "2"]
     # print(call_triq)
     # sp.call(call_triq, stdout=out_file)
     # Run the command and wait for it to complete

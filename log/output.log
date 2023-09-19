@@ -1,0 +1,11 @@
+Reading ./20230919130941.in
+Running CompileRevSwaps
+Read reliability
+Qubit Mapping
+(0,6)
+(1,3)
+(2,4)
+(3,5)
+Best reliab:0.586835
+Num CX:34
+Done!
