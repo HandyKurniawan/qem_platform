@@ -14,23 +14,12 @@ import triq_wrapper
 import qiskit_wrapper
 import mirage_wrapper
 import os
-from common_functions import read_file, convert_to_json
+from qem_platform.commons import read_file, convert_to_json, triq_optimization, qiskit_optimization, apply_qiskit_optimization
 import inspect
 from qiskit import Aer, execute, QuantumCircuit, transpile
 from qiskit_ibm_provider import IBMProvider
-from enum import Enum
 from datetime import datetime
 import mysql.connector
-
-
-class triq_optimization(Enum):
-    CompileOpt, CompileDijsktra, CompileNoise = range(3)
-
-class qiskit_optimization(Enum):
-    level_0, level_1, level_2, level_3 = range(4)
-
-class apply_qiskit_optimization(Enum):
-    no_apply, before, after = None, "before", "after"
 
 
 class QEM:
@@ -260,45 +249,48 @@ class QEM:
         # job_id = "bcd"
 
         self._save_result_to_db(job_id, updated_qasm)
-        
-qem = QEM("ibm_perth")
-adder_qasm_path = os.path.expanduser("~/Quantum_benchmarks/TriQ/adder.qasm")
-adder_qasm = read_file(adder_qasm_path)
-qem.load_account("be81173902a0621551ef756bf79487c1d3c8d9860521a72758f60179feaa83ffa7d6ec24ecdf8a60acae47c1c94964dda78c278607152303cfd0a950c1cac22e")
-qem.set_circuit(adder_qasm)
 
+    def run(self):
+        """
+        
+        """
+        for qiskit_opt in qiskit_optimization:
+            # print('{:15} = {}'.format(opt.name, opt.value))
+            print("running qiskit:qiskit_optimization_level={}, enable_sabre=False , enable_mirage=False..".format(qiskit_opt.value))
+            qem.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=False , enable_mirage=False)
+            print("running qiskit:qiskit_optimization_level={}, enable_sabre=True , enable_mirage=False..".format(qiskit_opt.value))
+            qem.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=True , enable_mirage=False)
+            print("running qiskit:qiskit_optimization_level={}, enable_sabre=False , enable_mirage=True..".format(qiskit_opt.value))
+            qem.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=False, enable_mirage=True)
+            
+
+        for qiskit_opt in qiskit_optimization:
+            print("running apply_mirage:qiskit_optimization_level={}..".format(qiskit_opt.value))
+            qem.apply_mirage(qiskit_optimization_level=qiskit_opt.value)
+
+        for triq_opt in triq_optimization:
+            for q in apply_qiskit_optimization:
+                if q.value is None:
+                    print("running apply_triq:triq_optimization={}, qiskit_optimization_level=0, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, q.value ))
+                    qem.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=0, enable_sabre=False, apply_qiskit=q.value)
+                else:
+                    for qiskit_opt in qiskit_optimization:
+                        print("running apply_triq:triq_optimization={}, qiskit_optimization_level={}, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, qiskit_opt.value, q.value ))
+                        qem.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=qiskit_opt.value, enable_sabre=False, apply_qiskit=q.value)
+
+                        print("running apply_triq:triq_optimization={}, qiskit_optimization_level={}, enable_sabre=True, apply_qiskit={}..".format(triq_opt.value, qiskit_opt.value, q.value ))
+                        qem.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=qiskit_opt.value, enable_sabre=True, apply_qiskit=q.value)
+
+
+if __name__ == "__main__":
+    qem = QEM("ibm_perth")
+    adder_qasm_path = os.path.expanduser("~/Quantum_benchmarks/TriQ/adder.qasm")
+    adder_qasm = read_file(adder_qasm_path)
+    qem.load_account("be81173902a0621551ef756bf79487c1d3c8d9860521a72758f60179feaa83ffa7d6ec24ecdf8a60acae47c1c94964dda78c278607152303cfd0a950c1cac22e")
+    qem.set_circuit(adder_qasm)
 
 # qem.apply_qiskit(qiskit_optimization_level=0, enable_sabre=False , enable_mirage=True)
 # qem.apply_triq(triq_optimization=2, qiskit_optimization_level=3, enable_sabre=True, apply_qiskit="before")
-
-for qiskit_opt in qiskit_optimization:
-    # print('{:15} = {}'.format(opt.name, opt.value))
-    print("running qiskit:qiskit_optimization_level={}, enable_sabre=False , enable_mirage=False..".format(qiskit_opt.value))
-    qem.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=False , enable_mirage=False)
-    print("running qiskit:qiskit_optimization_level={}, enable_sabre=True , enable_mirage=False..".format(qiskit_opt.value))
-    qem.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=True , enable_mirage=False)
-    print("running qiskit:qiskit_optimization_level={}, enable_sabre=False , enable_mirage=True..".format(qiskit_opt.value))
-    qem.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=False, enable_mirage=True)
-    
-    # # print("running qiskit:qiskit_optimization_level={}, enable_sabre=True , enable_mirage=True..".format(qiskit_opt.value))
-    # # qem.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=True , enable_mirage=True)
-
-for qiskit_opt in qiskit_optimization:
-    print("running apply_mirage:qiskit_optimization_level={}..".format(qiskit_opt.value))
-    qem.apply_mirage(qiskit_optimization_level=qiskit_opt.value)
-
-for triq_opt in triq_optimization:
-    for q in apply_qiskit_optimization:
-        if q.value is None:
-            print("running apply_triq:triq_optimization={}, qiskit_optimization_level=0, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, q.value ))
-            qem.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=0, enable_sabre=False, apply_qiskit=q.value)
-        else:
-            for qiskit_opt in qiskit_optimization:
-                print("running apply_triq:triq_optimization={}, qiskit_optimization_level={}, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, qiskit_opt.value, q.value ))
-                qem.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=qiskit_opt.value, enable_sabre=False, apply_qiskit=q.value)
-
-                print("running apply_triq:triq_optimization={}, qiskit_optimization_level={}, enable_sabre=True, apply_qiskit={}..".format(triq_opt.value, qiskit_opt.value, q.value ))
-                qem.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=qiskit_opt.value, enable_sabre=True, apply_qiskit=q.value)
 
 
 
