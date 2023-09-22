@@ -18,15 +18,25 @@ from .ir2dag import parse_ir
 import time
 
 def read_file(file_path):
-    try:
-        with open(file_path, "r") as file:
-            # Read the contents of the file and store them in the variable
-            file_contents = file.read()
+    success = False
+    loop_times = 0
+    while not success:
+        # if loop_times > 10:
+        #     break
 
-    except FileNotFoundError:
-        print(f"File not found: {file_path}")
-    except Exception as e:
-        print(f"An error occurred: {str(e)}")
+        try:
+            with open(file_path, "r") as file:
+                # Read the contents of the file and store them in the variable
+                file_contents = file.read()
+
+        except FileNotFoundError:
+            print(f"File not found: {file_path}")
+            # time.sleep(30)
+            # loop_times += 1
+        except Exception as e:
+            print(f"An error occurred: {str(e)}")
+
+        success = True
 
     return file_contents
 
@@ -43,6 +53,9 @@ def run(qasm_str, hardware_name, triq_optimization):
         hardware_name:
         triq_optimization:
     """
+    tmp_hw_name = hardware_name
+    if hardware_name == "ibmq_qasm_simulator":
+        tmp_hw_name = "ibm_perth"
 
     # triq_path = os.path.expanduser("~/TriQ/")
     triq_path = os.path.expanduser("~/qem_platform/wrappers/triq_wrapper/")
@@ -68,13 +81,15 @@ def run(qasm_str, hardware_name, triq_optimization):
     dag_file_path = os.path.join(dag_path, dag_name)
     out_file_path = os.path.join(out_path, out_name)
 
+    # print(qasm_str)
+
     # parse qasm into .in
     parse_ir(qasm_str, os.path.join(dag_path, dag_name))
 
     # call triq
     call_triq = [os.path.join(triq_path, "triq"), 
                 dag_file_path, 
-                out_file_path, hardware_name, str(triq_optimization)]
+                out_file_path, tmp_hw_name, str(triq_optimization)]
     # print(call_triq)
     # sp.call(call_triq, stdout=out_file)
     # Run the command and wait for it to complete

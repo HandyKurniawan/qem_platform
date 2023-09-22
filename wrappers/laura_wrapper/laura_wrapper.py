@@ -18,17 +18,27 @@ from .ir2dag import parse_ir
 import time
 
 def read_file(file_path):
-    try:
-        with open(file_path, "r") as file:
-            # Read the contents of the file and store them in the variable
-            file_contents = file.read()
+    success = False
+    loop_times = 0
+    while not success:
+        if loop_times > 10:
+            break
+        
+        try:
+            with open(file_path, "r") as file:
+                # Read the contents of the file and store them in the variable
+                file_contents = file.read()
 
-    except FileNotFoundError:
-        print(f"File not found: {file_path}")
-    except Exception as e:
-        print(f"An error occurred: {str(e)}")
+                success = True
 
-    return file_contents
+        except FileNotFoundError:
+            print(f"File not found: {file_path}")
+            time.sleep(30)
+            loop_times += 1
+        except Exception as e:
+            print(f"An error occurred: {str(e)}")
+
+        return file_contents
 
 def create_dir(path):
     isExist = os.path.exists(path)
@@ -54,7 +64,7 @@ def run(qasm_str, hardware_name):
     base_name = '.'.join(file_name.split('.')[:-1])
 
     # out_file=open("log/"+ base_name + "-" + hardware_name + "-" + str(triq_optimization) + ".log",'w+')
-    # out_file=open("log/output.log",'w+')
+    out_file=open("log/output.log",'w+')
 
     dag_name = base_name + ".in"
     out_name = base_name + ".qasm"
@@ -72,8 +82,8 @@ def run(qasm_str, hardware_name):
     # print(call_triq)
     # sp.call(call_triq, stdout=out_file)
     # Run the command and wait for it to complete
-    # p = sp.Popen(call_triq, stdout=out_file, text=True, shell=False)    
-    p = sp.Popen(call_triq, text=False, shell=False)    
+    p = sp.Popen(call_triq, stdout=out_file, text=True, shell=False)    
+    # p = sp.Popen(call_triq, text=False, shell=False)    
     p.communicate()
     p.terminate()
     p.wait()
