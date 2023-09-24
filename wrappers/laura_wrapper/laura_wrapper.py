@@ -1,12 +1,12 @@
 """
-file name: triq_wrapper.py
+file name: laura_wrapper.py
 author: Handy, Laura, Fran
 date: 14 September 2023
 
-This module provides all the function necesary to run TriQ
+This module provides all the function necesary to run Laura's version of TriQ
 
 Functions:
-- run(qasm_path, hardware_name, triq_optimization): run the optimization from TriQ
+- run(qasm_path, hardware_name): run the optimization from Laura's version of TriQ
 
 Example:
 """
@@ -21,24 +21,24 @@ def read_file(file_path):
     success = False
     loop_times = 0
     while not success:
-        # if loop_times > 10:
-        #     break
-
+        if loop_times > 10:
+            break
+        
         try:
             with open(file_path, "r") as file:
                 # Read the contents of the file and store them in the variable
                 file_contents = file.read()
 
+                success = True
+
         except FileNotFoundError:
             print(f"File not found: {file_path}")
-            # time.sleep(30)
-            # loop_times += 1
+            time.sleep(30)
+            loop_times += 1
         except Exception as e:
             print(f"An error occurred: {str(e)}")
 
-        success = True
-
-    return file_contents
+        return file_contents
 
 def create_dir(path):
     isExist = os.path.exists(path)
@@ -46,26 +46,17 @@ def create_dir(path):
         # Create a new directory because it does not exist
         os.makedirs(path)
 
-def run(qasm_str, hardware_name, triq_optimization):
+def run(qasm_str, hardware_name):
     """
     Parameters:
         qasm_path:
         hardware_name:
         triq_optimization:
     """
-    tmp_hw_name = hardware_name
-    if hardware_name == "ibmq_qasm_simulator":
-        tmp_hw_name = "ibm_perth"
 
-    # triq_path = os.path.expanduser("~/TriQ/")
-    triq_path = os.path.expanduser("~/qem_platform/wrappers/triq_wrapper/")
-    # out_path = os.path.expanduser("./result/triq/qasm")
-    # dag_path = os.path.expanduser("./result/triq/dag")
+    triq_path = os.path.expanduser("~/qem_platform/wrappers/laura_wrapper/")
     out_path = os.path.expanduser("./")
     dag_path = os.path.expanduser("./")
-
-    # create_dir(out_path)
-    # create_dir(dag_path)
 
     now_time = datetime.now().strftime("%Y%m%d%H%M%S")
 
@@ -73,7 +64,7 @@ def run(qasm_str, hardware_name, triq_optimization):
     base_name = '.'.join(file_name.split('.')[:-1])
 
     # out_file=open("log/"+ base_name + "-" + hardware_name + "-" + str(triq_optimization) + ".log",'w+')
-    # out_file=open("log/output.log",'w+')
+    out_file=open("log/output.log",'w+')
 
     dag_name = base_name + ".in"
     out_name = base_name + ".qasm"
@@ -81,20 +72,18 @@ def run(qasm_str, hardware_name, triq_optimization):
     dag_file_path = os.path.join(dag_path, dag_name)
     out_file_path = os.path.join(out_path, out_name)
 
-    # print(qasm_str)
-
     # parse qasm into .in
     parse_ir(qasm_str, os.path.join(dag_path, dag_name))
 
     # call triq
-    call_triq = [os.path.join(triq_path, "triq"), 
+    call_triq = [os.path.join(triq_path, "laura"), 
                 dag_file_path, 
-                out_file_path, tmp_hw_name, str(triq_optimization)]
+                out_file_path, hardware_name, "2"]
     # print(call_triq)
     # sp.call(call_triq, stdout=out_file)
     # Run the command and wait for it to complete
-    # p = sp.Popen(call_triq, stdout=out_file, text=True, shell=False)    
-    p = sp.Popen(call_triq, text=False, shell=False)    
+    p = sp.Popen(call_triq, stdout=out_file, text=True, shell=False)    
+    # p = sp.Popen(call_triq, text=False, shell=False)    
     p.communicate()
     p.terminate()
     p.wait()

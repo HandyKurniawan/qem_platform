@@ -1,0 +1,15 @@
+Reading ./20230923223055.in
+Running CompileRevSwaps
+Read reliability
+
+Path for qubits 0 and 1
+Best option: Move 0 to 0 and 1 to 1	Total cost for this path: 0.0139874
+
+Path for qubits 1 and 0
+Best option: Move 1 to 1 and 0 to 0	Total cost for this path: 0.0139874
+
+Path for qubits 0 and 2
+Best option: Move 0 to 0 and 2 to 1	Total cost for this path: 0.0353633
+
+Path for qubits 2 and 0
+Best option: Move 2 to 1 and 0 to 0	Total cost for this path: 0.0353633

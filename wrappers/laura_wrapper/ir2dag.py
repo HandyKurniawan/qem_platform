@@ -17,8 +17,8 @@ import sys
 
 global_gate_id = 0
 prev_gate = {}
-gate_names = {"cx":"CNOT", "cz":"CZ", "h":"H", "x":"X", "y":"Y", "z":"Z", "rx":"RX", "ry":"RY", "rz":"RZ", "s":"S", "sdg":"Sdag", "t":"T", "tdg":"Tdag", "sx":"SX", "sxdg":"SXdag", "measure":"MeasZ", "ccx":"CCX"}
-gset1 = ['x', 'y', 'z', 'h', 's', 'sdg', 't', 'tdg', 'sx', 'sxdg', 'measure']
+gate_names = {"cx":"CNOT", "cz":"CZ", "h":"H", "x":"X", "y":"Y", "z":"Z", "rx":"RX", "ry":"RY", "rz":"RZ", "s":"S", "sdg":"Sdag", "t":"T", "tdg":"Tdag", "measure":"MeasZ", "ccx":"CCX"}
+gset1 = ['x', 'y', 'z', 'h', 's', 'sdg', 't', 'tdg', 'measure']
 gset2 = ['rx', 'ry', 'rz']
 gset3 = ['cx']
 gset4 = ['ccx'] #20230907, Handy, add ccx gate to process from qasm
@@ -101,8 +101,7 @@ def process_gate_gset1(line, f_out):
     dep_gates = []
 
     for g in gset1:
-        if line.split()[0] == g:
-            # print(line.split()[0], g)
+        if line.startswith(g):
             #qbit = line.split()[1].split('[')[1].split(']')[0]
             if line.startswith("measure"):
                 qbit = map_qubit(line.split()[1])
@@ -110,7 +109,7 @@ def process_gate_gset1(line, f_out):
                 qbit = map_qubit(line.split()[1][:-1])
 
             gflag = 1
-            # print(global_gate_id, g, qbit)
+            #print(global_gate_id, g, qbit)
             f_out.write(str(global_gate_id) + ' ' + gate_names[g] + ' 1 ' + qbit)
             dep_gates = find_dep_gate(qbit)
             if len(dep_gates) == 1:
@@ -129,11 +128,11 @@ def process_gate_gset2(line, f_out):
     dep_gates = []
 
     for g in gset2:
-        if line[:2] == g:
+        if line.startswith(g):
             #qbit = line.split()[3].split('[')[1].split(']')[0]
             qbit = map_qubit(line.split()[1][:-1])
             angle = line.split()[0].split('(')[1].split(')')[0]
-            # print(global_gate_id, g, qbit, angle)
+            #print(global_gate_id, g, qbit, angle)
             f_out.write(str(global_gate_id) + ' ' + gate_names[g] + ' 1 ' + qbit)
             dep_gates = find_dep_gate(qbit)
             if len(dep_gates) == 1:
@@ -152,7 +151,7 @@ def process_gate_gset3(line, f_out):
     dep_gates = []
 
     for g in gset3:
-         if line.split()[0] == g:
+         if line.startswith(g):
             base = line.split(" ")
             
             qbit1 = 0 
@@ -183,7 +182,7 @@ def process_gate_gset4(line, f_out):
 
     #20230907, Handy, add ccx
     for g in gset4:
-         if line.split()[0] == g:
+         if line.startswith(g):
             decompose_ccx(line, f_out, g)
             break
 
@@ -192,6 +191,7 @@ def process_gate(line, f_out):
     process_gate_gset2(line, f_out)
     process_gate_gset3(line, f_out)
     process_gate_gset4(line, f_out)
+
 
 def parse_ir(qasm_str, outfname):
     global global_gate_id
