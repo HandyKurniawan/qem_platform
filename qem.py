@@ -96,7 +96,7 @@ class QEM:
         self.mysql_config = {
             'user': 'handy',
             'password': 'handy',
-            'host': 'ec2-52-90-68-169.compute-1.amazonaws.com',
+            'host': 'ec2-34-228-189-223.compute-1.amazonaws.com',
             'database': 'calibration_data'
         }
 
@@ -155,8 +155,8 @@ class QEM:
 
         if enable_send:
             self.send_qasm_to_real_backend(updated_qasm)
-
-        return updated_qasm
+        else:
+            return updated_qasm
     
     def apply_mirage(self, qiskit_optimization_level, enable_mirage = 1):
         
@@ -270,7 +270,7 @@ class QEM:
     def send_qasm_to_real_backend(self, updated_qasm):
 
         if self.hardware_name != "ibmq_qasm_simulator":
-            time.sleep(10)
+            time.sleep(15)
 
         success = False
         while not success:
@@ -315,34 +315,34 @@ class QEM:
         """
         
         """
-        # for qiskit_opt in qiskit_optimization:
-        #     # print('{:15} = {}'.format(opt.name, opt.value))
-        #     print("running qiskit:qiskit_optimization_level={}, enable_sabre=False , enable_mirage=False..".format(qiskit_opt.value))
-        #     self.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=False , enable_mirage=False)
-        #     print("running qiskit:qiskit_optimization_level={}, enable_sabre=True , enable_mirage=False..".format(qiskit_opt.value))
-        #     self.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=True , enable_mirage=False)
-        #     print("running qiskit:qiskit_optimization_level={}, enable_sabre=False , enable_mirage=True..".format(qiskit_opt.value))
-        #     self.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=False, enable_mirage=True)
+        for qiskit_opt in qiskit_optimization:
+            # print('{:15} = {}'.format(opt.name, opt.value))
+            print("running qiskit:qiskit_optimization_level={}, enable_sabre=False , enable_mirage=False..".format(qiskit_opt.value))
+            self.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=False , enable_mirage=False)
+            print("running qiskit:qiskit_optimization_level={}, enable_sabre=True , enable_mirage=False..".format(qiskit_opt.value))
+            self.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=True , enable_mirage=False)
+            print("running qiskit:qiskit_optimization_level={}, enable_sabre=False , enable_mirage=True..".format(qiskit_opt.value))
+            self.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=False, enable_mirage=True)
             
-        # for qiskit_opt in qiskit_optimization:
-        #     print("running apply_mirage:qiskit_optimization_level={}, enable_mirage = 1..".format(qiskit_opt.value))
-        #     self.apply_mirage(qiskit_optimization_level=qiskit_opt.value, enable_mirage = 1)
+        for qiskit_opt in qiskit_optimization:
+            print("running apply_mirage:qiskit_optimization_level={}, enable_mirage = 1..".format(qiskit_opt.value))
+            self.apply_mirage(qiskit_optimization_level=qiskit_opt.value, enable_mirage = 1)
 
-        for triq_opt in triq_optimization:
-            for q in apply_qiskit_optimization:
-                if q.value is None:
-                    print("running apply_triq:triq_optimization={}, qiskit_optimization_level=None, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, q.value ))
-                    self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=None, enable_sabre=False, apply_qiskit=q.value)
-                else:
-                    for qiskit_opt in qiskit_optimization:
-                        # if (qiskit_opt.value == 3 and q.value == "before"):
-                        #     continue
+        # for triq_opt in triq_optimization:
+        #     for q in apply_qiskit_optimization:
+        #         if q.value is None:
+        #             print("running apply_triq:triq_optimization={}, qiskit_optimization_level=None, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, q.value ))
+        #             self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=None, enable_sabre=False, apply_qiskit=q.value)
+        #         else:
+        #             for qiskit_opt in qiskit_optimization:
+        #                 # if (qiskit_opt.value == 3 and q.value == "before"):
+        #                 #     continue
 
-                        print("running apply_triq:triq_optimization={}, qiskit_optimization_level={}, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, qiskit_opt.value, q.value ))
-                        self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=qiskit_opt.value, enable_sabre=False, apply_qiskit=q.value)
+        #                 print("running apply_triq:triq_optimization={}, qiskit_optimization_level={}, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, qiskit_opt.value, q.value ))
+        #                 self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=qiskit_opt.value, enable_sabre=False, apply_qiskit=q.value)
 
-                        print("running apply_triq:triq_optimization={}, qiskit_optimization_level={}, enable_sabre=True, apply_qiskit={}..".format(triq_opt.value, qiskit_opt.value, q.value ))
-                        self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=qiskit_opt.value, enable_sabre=True, apply_qiskit=q.value)
+        #                 print("running apply_triq:triq_optimization={}, qiskit_optimization_level={}, enable_sabre=True, apply_qiskit={}..".format(triq_opt.value, qiskit_opt.value, q.value ))
+        #                 self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=qiskit_opt.value, enable_sabre=True, apply_qiskit=q.value)
 
         # for q in apply_qiskit_optimization:
         #     if q.value is None:
@@ -371,11 +371,12 @@ if __name__ == "__main__":
     # print(arglist)
     
     token = "be81173902a0621551ef756bf79487c1d3c8d9860521a72758f60179feaa83ffa7d6ec24ecdf8a60acae47c1c94964dda78c278607152303cfd0a950c1cac22e"
-    hardware_name = "ibmq_qasm_simulator"
-    # hardware_name = "ibm_perth"
+    # hardware_name = "ibmq_qasm_simulator"
+    hardware_name = "ibm_perth"
 
     # Define the base folder path
-    base_folder = "~/Quantum_benchmarks/Paper_circuits/n_7/"
+    # base_folder = "~/Quantum_benchmarks/Paper_circuits/n_7/"
+    base_folder = "~/Quantum_benchmarks/Paper_circuits/error-triq/"
 
     # List all files in the base folder with the .qasm extension
     qasm_files = glob.glob(os.path.expanduser(os.path.join(base_folder, "*.qasm")))
@@ -384,14 +385,13 @@ if __name__ == "__main__":
     for i in qasm_files:
         qasm_source = i
         circuit_name = i.split("/")[-1].split(".")[0]
+        print("========== {}  ===========".format(circuit_name))
         q = None
-        q = QEM(token, qasm_source, hardware_name, circuit_name, 99)
+        q = QEM(token, qasm_source, hardware_name, circuit_name, 4)
         q.run()
         # q.apply_triq(triq_optimization=0, qiskit_optimization_level=1, enable_sabre=False , apply_qiskit="before")
 
-        break
-
-
+        # break
 # # qem.apply_qiskit(qiskit_optimization_level=0, enable_sabre=False , enable_mirage=True)
 # # 
 

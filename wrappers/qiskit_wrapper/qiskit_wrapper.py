@@ -57,7 +57,7 @@ def optimize_qasm(input_qasm, optimization, enable_sabre = False, enable_mirage 
     # Convert the optimized circuit back to QASM
     optimized_qasm = transpiled_circuit.qasm()
 
-    print(optimized_qasm)
+    # print(optimized_qasm)
 
     return optimized_qasm
 

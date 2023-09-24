@@ -61,11 +61,11 @@ def update_result_detail_status(detail_id, new_status):
     except Exception as e:
         print("An error occurred:", str(e))
 
-def check_result_availability(detail_id, job_id):
+def check_result_availability(service, detail_id, job_id):
     print('')
     print("Checking results for: ", job_id)
     try:
-        service = QiskitRuntimeService()
+        
         job = service.job(job_id)
 
         if(job.status() != JobStatus.DONE):
@@ -283,9 +283,10 @@ def get_metrics(detail_id, job_id):
 if __name__ == "__main__":
     pending_jobs = get_pending_jobs()
     print('Pending jobs: ', pending_jobs)
+    service = QiskitRuntimeService()
     for result in pending_jobs:
         detail_id, job_id = result
-        check_result_availability(detail_id, job_id)
+        check_result_availability(service, detail_id, job_id)
 
     executed_jobs = get_executed_jobs()
     print('Executed jobs', executed_jobs)
