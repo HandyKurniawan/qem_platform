@@ -40,6 +40,7 @@ class QEM:
         self.mysql_config = None
         self.header_id = None
         self.user_id = user_id
+        self.list_detail_id = {}
 
         self.load_account(token)
         self.set_circuit(qasm_source)
@@ -127,7 +128,12 @@ class QEM:
             updated_qasm = self.apply_qiskit(updated_qasm, qiskit_optimization_level, 
                                              enable_sabre=enable_sabre, enable_mirage=False, enable_send=False)
 
-        self.send_qasm_to_real_backend(updated_qasm)
+
+        detail_id = self._save_result_to_db(updated_qasm)
+
+        # save it to the list and run later
+        self.list_detail_id[detail_id] = updated_qasm
+
 
         return updated_qasm
         
@@ -154,7 +160,10 @@ class QEM:
         # print(updated_qasm)
 
         if enable_send:
-            self.send_qasm_to_real_backend(updated_qasm)
+            detail_id = self._save_result_to_db(updated_qasm)
+
+            # save it to the list and run later
+            self.list_detail_id[detail_id] = updated_qasm
         else:
             return updated_qasm
     
@@ -163,7 +172,10 @@ class QEM:
         updated_qasm = mirage_wrapper.optimize_qasm(
             self.qasm, self.hardware_name, qiskit_optimization_level)
 
-        self.send_qasm_to_real_backend(updated_qasm)
+        detail_id = self._save_result_to_db(updated_qasm)
+
+        # save it to the list and run later
+        self.list_detail_id[detail_id] = updated_qasm
 
     def apply_laura(self, laura_optimization = 2, qiskit_optimization_level = 0, enable_sabre = False, apply_qiskit = None):
         """
@@ -183,20 +195,26 @@ class QEM:
             updated_qasm = self.apply_qiskit(updated_qasm, qiskit_optimization_level, 
                                              enable_sabre=enable_sabre, enable_mirage=False, enable_send=False)
 
-        self.send_qasm_to_real_backend(updated_qasm)
+        detail_id = self._save_result_to_db(updated_qasm)
+
+        # save it to the list and run later
+        self.list_detail_id[detail_id] = updated_qasm
 
         return updated_qasm
     
     
-    def _save_result_to_db(self, job_id, updated_qasm):
+    def _save_result_to_db(self, updated_qasm):
         # Get the calling frame (frame of the caller)
-        caller_frame = inspect.currentframe().f_back.f_back
+        caller_frame = inspect.currentframe().f_back
         # Get the name of the calling function
         calling_function_name = caller_frame.f_code.co_name
         # Get the local variables (parameters) of the calling function
         calling_function_locals = caller_frame.f_locals
 
         now_time = datetime.now().strftime("%Y%m%d%H%M%S")
+
+        detail_id = None
+        job_id = None
 
         try:
             
@@ -263,86 +281,90 @@ class QEM:
             # with open("qasm_result/mirage", "w+") as file:
             #     file.write(updated_qasm)
 
+
+            return detail_id
+        
         except Exception as e:
             print(f"An error occurred: {str(e)}")
-        pass
+        
 
-    def send_qasm_to_real_backend(self, updated_qasm):
+        
 
-        if self.hardware_name != "ibmq_qasm_simulator":
-            time.sleep(15)
+    # def send_qasm_to_real_backend(self, detail_id, updated_qasm):
 
-        success = False
-        while not success:
-            try:
+    #     # if self.hardware_name != "ibmq_qasm_simulator":
+    #     #     time.sleep(15)
+
+    #     success = False
+    #     while not success:
+    #         try:
            
-                backend = None
-                if self.hardware_name != "ibmq_qasm_simulator":
-                    provider = IBMProvider(instance="ibm-q/open/main")
-                    backend = provider.get_backend(self.hardware_name)
-                else:
-                    # backend = Aer.get_backend('qasm_simulator')
-                    provider = IBMProvider(instance="ibm-q/open/main")
-                    backend = provider.get_backend(self.hardware_name)
+    #             backend = None
+    #             if self.hardware_name != "ibmq_qasm_simulator":
+    #                 provider = IBMProvider(instance="ibm-q/open/main")
+    #                 backend = provider.get_backend(self.hardware_name)
+    #             else:
+    #                 # backend = Aer.get_backend('qasm_simulator')
+    #                 provider = IBMProvider(instance="ibm-q/open/main")
+    #                 backend = provider.get_backend(self.hardware_name)
 
-                circuit = QuantumCircuit.from_qasm_str(updated_qasm)
-                shots = 8192
+    #             circuit = QuantumCircuit.from_qasm_str(updated_qasm)
+    #             shots = 8192
                 
-                # keeping the qasm before get transpiled
-                self.qasm_before_decomposed_final = circuit.qasm()
+    #             # keeping the qasm before get transpiled
+    #             self.qasm_before_decomposed_final = circuit.qasm()
 
-                # should i transpile before sending to the backend?
-                transpiled_circuit = transpile(circuit.decompose(), basis_gates=backend.basis_gates)
+    #             # should i transpile before sending to the backend?
+    #             transpiled_circuit = transpile(circuit.decompose(), basis_gates=backend.basis_gates)
 
-                job = execute(transpiled_circuit, backend=backend, shots=shots)
-                job_id = job.job_id()
+    #             job = execute(transpiled_circuit, backend=backend, shots=shots)
+    #             job_id = job.job_id()
 
-                success = True
+    #             success = True
 
-                # job_id = "bcd"
+    #             # job_id = "bcd"
 
-            except Exception as e:
-                print(f"An error occurred: {str(e)}. Will try again in 30 seconds...")
+    #         except Exception as e:
+    #             print(f"An error occurred: {str(e)}. Will try again in 30 seconds...")
 
-                for i in range(30, 0, -1):
-                    time.sleep(1)
-                    print(i)
+    #             for i in range(30, 0, -1):
+    #                 time.sleep(1)
+    #                 print(i)
 
-        if success:
-            self._save_result_to_db(job_id, updated_qasm)
+        
 
     def run(self):
         """
         
         """
-        for qiskit_opt in qiskit_optimization:
-            # print('{:15} = {}'.format(opt.name, opt.value))
-            print("running qiskit:qiskit_optimization_level={}, enable_sabre=False , enable_mirage=False..".format(qiskit_opt.value))
-            self.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=False , enable_mirage=False)
-            print("running qiskit:qiskit_optimization_level={}, enable_sabre=True , enable_mirage=False..".format(qiskit_opt.value))
-            self.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=True , enable_mirage=False)
-            print("running qiskit:qiskit_optimization_level={}, enable_sabre=False , enable_mirage=True..".format(qiskit_opt.value))
-            self.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=False, enable_mirage=True)
+        # for qiskit_opt in qiskit_optimization:
+        #     # print('{:15} = {}'.format(opt.name, opt.value))
+        #     print("running qiskit:qiskit_optimization_level={}, enable_sabre=False , enable_mirage=False..".format(qiskit_opt.value))
+        #     self.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=False , enable_mirage=False)
+        #     print("running qiskit:qiskit_optimization_level={}, enable_sabre=True , enable_mirage=False..".format(qiskit_opt.value))
+        #     self.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=True , enable_mirage=False)
+        #     print("running qiskit:qiskit_optimization_level={}, enable_sabre=False , enable_mirage=True..".format(qiskit_opt.value))
+        #     self.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=False, enable_mirage=True)
             
-        for qiskit_opt in qiskit_optimization:
-            print("running apply_mirage:qiskit_optimization_level={}, enable_mirage = 1..".format(qiskit_opt.value))
-            self.apply_mirage(qiskit_optimization_level=qiskit_opt.value, enable_mirage = 1)
+        # for qiskit_opt in qiskit_optimization:
+        #     print("running apply_mirage:qiskit_optimization_level={}, enable_mirage = 1..".format(qiskit_opt.value))
+        #     self.apply_mirage(qiskit_optimization_level=qiskit_opt.value, enable_mirage = 1)
 
-        # for triq_opt in triq_optimization:
-        #     for q in apply_qiskit_optimization:
-        #         if q.value is None:
-        #             print("running apply_triq:triq_optimization={}, qiskit_optimization_level=None, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, q.value ))
-        #             self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=None, enable_sabre=False, apply_qiskit=q.value)
-        #         else:
-        #             for qiskit_opt in qiskit_optimization:
-        #                 # if (qiskit_opt.value == 3 and q.value == "before"):
-        #                 #     continue
+        for triq_opt in triq_optimization:
+            for q in apply_qiskit_optimization:
+                if q.value is None:
+                    print("running apply_triq:triq_optimization={}, qiskit_optimization_level=None, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, q.value ))
+                    self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=None, enable_sabre=False, apply_qiskit=q.value)
+                else:
+                    for qiskit_opt in qiskit_optimization:
+                        # if (qiskit_opt.value == 3 and q.value == "before"):
+                        #     continue
 
-        #                 print("running apply_triq:triq_optimization={}, qiskit_optimization_level={}, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, qiskit_opt.value, q.value ))
-        #                 self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=qiskit_opt.value, enable_sabre=False, apply_qiskit=q.value)
+                        print("running apply_triq:triq_optimization={}, qiskit_optimization_level={}, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, qiskit_opt.value, q.value ))
+                        self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=qiskit_opt.value, enable_sabre=False, apply_qiskit=q.value)
 
-        #                 print("running apply_triq:triq_optimization={}, qiskit_optimization_level={}, enable_sabre=True, apply_qiskit={}..".format(triq_opt.value, qiskit_opt.value, q.value ))
-        #                 self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=qiskit_opt.value, enable_sabre=True, apply_qiskit=q.value)
+                        print("running apply_triq:triq_optimization={}, qiskit_optimization_level={}, enable_sabre=True, apply_qiskit={}..".format(triq_opt.value, qiskit_opt.value, q.value ))
+                        self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=qiskit_opt.value, enable_sabre=True, apply_qiskit=q.value)
 
         # for q in apply_qiskit_optimization:
         #     if q.value is None:
@@ -387,8 +409,16 @@ if __name__ == "__main__":
         circuit_name = i.split("/")[-1].split(".")[0]
         print("========== {}  ===========".format(circuit_name))
         q = None
-        q = QEM(token, qasm_source, hardware_name, circuit_name, 4)
+        q = QEM(token, qasm_source, hardware_name, circuit_name, 99)
         q.run()
+        # q.apply_triq(triq_optimization=2, qiskit_optimization_level=1, enable_sabre=True , apply_qiskit="before") 
+
+        # Send to backend
+
+        # for id, updated_qasm in q.list_detail_id.items():
+        #     print(id, updated_qasm)
+            
+
         # q.apply_triq(triq_optimization=0, qiskit_optimization_level=1, enable_sabre=False , apply_qiskit="before")
 
         # break
