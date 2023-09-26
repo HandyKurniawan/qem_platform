@@ -40,6 +40,8 @@ def send_qasm_to_real_backend(hardware_name):
     for res in results:
         detail_id, updated_qasm = res
 
+        print("Sending to {} with detail id: {} ... ".format(hardware_name, detail_id))
+
         success = False
         while not success:
             try:
@@ -65,6 +67,8 @@ def send_qasm_to_real_backend(hardware_name):
                 cursor.execute('UPDATE calibration_data.result_updated_qasm SET qasm_before_decomposed_final= %s WHERE id = %s', (qasm_before_decomposed_final, detail_id))
                 # job_id = "bcd"
 
+                conn.commit()
+
             except Exception as e:
                 print(f"An error occurred: {str(e)}. Will try again in 30 seconds...")
 
@@ -73,11 +77,13 @@ def send_qasm_to_real_backend(hardware_name):
                     print(i)
 
 
-    conn.commit()
+    
     cursor.close()
     conn.close()
 
 if __name__ == "__main__":
-    send_qasm_to_real_backend("ibm_perth")
+    # send_qasm_to_real_backend("ibm_perth")
+    # send_qasm_to_real_backend("ibm_perth")
+    send_qasm_to_real_backend("ibmq_qasm_simulator")
 
     

@@ -1,0 +1,2 @@
+scp -i ~/.ssh/"calibration.pem" ec2-user@ec2-34-228-189-223.compute-1.amazonaws.com:~/calibration/scheduler.py .
+scp -i ~/.ssh/"calibration.pem" ec2-user@ec2-34-228-189-223.compute-1.amazonaws.com:~/dashboard-v2/streamlit_app.py .

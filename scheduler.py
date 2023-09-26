@@ -12,6 +12,7 @@ from qiskit_ibm_runtime import QiskitRuntimeService
 from qiskit.providers import JobStatus
 
 MY_TOKEN = "be81173902a0621551ef756bf79487c1d3c8d9860521a72758f60179feaa83ffa7d6ec24ecdf8a60acae47c1c94964dda78c278607152303cfd0a950c1cac22e"
+# MY_TOKEN = "3efc1f6d5ced29bfa09060c23d32577dc5346087b8b86052cb5479652653a45a1698bec0a0ad45cd9ab255d12d8f5b47c3c1b154edab4ec6e66c52a9428a8905"
 IBMProvider.save_account(MY_TOKEN,overwrite=True )
 provider = IBMProvider()
 backend = provider.get_backend("ibm_perth")
@@ -21,7 +22,7 @@ service = QiskitRuntimeService()
 mysql_config = {
     'user': 'handy',
     'password': 'handy',
-    'host': 'ec2-52-90-68-169.compute-1.amazonaws.com',
+    'host': 'ec2-34-228-189-223.compute-1.amazonaws.com',
     'database': 'calibration_data'
 }
 
@@ -33,9 +34,10 @@ def get_pending_jobs():
     try:
         conn = mysql.connector.connect(**mysql_config)
         cursor = conn.cursor()
-        #cursor.execute('SELECT id, job_id FROM calibration_data.result_detail WHERE status = %s', ('pending', ))
+        # cursor.execute('SELECT id, job_id FROM calibration_data.result_detail WHERE status = %s LIMIT 0 , 500 ' , ('pending', ))
+        cursor.execute('SELECT id, job_id FROM calibration_data.result_detail WHERE status = %s AND user_id = 99 LIMIT 0 , 500 ' , ('pending', ))
 
-        cursor.execute('SELECT id, job_id FROM calibration_data.result_detail WHERE status = %s AND header_id = %s', ('pending', 78, ))
+        #cursor.execute('SELECT id, job_id FROM calibration_data.result_detail WHERE status = %s AND header_id = %s LIMIT 0, 100 ', ('pending', 26, ))
         results = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -65,11 +67,17 @@ def check_result_availability(service, detail_id, job_id):
     print('')
     print("Checking results for: ", job_id)
     try:
-        
+        # service = QiskitRuntimeService()
         job = service.job(job_id)
 
-        if(job.status() != JobStatus.DONE):
+        # print(job.status())
+
+        if(job.status() == JobStatus.ERROR):
+            update_result_detail_status(detail_id, "error")
             return
+
+        if(job.status() != JobStatus.DONE):
+            return 10
 
         result_dict = job.result().to_dict()
         result_json = json.dumps(result_dict, default=str)
@@ -88,11 +96,13 @@ def check_result_availability(service, detail_id, job_id):
             conn.close()
             update_result_detail_status(detail_id, 'executed')
 
+            return 1
+
         except Exception as e:
             print("An error occurred:", str(e))
 
     except Exception as e:
-        print("Result not available yet")
+        print("Result not available yet", str(e))
 
 def get_executed_jobs():
     '''
@@ -280,16 +290,26 @@ def get_metrics(detail_id, job_id):
         print("An error occurred:", str(e))
 
     
+
+
+    
 if __name__ == "__main__":
     pending_jobs = get_pending_jobs()
     print('Pending jobs: ', pending_jobs)
     service = QiskitRuntimeService()
     for result in pending_jobs:
         detail_id, job_id = result
-        check_result_availability(service, detail_id, job_id)
+        status = check_result_availability(service, detail_id, job_id)
+        # print(status, job_id)
+
+        if (status == 10):
+            break
 
     executed_jobs = get_executed_jobs()
     print('Executed jobs', executed_jobs)
     for result in executed_jobs:
         detail_id, job_id = result
-        get_metrics(detail_id, job_id)
+        try:
+             get_metrics(detail_id, job_id)
+        except Exception as e:
+             print("Error metric:", str(e))

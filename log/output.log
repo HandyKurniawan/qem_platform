@@ -1,4 +1,4 @@
-Reading ./20230924195445.in
+Reading ./20230925120127.in
 Running CompileRevSwaps
 Read reliability
 
@@ -13,3 +13,250 @@ Best option: Move 0 to 0 and 2 to 1	Total cost for this path: 0.0353633
 
 Path for qubits 2 and 0
 Best option: Move 2 to 1 and 0 to 0	Total cost for this path: 0.0353633
+
+Path for qubits 0 and 3
+Best option: Move 0 to 1 and 3 to 3	Total cost for this path: 2.35713
+
+Path for qubits 3 and 0
+Best option: Move 3 to 3 and 0 to 1	Total cost for this path: 2.35713
+
+Path for qubits 0 and 4
+Best option: Move 0 to 1 and 4 to 3	Total cost for this path: 2.42672
+
+Path for qubits 4 and 0
+Best option: Move 4 to 3 and 0 to 1	Total cost for this path: 2.42672
+
+Path for qubits 0 and 5
+Best option: Move 0 to 1 and 5 to 3	Total cost for this path: 2.38534
+
+Path for qubits 5 and 0
+Best option: Move 5 to 3 and 0 to 1	Total cost for this path: 2.38534
+
+Path for qubits 0 and 6
+Best option: Move 0 to 1 and 6 to 3	Total cost for this path: 2.43104
+
+Path for qubits 6 and 0
+Best option: Move 6 to 3 and 0 to 1	Total cost for this path: 2.43104
+
+Path for qubits 1 and 0
+Best option: Move 1 to 1 and 0 to 0	Total cost for this path: 0.0139874
+
+Path for qubits 0 and 1
+Best option: Move 0 to 0 and 1 to 1	Total cost for this path: 0.0139874
+
+Path for qubits 1 and 2
+Best option: Move 1 to 1 and 2 to 2	Total cost for this path: 0.00712531
+
+Path for qubits 2 and 1
+Best option: Move 2 to 2 and 1 to 1	Total cost for this path: 0.00712531
+
+Path for qubits 1 and 3
+Best option: Move 1 to 1 and 3 to 3	Total cost for this path: 2.31516
+
+Path for qubits 3 and 1
+Best option: Move 3 to 3 and 1 to 1	Total cost for this path: 2.31516
+
+Path for qubits 1 and 4
+Best option: Move 1 to 1 and 4 to 3	Total cost for this path: 2.38476
+
+Path for qubits 4 and 1
+Best option: Move 4 to 3 and 1 to 1	Total cost for this path: 2.38476
+
+Path for qubits 1 and 5
+Best option: Move 1 to 1 and 5 to 3	Total cost for this path: 2.34338
+
+Path for qubits 5 and 1
+Best option: Move 5 to 3 and 1 to 1	Total cost for this path: 2.34338
+
+Path for qubits 1 and 6
+Best option: Move 1 to 1 and 6 to 3	Total cost for this path: 2.38908
+
+Path for qubits 6 and 1
+Best option: Move 6 to 3 and 1 to 1	Total cost for this path: 2.38908
+
+Path for qubits 2 and 0
+Best option: Move 2 to 1 and 0 to 0	Total cost for this path: 0.0353633
+
+Path for qubits 0 and 2
+Best option: Move 0 to 0 and 2 to 1	Total cost for this path: 0.0353633
+
+Path for qubits 2 and 1
+Best option: Move 2 to 2 and 1 to 1	Total cost for this path: 0.00712531
+
+Path for qubits 1 and 2
+Best option: Move 1 to 1 and 2 to 2	Total cost for this path: 0.00712531
+
+Path for qubits 2 and 3
+Best option: Move 2 to 1 and 3 to 3	Total cost for this path: 2.33654
+
+Path for qubits 3 and 2
+Best option: Move 3 to 3 and 2 to 1	Total cost for this path: 2.33654
+
+Path for qubits 2 and 4
+Best option: Move 2 to 1 and 4 to 3	Total cost for this path: 2.40614
+
+Path for qubits 4 and 2
+Best option: Move 4 to 3 and 2 to 1	Total cost for this path: 2.40614
+
+Path for qubits 2 and 5
+Best option: Move 2 to 1 and 5 to 3	Total cost for this path: 2.36475
+
+Path for qubits 5 and 2
+Best option: Move 5 to 3 and 2 to 1	Total cost for this path: 2.36475
+
+Path for qubits 2 and 6
+Best option: Move 2 to 1 and 6 to 3	Total cost for this path: 2.41046
+
+Path for qubits 6 and 2
+Best option: Move 6 to 3 and 2 to 1	Total cost for this path: 2.41046
+
+Path for qubits 3 and 0
+Best option: Move 3 to 3 and 0 to 1	Total cost for this path: 2.35713
+
+Path for qubits 0 and 3
+Best option: Move 0 to 1 and 3 to 3	Total cost for this path: 2.35713
+
+Path for qubits 3 and 1
+Best option: Move 3 to 3 and 1 to 1	Total cost for this path: 2.31516
+
+Path for qubits 1 and 3
+Best option: Move 1 to 1 and 3 to 3	Total cost for this path: 2.31516
+
+Path for qubits 3 and 2
+Best option: Move 3 to 3 and 2 to 1	Total cost for this path: 2.33654
+
+Path for qubits 2 and 3
+Best option: Move 2 to 1 and 3 to 3	Total cost for this path: 2.33654
+
+Path for qubits 3 and 4
+Best option: Move 3 to 5 and 4 to 4	Total cost for this path: 0.042007
+
+Path for qubits 4 and 3
+Best option: Move 4 to 4 and 3 to 5	Total cost for this path: 0.042007
+
+Path for qubits 3 and 5
+Best option: Move 3 to 3 and 5 to 5	Total cost for this path: 0.0094041
+
+Path for qubits 5 and 3
+Best option: Move 5 to 5 and 3 to 3	Total cost for this path: 0.0094041
+
+Path for qubits 3 and 6
+Best option: Move 3 to 5 and 6 to 6	Total cost for this path: 0.0434478
+
+Path for qubits 6 and 3
+Best option: Move 6 to 6 and 3 to 5	Total cost for this path: 0.0434478
+
+Path for qubits 4 and 0
+Best option: Move 4 to 3 and 0 to 1	Total cost for this path: 2.42672
+
+Path for qubits 0 and 4
+Best option: Move 0 to 1 and 4 to 3	Total cost for this path: 2.42672
+
+Path for qubits 4 and 1
+Best option: Move 4 to 3 and 1 to 1	Total cost for this path: 2.38476
+
+Path for qubits 1 and 4
+Best option: Move 1 to 1 and 4 to 3	Total cost for this path: 2.38476
+
+Path for qubits 4 and 2
+Best option: Move 4 to 3 and 2 to 1	Total cost for this path: 2.40614
+
+Path for qubits 2 and 4
+Best option: Move 2 to 1 and 4 to 3	Total cost for this path: 2.40614
+
+Path for qubits 4 and 3
+Best option: Move 4 to 4 and 3 to 5	Total cost for this path: 0.042007
+
+Path for qubits 3 and 4
+Best option: Move 3 to 5 and 4 to 4	Total cost for this path: 0.042007
+
+Path for qubits 4 and 5
+Best option: Move 4 to 4 and 5 to 5	Total cost for this path: 0.0137947
+
+Path for qubits 5 and 4
+Best option: Move 5 to 5 and 4 to 4	Total cost for this path: 0.0137947
+
+Path for qubits 4 and 6
+Best option: Move 4 to 5 and 6 to 6	Total cost for this path: 0.0566196
+
+Path for qubits 6 and 4
+Best option: Move 6 to 6 and 4 to 5	Total cost for this path: 0.0566196
+
+Path for qubits 5 and 0
+Best option: Move 5 to 3 and 0 to 1	Total cost for this path: 2.38534
+
+Path for qubits 0 and 5
+Best option: Move 0 to 1 and 5 to 3	Total cost for this path: 2.38534
+
+Path for qubits 5 and 1
+Best option: Move 5 to 3 and 1 to 1	Total cost for this path: 2.34338
+
+Path for qubits 1 and 5
+Best option: Move 1 to 1 and 5 to 3	Total cost for this path: 2.34338
+
+Path for qubits 5 and 2
+Best option: Move 5 to 3 and 2 to 1	Total cost for this path: 2.36475
+
+Path for qubits 2 and 5
+Best option: Move 2 to 1 and 5 to 3	Total cost for this path: 2.36475
+
+Path for qubits 5 and 3
+Best option: Move 5 to 5 and 3 to 3	Total cost for this path: 0.0094041
+
+Path for qubits 3 and 5
+Best option: Move 3 to 3 and 5 to 5	Total cost for this path: 0.0094041
+
+Path for qubits 5 and 4
+Best option: Move 5 to 5 and 4 to 4	Total cost for this path: 0.0137947
+
+Path for qubits 4 and 5
+Best option: Move 4 to 4 and 5 to 5	Total cost for this path: 0.0137947
+
+Path for qubits 5 and 6
+Best option: Move 5 to 5 and 6 to 6	Total cost for this path: 0.0152355
+
+Path for qubits 6 and 5
+Best option: Move 6 to 6 and 5 to 5	Total cost for this path: 0.0152355
+
+Path for qubits 6 and 0
+Best option: Move 6 to 3 and 0 to 1	Total cost for this path: 2.43104
+
+Path for qubits 0 and 6
+Best option: Move 0 to 1 and 6 to 3	Total cost for this path: 2.43104
+
+Path for qubits 6 and 1
+Best option: Move 6 to 3 and 1 to 1	Total cost for this path: 2.38908
+
+Path for qubits 1 and 6
+Best option: Move 1 to 1 and 6 to 3	Total cost for this path: 2.38908
+
+Path for qubits 6 and 2
+Best option: Move 6 to 3 and 2 to 1	Total cost for this path: 2.41046
+
+Path for qubits 2 and 6
+Best option: Move 2 to 1 and 6 to 3	Total cost for this path: 2.41046
+
+Path for qubits 6 and 3
+Best option: Move 6 to 6 and 3 to 5	Total cost for this path: 0.0434478
+
+Path for qubits 3 and 6
+Best option: Move 3 to 5 and 6 to 6	Total cost for this path: 0.0434478
+
+Path for qubits 6 and 4
+Best option: Move 6 to 6 and 4 to 5	Total cost for this path: 0.0566196
+
+Path for qubits 4 and 6
+Best option: Move 4 to 5 and 6 to 6	Total cost for this path: 0.0566196
+
+Path for qubits 6 and 5
+Best option: Move 6 to 6 and 5 to 5	Total cost for this path: 0.0152355
+
+Path for qubits 5 and 6
+Best option: Move 5 to 5 and 6 to 6	Total cost for this path: 0.0152355
+Qubit Mapping
+(0,3)
+(1,5)
+(2,6)
+Best reliab:0.781279
+Num CX:18
+Done!

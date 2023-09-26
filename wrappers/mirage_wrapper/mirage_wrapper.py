@@ -9,9 +9,9 @@ Functions:
 
 Example:
 """
-from qiskit import QuantumCircuit, transpile, Aer
+from qiskit import QuantumCircuit, transpile
 # from qiskit.circuit.library import iSwapGate
-# from qiskit.transpiler import CouplingMap
+from qiskit.transpiler import CouplingMap
 from mirror_gates.pass_managers import Mirage, QiskitLevel3
 # from mirror_gates.utilities import SubsMetric
 from qiskit_ibm_provider import IBMProvider
@@ -22,6 +22,7 @@ def optimize_qasm(input_qasm, hardware_name, optimization):
     circuit = QuantumCircuit.from_qasm_str(input_qasm)
     backend = None
     success = False
+    coupling_map = None
     while not success:
         try:
 
@@ -29,10 +30,13 @@ def optimize_qasm(input_qasm, hardware_name, optimization):
             if hardware_name != "ibmq_qasm_simulator":
                 provider = IBMProvider(instance="ibm-q/open/main")
                 backend = provider.get_backend(hardware_name)
+                coupling_map = backend.coupling_map
             else:
                 # backend = Aer.get_backend('qasm_simulator')
                 provider = IBMProvider(instance="ibm-q/open/main")
                 backend = provider.get_backend(hardware_name)
+                # copy from ibm_perth
+                coupling_map = CouplingMap([[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 5], [4, 5], [5, 3], [5, 4], [5, 6], [6, 5]])
 
             success = True
 
@@ -44,7 +48,7 @@ def optimize_qasm(input_qasm, hardware_name, optimization):
                 print(i)
 
     mirage = Mirage(
-                backend.coupling_map,
+                coupling_map,
                 cx_basis=0,
                 cost_function="depth",
                 anneal_routing=True,
