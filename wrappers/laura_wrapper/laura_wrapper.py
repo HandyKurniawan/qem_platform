@@ -53,6 +53,9 @@ def run(qasm_str, hardware_name):
         hardware_name:
         triq_optimization:
     """
+    tmp_hw_name = hardware_name
+    if hardware_name == "ibmq_qasm_simulator":
+        tmp_hw_name = "ibm_perth"
 
     triq_path = os.path.expanduser("~/qem_platform/wrappers/laura_wrapper/")
     out_path = os.path.expanduser("./")
@@ -78,7 +81,7 @@ def run(qasm_str, hardware_name):
     # call triq
     call_triq = [os.path.join(triq_path, "laura"), 
                 dag_file_path, 
-                out_file_path, hardware_name, "2"]
+                out_file_path, tmp_hw_name, "2"]
     # print(call_triq)
     # sp.call(call_triq, stdout=out_file)
     # Run the command and wait for it to complete

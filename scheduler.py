@@ -289,10 +289,6 @@ def get_metrics(detail_id, job_id):
     except Exception as e:
         print("An error occurred:", str(e))
 
-    
-
-
-    
 if __name__ == "__main__":
     pending_jobs = get_pending_jobs()
     print('Pending jobs: ', pending_jobs)

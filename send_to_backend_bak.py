@@ -2,6 +2,8 @@ from qiskit import Aer, execute, QuantumCircuit, transpile
 from qiskit_ibm_provider import IBMProvider
 import mysql.connector
 import time
+from qiskit.assembler import assemble_circuits
+from qiskit.assembler.run_config import RunConfig
 
 # MySQL connection parameters
 mysql_config = {
@@ -33,7 +35,7 @@ def send_qasm_to_real_backend(hardware_name):
     conn = mysql.connector.connect(**mysql_config)
     cursor = conn.cursor()
             
-    cursor.execute('SELECT detail_id, updated_qasm FROM calibration_data.result WHERE job_id IS NULL')
+    cursor.execute('SELECT header_id, detail_id, updated_qasm FROM calibration_data.result WHERE job_id IS NULL')
     results = cursor.fetchall()
 
     backend = None
@@ -45,35 +47,45 @@ def send_qasm_to_real_backend(hardware_name):
         provider = IBMProvider(instance="ibm-q/open/main")
         backend = provider.get_backend(hardware_name)
 
+    shots = 8192
+    qc_dict = {}
+    qc_list = []
+    tmp_header_id = 0
     for res in results:
-        detail_id, updated_qasm = res
+        header_id, detail_id, updated_qasm = res
+        
+        if tmp_header_id == 0 or header_id != tmp_header_id:
+            qc_dict[header_id] = [] 
 
-        print("Sending to {} with detail id: {} ... ".format(hardware_name, detail_id))
+
+        print("Sending to {} with header id: {}, detail id: {} ... ".format(hardware_name, header_id, detail_id))
 
         success = False
         while not success:
             try:
             
                 circuit = QuantumCircuit.from_qasm_str(updated_qasm)
-                shots = 8192
+                
                 
                 # keeping the qasm before get transpiled
                 qasm_before_decomposed_final = circuit.qasm()
 
                 # should i transpile before sending to the backend?
                 transpiled_circuit = transpile(circuit.decompose(), basis_gates=backend.basis_gates)
+                transpiled_circuit.name = detail_id
 
-                job = execute(transpiled_circuit, backend=backend, shots=shots)
-                job_id = job.job_id()
+                qc_dict[header_id].append(transpiled_circuit)
+
+                
 
                 success = True
 
-                # update to result detail
-                cursor.execute('UPDATE calibration_data.result_detail SET job_id= %s WHERE id = %s', (job_id, detail_id))
+                # # update to result detail
+                # cursor.execute('UPDATE calibration_data.result_detail SET job_id= %s WHERE id = %s', (job_id, detail_id))
 
-                # update to result updated qasm
-                cursor.execute('UPDATE calibration_data.result_updated_qasm SET qasm_before_decomposed_final= %s WHERE id = %s', (qasm_before_decomposed_final, detail_id))
-                # job_id = "bcd"
+                # # update to result updated qasm
+                # cursor.execute('UPDATE calibration_data.result_updated_qasm SET qasm_before_decomposed_final= %s WHERE id = %s', (qasm_before_decomposed_final, detail_id))
+                # # job_id = "bcd"
 
                 conn.commit()
 
@@ -84,13 +96,28 @@ def send_qasm_to_real_backend(hardware_name):
                     time.sleep(1)
                     print(i)
 
+        tmp_header_id = header_id
 
+    header = {"backend_name": hardware_name, "backend_version": "0.0.0"}
+    for header_id, qc_list in qc_dict.items():
+        print(header_id, len(qc_list))
+
+        # Assemble a Qobj from the input circuit
+        qobj = assemble_circuits(circuits=qc_list,
+                qobj_id=header_id,
+                qobj_header=header,
+                run_config=RunConfig(shots=8192, memory=True, init_qubits=True))
+    
+        # job = execute(qobj, backend=backend, shots=shots)
+        job = backend.run(qobj)
+        job_id = job.job_id()
+
+        print(job_id)
     
     cursor.close()
     conn.close()
 
 if __name__ == "__main__":
-    # send_qasm_to_real_backend("ibm_perth")
     # send_qasm_to_real_backend("ibm_perth")
     send_qasm_to_real_backend("ibmq_qasm_simulator")
 
