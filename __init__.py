@@ -1,6 +1,6 @@
 """This is the main module of the project."""
-from qem import QEM
+from qem_platform.qEmQUIP import qEmQUIP
 
 __all__ = [
-    "QEM"
+    "qEmQUIP"
 ]

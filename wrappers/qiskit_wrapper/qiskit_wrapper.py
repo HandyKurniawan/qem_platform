@@ -26,6 +26,7 @@ def optimize_qasm(input_qasm, optimization, enable_sabre = False, enable_mirage 
 
         # Transpile and optimize the circuit
         transpiled_circuit = transpile(circuit, 
+                                       
                                    optimization_level=optimization,
                                    routing_method=routing_method,
                                    layout_method=layout_method,

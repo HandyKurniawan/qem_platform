@@ -1,0 +1,9 @@
+suite: benchmark.suites.adder
+provider: ibm-q.open.main
+hardware: ibm_perth
+times: 10
+shots: 8192
+pass managers:
+  - qiskit.transpiler.preset_passmanagers:level_3_pass_manager
+fields:
+  - successful_rate
