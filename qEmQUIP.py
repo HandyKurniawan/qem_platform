@@ -17,37 +17,19 @@ import wrappers.laura_wrapper as laura_wrapper
 import sys, glob, os
 from commons import convert_to_json, triq_optimization, qiskit_optimization, apply_qiskit_optimization, read_file
 import inspect
-from qiskit import Aer, execute, QuantumCircuit, transpile
+from qiskit import Aer, QuantumCircuit, transpile
 from qiskit_ibm_provider import IBMProvider
+from qiskit_ibm_runtime import QiskitRuntimeService, Session, Sampler, Estimator, Options
+from qiskit_aer.noise import NoiseModel
+
 from datetime import datetime
 import mysql.connector
 import time
 
 
-class QEM:
-    def __init__(self, token, qasm_source, hardware_name = "qasm_simulator", circuit_name = "circuit", user_id = 99):
-        self.hardware_name = hardware_name
-        self.circuit_name = circuit_name
-        self.qasm = None 
-        self.qiskit_qasm = None
-        self.qasm_before_decomposed_final = None
-        self.circuit:QuantumCircuit = None       
-        self.qiskit_token = None
-        self.correct_output = None
-        self.total_gate = None
-        self.gates = None
-        self.depth = None
-        self.mysql_config = None
-        self.header_id = None
-        self.user_id = user_id
-        self.list_detail_id = {}
-
-        self.load_account(token)
-        self.set_circuit(qasm_source)
-
-    def set_circuit(self, qasm):
+class QiskitCircuit:
+    def __init__(self, qasm, name = None, metadata = {}):
         qc = None
-
         if isinstance(qasm, str):
             try:
                 qc = QuantumCircuit.from_qasm_file(qasm)
@@ -60,9 +42,64 @@ class QEM:
         if not (isinstance(qasm, str) or isinstance(qc, QuantumCircuit)):
             raise ValueError("Input must be a string or a QuantumCircuit object")
         
-        self.qasm = qc.qasm()
+        
         self.circuit = qc
+        self.qasm = qc.qasm()
+        self.circuit.name = name
+        self.circuit.metadata = metadata
+
+    def get_native_gates_circuit(self, backend):
+        return transpile(self.circuit.decompose(), backend, basis_gates=backend.basis_gates, optimization_level=0)
+    
+    def get_qasm(self):
+        return self.qasm
+
+class QEM:
+    def __init__(self, token, qasm_source, shots=8192, runs=2, run_in_simulator = False, hardware_name = "ibmq_qasm_simulator", circuit_name = "circuit", user_id = 99):
+        self.run_in_simulator = run_in_simulator
+        self.hardware_name = hardware_name
+        self.session = None
+        self.provider = None
+        self.backend = None
+        self.sampler = None
+
+        self.circuit_name = circuit_name
+
+        self.mysql_config = None
+        self.qiskit_token = None
+
+        self.qasm = None 
+        self.qiskit_qasm = None
+        self.qasm_before_decomposed_final = None
+        
+        self.shots = shots
+        self.runs = runs
+        self.correct_output = None
+        self.total_gate = None
+        self.gates = None
+        self.depth = None
+        
+        self.header_id = None
+        self.user_id = user_id
+        self.list_detail_id = {}
+
+        self.load_account(token)
+
+        self.initial_circuit = QiskitCircuit(qasm_source, name="initial circuit")
+
+        self.set_variables()
+        self.init_result_header(qasm_source)
+        self.set_sampler_options()
+
+    def set_variables(self):
+        self.qasm = self.initial_circuit.qasm
+        
+        qc = self.initial_circuit.circuit
         self.total_gate = sum(qc.count_ops().values())
+
+        # set backend
+        self.provider = IBMProvider(token=self.qiskit_token)
+        self.backend = self.provider.get_backend(self.hardware_name)
 
         backend_sim = Aer.get_backend('qasm_simulator')
         job_sim = backend_sim.run(transpile(qc, backend_sim), shots=8192)
@@ -72,6 +109,32 @@ class QEM:
         self.gates = dict(qc.count_ops())
         self.depth = qc.depth()
 
+    def set_sampler_options(self):
+        service = QiskitRuntimeService()
+        backend_service = service.get_backend(self.hardware_name)
+        backend_sim = service.get_backend("ibmq_qasm_simulator")
+        noise_model = NoiseModel.from_backend(backend_service)
+
+        options = Options()
+        options.simulator = {
+            "noise_model": noise_model,
+            "basis_gates": backend_service.configuration().basis_gates,
+            "coupling_map": backend_service.configuration().coupling_map
+        }
+        # Set number of shots, optimization_level and resilience_level
+        options.execution.shots = self.shots
+        options.optimization_level = 0
+        options.resilience_level = 1
+
+        if (self.run_in_simulator):            
+            self.session = Session(service=service, backend=backend_sim, max_time="25m")
+            self.sampler = Sampler(backend_sim, options=options, session=self.session) 
+        else:
+            self.session = Session(service=service, backend=backend_sim, max_time="25m")
+            self.sampler = Sampler(backend_sim, options=options, session=self.session) 
+
+    def init_result_header(self, qasm):
+        
         # Connect to the MySQL database
         conn = mysql.connector.connect(**self.mysql_config)
         cursor = conn.cursor()
@@ -103,8 +166,8 @@ class QEM:
 
         self.qiskit_token = token
 
-        # Save account credentials.
-        IBMProvider.save_account(token=token, overwrite=True)
+        # # Save account credentials.
+        # IBMProvider.save_account(token=token, overwrite=True)
 
     def apply_triq(self, triq_optimization, qiskit_optimization_level = 0, enable_sabre = False, apply_qiskit = None):
         """
@@ -157,7 +220,7 @@ class QEM:
         # print(updated_qasm)
 
         updated_qasm = qiskit_wrapper.optimize_qasm(
-            updated_qasm, qiskit_optimization_level, enable_sabre=enable_sabre, enable_mirage=enable_mirage)
+            updated_qasm, self.backend, qiskit_optimization_level, enable_sabre=enable_sabre, enable_mirage=enable_mirage)
 
         # print("after qiskit")
         # print(updated_qasm)
@@ -284,48 +347,66 @@ class QEM:
         # Connect to the MySQL database
         conn = mysql.connector.connect(**self.mysql_config)
         cursor = conn.cursor()
+
+        if self.run_in_simulator:
+            self.provider = IBMProvider(token=self.qiskit_token)
+            self.backend = self.provider.get_backend("ibmq_qasm_simulator")
                 
-        cursor.execute('SELECT detail_id, updated_qasm FROM calibration_data.result WHERE job_id IS NULL')
-        results = cursor.fetchall()
+        cursor.execute('''SELECT distinct header_id FROM calibration_data.result WHERE job_id IS NULL''')
+        results_1 = cursor.fetchall()
 
-        backend = None
-        if self.hardware_name != "ibmq_qasm_simulator":
-            provider = IBMProvider(instance="ibm-q/open/main")
-            backend = provider.get_backend(self.hardware_name)
-        else:
-            # backend = Aer.get_backend('qasm_simulator')
-            provider = IBMProvider(instance="ibm-q/open/main")
-            backend = provider.get_backend(self.hardware_name)
+        for res_1 in results_1:
+            header_id = res_1[0]
 
-        for res in results:
-            detail_id, updated_qasm = res
+            cursor.execute('''SELECT detail_id, updated_qasm, qiskit_optimization, apply_qiskit, triq_optimization,
+                        sabre, mirage, laura_optimization 
+                        FROM calibration_data.result 
+                        WHERE header_id = %s AND job_id IS NULL''', (header_id,))
+            results = cursor.fetchall()
 
-            print("Sending to {} with detail id: {} ... ".format(self.hardware_name, detail_id))
 
-            success = False
+            list_circuits = []
+
+            for res in results:
+                detail_id, updated_qasm, qiskit_optimization, apply_qiskit, triq_optimization,\
+                        sabre, mirage, laura_optimization = res
+
+                
+                metadata = {"qiskit_optimization":qiskit_optimization,
+                            "apply_qiskit":apply_qiskit,
+                            "triq_optimization":triq_optimization,
+                            "sabre":sabre,
+                            "mirage":mirage,
+                            "laura_optimization":laura_optimization,
+                            "header_id": self.header_id,
+                            "detail_id":detail_id
+                            }
+
+                success = False
+                qc = QiskitCircuit(updated_qasm, name=self.circuit_name + "-" + str(detail_id), metadata=metadata)
+                circuit = qc.get_native_gates_circuit(self.backend)
+
+                for i in range(self.runs):
+                    list_circuits.append(circuit)
+                
+
             while not success:
                 try:
-                
-                    circuit = QuantumCircuit.from_qasm_str(updated_qasm)
-                    shots = 8192
-                    
-                    # keeping the qasm before get transpiled
-                    qasm_before_decomposed_final = circuit.qasm()
 
-                    # should i transpile before sending to the backend?
-                    transpiled_circuit = transpile(circuit.decompose(), basis_gates=backend.basis_gates, optimization_level=0)
+                    print("Sending to {} with batch id: {} ... ".format(self.hardware_name, header_id))
 
-                    job = execute(transpiled_circuit, backend=backend, shots=shots)
-                    job_id = job.job_id()
+                    job, job_id = None, None
+                    if self.run_in_simulator:
+                        job = self.sampler.run(list_circuits, shots=self.shots)
+                        job_id = job.job_id()
+                    else:
+                        job = self.backend.run(list_circuits, shots=self.shots)
+                        job_id = job.job_id()
 
                     success = True
 
                     # update to result detail
-                    cursor.execute('UPDATE calibration_data.result_detail SET job_id= %s WHERE id = %s', (job_id, detail_id))
-
-                    # update to result updated qasm
-                    cursor.execute('UPDATE calibration_data.result_updated_qasm SET qasm_before_decomposed_final= %s WHERE id = %s', (qasm_before_decomposed_final, detail_id))
-                    # job_id = "bcd"
+                    cursor.execute('UPDATE calibration_data.result_detail SET job_id= %s WHERE header_id = %s', (job_id, self.header_id))
 
                     conn.commit()
 
@@ -335,6 +416,7 @@ class QEM:
                     for i in range(30, 0, -1):
                         time.sleep(1)
                         print(i)
+
         cursor.close()
         conn.close()
 
@@ -346,8 +428,8 @@ class QEM:
             # print('{:15} = {}'.format(opt.name, opt.value))
             print("running qiskit:qiskit_optimization_level={}, enable_sabre=False , enable_mirage=False..".format(qiskit_opt.value))
             self.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=False , enable_mirage=False)
-            print("running qiskit:qiskit_optimization_level={}, enable_sabre=True , enable_mirage=False..".format(qiskit_opt.value))
-            self.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=True , enable_mirage=False)
+            # print("running qiskit:qiskit_optimization_level={}, enable_sabre=True , enable_mirage=False..".format(qiskit_opt.value))
+            # self.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=True , enable_mirage=False)
             print("running qiskit:qiskit_optimization_level={}, enable_sabre=False , enable_mirage=True..".format(qiskit_opt.value))
             self.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=False, enable_mirage=True)
             
@@ -356,17 +438,25 @@ class QEM:
         #     self.apply_mirage(qiskit_optimization_level=qiskit_opt.value, enable_mirage = 1)
 
         for triq_opt in triq_optimization:
-            for q in apply_qiskit_optimization:
-                if q.value is None:
-                    print("running apply_triq:triq_optimization={}, qiskit_optimization_level=None, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, q.value ))
-                    self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=None, enable_sabre=False, apply_qiskit=q.value)
-                else:
-                    for qiskit_opt in qiskit_optimization:
-                        print("running apply_triq:triq_optimization={}, qiskit_optimization_level={}, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, qiskit_opt.value, q.value ))
-                        self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=qiskit_opt.value, enable_sabre=False, apply_qiskit=q.value)
+            print("running apply_triq:triq_optimization={}, qiskit_optimization_level=None, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, None ))
+            self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=None, enable_sabre=False, apply_qiskit=None)
 
-                        print("running apply_triq:triq_optimization={}, qiskit_optimization_level={}, enable_sabre=True, apply_qiskit={}..".format(triq_opt.value, qiskit_opt.value, q.value ))
-                        self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=qiskit_opt.value, enable_sabre=True, apply_qiskit=q.value)
+            print("running apply_triq:triq_optimization={}, qiskit_optimization_level=3, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, "after"))
+            self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=3, enable_sabre=False, apply_qiskit="after")
+            
+
+        # for triq_opt in triq_optimization:
+        #     for q in apply_qiskit_optimization:
+        #         if q.value is None:
+        #             print("running apply_triq:triq_optimization={}, qiskit_optimization_level=None, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, q.value ))
+        #             self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=None, enable_sabre=False, apply_qiskit=q.value)
+        #         else:
+        #             for qiskit_opt in qiskit_optimization:
+        #                 print("running apply_triq:triq_optimization={}, qiskit_optimization_level={}, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, qiskit_opt.value, q.value ))
+        #                 self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=qiskit_opt.value, enable_sabre=False, apply_qiskit=q.value)
+
+        #                 print("running apply_triq:triq_optimization={}, qiskit_optimization_level={}, enable_sabre=True, apply_qiskit={}..".format(triq_opt.value, qiskit_opt.value, q.value ))
+        #                 self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=qiskit_opt.value, enable_sabre=True, apply_qiskit=q.value)
 
         # for q in apply_qiskit_optimization:
         #     if q.value is None:
@@ -391,14 +481,19 @@ if __name__ == "__main__":
     qasm_source = arglist[1]
 
     # hardware_name = "ibmq_qasm_simulator"
-    token = "f95d36071f6c066032d63d0ad3bd7424c4a09784a68ce0275de57d2a87794fd6d0307b2ce00b875987ae3def351ab210607b56fc04a9b54559d740b3deff11ad"
+    # token = "f95d36071f6c066032d63d0ad3bd7424c4a09784a68ce0275de57d2a87794fd6d0307b2ce00b875987ae3def351ab210607b56fc04a9b54559d740b3deff11ad"
+
+    # token pepe 2
+    token = "2298ebebdf52aa8ef9258a07154bc62d335af0126f2bed26502a43f32a206309618c34344db22713f54bad3dc1c7569d7d1e3a0075e0421160e83b8c50967b45"
 
     circuit_name = qasm_source.split("/")[-1].split(".")[0]
     print("Selected circuit: {} ".format(circuit_name))
     q = None
-    q = QEM(token, qasm_source, hardware_name, circuit_name, 1)
-    # q.run()
-    q.apply_triq(triq_optimization=2, qiskit_optimization_level=None, enable_sabre=None , apply_qiskit=None) 
+
+    q = QEM(token, qasm_source, hardware_name=hardware_name, runs=10, run_in_simulator=True\
+            , circuit_name=circuit_name, user_id=99)
+    q.run()
+    # q.apply_triq(triq_optimization=2, qiskit_optimization_level=None, enable_sabre=None , apply_qiskit=None) 
 
     # Send to backend
     q.send_qasm_to_real_backend()

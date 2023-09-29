@@ -13,7 +13,7 @@ from qiskit import QuantumCircuit, transpile
 from qiskit.transpiler import CouplingMap
 
 # Function to import and optimize a QASM circuit
-def optimize_qasm(input_qasm, optimization, enable_sabre = False, enable_mirage = False):
+def optimize_qasm(input_qasm, backend, optimization, enable_sabre = False, enable_mirage = False):
     # Load the input QASM circuit
     circuit = QuantumCircuit.from_qasm_str(input_qasm)
 
@@ -22,36 +22,19 @@ def optimize_qasm(input_qasm, optimization, enable_sabre = False, enable_mirage 
     layout_method = None
     if enable_sabre:
         routing_method = 'sabre'
-        layout_method = 'sabre_layout_v2'
-
-        # Transpile and optimize the circuit
-        transpiled_circuit = transpile(circuit, 
-                                       
-                                   optimization_level=optimization,
-                                   routing_method=routing_method,
-                                   layout_method=layout_method,
-                                   basis_gates=['cx', 'id', 'rz', 'sx', 'x']
-                                   )
-
+        layout_method = 'sabre'
     elif enable_mirage:
         routing_method = 'mirage'
-        layout_method = 'sabre_layout_v2'
-        
-        # Transpile and optimize the circuit
-        transpiled_circuit = transpile(circuit, 
-                                   optimization_level=optimization,
-                                   routing_method=routing_method,
-                                   layout_method=layout_method,
-                                   basis_gates=['cx', 'id', 'rz', 'sx', 'x']
-                                   )
-    else:
-        # Transpile and optimize the circuit
-        transpiled_circuit = transpile(circuit, 
-                                   optimization_level=optimization,
-                                   routing_method=routing_method,
-                                   layout_method=layout_method,
-                                   basis_gates=['cx', 'id', 'rz', 'sx', 'x']
-                                   )
+        layout_method = 'sabre'
+
+    # Transpile and optimize the circuit
+    transpiled_circuit = transpile(circuit, 
+                                backend,
+                                optimization_level=optimization,
+                                routing_method=routing_method,
+                                layout_method=layout_method,
+                                basis_gates=backend.basis_gates
+                                )
 
 
 
