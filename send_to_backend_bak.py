@@ -26,7 +26,7 @@ def send_qasm_to_real_backend(hardware_name):
 
     # laura token
     token = "3efc1f6d5ced29bfa09060c23d32577dc5346087b8b86052cb5479652653a45a1698bec0a0ad45cd9ab255d12d8f5b47c3c1b154edab4ec6e66c52a9428a8905"
-    IBMProvider.save_account(token=token, overwrite=True)
+    # IBMProvider.save_account(token=token, overwrite=True)
 
     # if self.hardware_name != "ibmq_qasm_simulator":
     #     time.sleep(15)
@@ -40,11 +40,11 @@ def send_qasm_to_real_backend(hardware_name):
 
     backend = None
     if hardware_name != "ibmq_qasm_simulator":
-        provider = IBMProvider(instance="ibm-q/open/main")
+        provider = IBMProvider(instance="ibm-q/open/main", token=token)
         backend = provider.get_backend(hardware_name)
     else:
         # backend = Aer.get_backend('qasm_simulator')
-        provider = IBMProvider(instance="ibm-q/open/main")
+        provider = IBMProvider(instance="ibm-q/open/main", token=token)
         backend = provider.get_backend(hardware_name)
 
     shots = 8192

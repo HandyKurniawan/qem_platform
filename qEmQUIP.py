@@ -124,7 +124,7 @@ class QEM:
         # Set number of shots, optimization_level and resilience_level
         options.execution.shots = self.shots
         options.optimization_level = 0
-        options.resilience_level = 1
+        options.resilience_level = 0
 
         if (self.run_in_simulator):            
             self.session = Session(service=service, backend=backend_sim, max_time="25m")
@@ -146,8 +146,8 @@ class QEM:
         
         # insert to header
         now_time = datetime.now().strftime("%Y%m%d%H%M%S")
-        cursor.execute('INSERT INTO result_header (user_id, circuit_id, created_datetime) VALUES (%s, %s, %s)',
-                    (self.user_id, circuit_id, now_time))
+        cursor.execute('INSERT INTO result_header (user_id, circuit_id, created_datetime, qiskit_token) VALUES (%s, %s, %s, %s)',
+                    (self.user_id, circuit_id, now_time, self.qiskit_token))
         self.header_id = cursor.lastrowid
 
         conn.commit()
@@ -160,14 +160,14 @@ class QEM:
         self.mysql_config = {
             'user': 'handy',
             'password': 'handy',
-            'host': 'ec2-34-228-189-223.compute-1.amazonaws.com',
+            'host': 'ec2-3-80-240-233.compute-1.amazonaws.com',
             'database': 'calibration_data'
         }
 
         self.qiskit_token = token
 
-        # # Save account credentials.
-        # IBMProvider.save_account(token=token, overwrite=True)
+        # Save account credentials.
+        IBMProvider.save_account(token=token, overwrite=True)
 
     def apply_triq(self, triq_optimization, qiskit_optimization_level = 0, enable_sabre = False, apply_qiskit = None):
         """
@@ -179,8 +179,8 @@ class QEM:
         self.qiskit_qasm = None
         self.qasm_before_decomposed_final = None
 
-        updated_qasm = qiskit_wrapper.transpile_to_basis_gate(updated_qasm)
-        self.qiskit_qasm = updated_qasm
+        # updated_qasm = qiskit_wrapper.transpile_to_basis_gate(updated_qasm)
+        # self.qiskit_qasm = updated_qasm
 
         if apply_qiskit == "before":
             updated_qasm = self.apply_qiskit(updated_qasm, qiskit_optimization_level, 
@@ -443,97 +443,72 @@ class QEM:
 
             print("running apply_triq:triq_optimization={}, qiskit_optimization_level=3, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, "after"))
             self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=3, enable_sabre=False, apply_qiskit="after")
+
+        
+        # print("running apply_triq:laura_optimization={}, qiskit_optimization_level={}, enable_sabre=True, apply_qiskit={}..".format(2, None, "after" ))
+        # self.apply_laura(laura_optimization=2, qiskit_optimization_level=None, enable_sabre=True, apply_qiskit=None)
+        # print("running apply_triq:laura_optimization={}, qiskit_optimization_level={}, enable_sabre=True, apply_qiskit={}..".format(2, None, "after" ))
+        # self.apply_laura(laura_optimization=2, qiskit_optimization_level=3, enable_sabre=True, apply_qiskit="afters")
             
 
-        # for triq_opt in triq_optimization:
-        #     for q in apply_qiskit_optimization:
-        #         if q.value is None:
-        #             print("running apply_triq:triq_optimization={}, qiskit_optimization_level=None, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, q.value ))
-        #             self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=None, enable_sabre=False, apply_qiskit=q.value)
-        #         else:
-        #             for qiskit_opt in qiskit_optimization:
-        #                 print("running apply_triq:triq_optimization={}, qiskit_optimization_level={}, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, qiskit_opt.value, q.value ))
-        #                 self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=qiskit_opt.value, enable_sabre=False, apply_qiskit=q.value)
-
-        #                 print("running apply_triq:triq_optimization={}, qiskit_optimization_level={}, enable_sabre=True, apply_qiskit={}..".format(triq_opt.value, qiskit_opt.value, q.value ))
-        #                 self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=qiskit_opt.value, enable_sabre=True, apply_qiskit=q.value)
-
-        # for q in apply_qiskit_optimization:
-        #     if q.value is None:
-        #         print("running apply_triq:laura_optimization={}, qiskit_optimization_level=None, enable_sabre=False, apply_qiskit={}..".format(2, q.value ))
-        #         self.apply_laura(laura_optimization=2, qiskit_optimization_level=None, enable_sabre=False, apply_qiskit=q.value)
-        #     else:
-        #         for qiskit_opt in qiskit_optimization:
-        #             # if (qiskit_opt.value == 3 and q.value == "before"):
-        #             #     continue
-                    
-        #             print("running apply_triq:laura_optimization={}, qiskit_optimization_level={}, enable_sabre=False, apply_qiskit={}..".format(2, qiskit_opt.value, q.value ))
-        #             self.apply_laura(laura_optimization=2, qiskit_optimization_level=qiskit_opt.value, enable_sabre=False, apply_qiskit=q.value)
-
-        #             print("running apply_triq:laura_optimization={}, qiskit_optimization_level={}, enable_sabre=True, apply_qiskit={}..".format(2, qiskit_opt.value, q.value ))
-        #             self.apply_laura(laura_optimization=2, qiskit_optimization_level=qiskit_opt.value, enable_sabre=True, apply_qiskit=q.value)
-
 if __name__ == "__main__":
+    # # token pepe 1
+    # token = "924828a6b1671411b96c27b10123849b161154290707582dc60d0b900146ccc8fb93adda735a6d0805168b3007a8ad56f626f9f207881d5055c841a58e51a7d9"
+
+    # # token pepe 2
+    # token = "2298ebebdf52aa8ef9258a07154bc62d335af0126f2bed26502a43f32a206309618c34344db22713f54bad3dc1c7569d7d1e3a0075e0421160e83b8c50967b45"
+
+    # # # token pepe 3
+    # token = "01501f074b8bc9910185d5563408e2838951163e8f55b90a338c94c58116b92a1cd88081474827667b9d907604f2dd27eaa8399a83fbb9505a24e25875819b23"
+
+    # token pepe 4
+    token = "055a93864810f2fc66e4de35b13027e8e591f0d019abb91b4895971fa16a991bef0ac573457c707c3d1070e5105d8f0cdd489f842cc06723d29a233c9f483e74"
+
+    # # token untukmain
+    # token = "e9dc3b4555eaceaf68dd163b187fe3f2354d0ae5032b50f2e0a01693118c83ccdd2f86f77bb37f0983244358d776defaa18614aafede58d1d8bfaea7b51c5a98"
+
+    # # token handyokur
+    # token = "d6c68cd3c7151e9499fcaf54ff7982629e20ff25d38f32aea5b64db369985c82682f63b991dc6fc8424f4ac0349882d90a5399b03194d047b3b9b2eefb4613b3"
+
+    # # token laura 1
+    # token = "3efc1f6d5ced29bfa09060c23d32577dc5346087b8b86052cb5479652653a45a1698bec0a0ad45cd9ab255d12d8f5b47c3c1b154edab4ec6e66c52a9428a8905"
+    
+    # arglist = sys.argv[1:]
+    # hardware_name = arglist[0]
+    # qasm_source = arglist[1]
+    # circuit_name = qasm_source.split("/")[-1].split(".")[0]
+    # print("Selected circuit: {} ".format(circuit_name))
+    # q = None
+
+    # q = QEM(token, qasm_source, hardware_name=hardware_name, runs=20, run_in_simulator=True\
+    #         , circuit_name=circuit_name, user_id=2)
+    # q.run()
+    # # Send to backend
+    # q.send_qasm_to_real_backend()
+
     
 
-    arglist = sys.argv[1:]
-    hardware_name = arglist[0]
-    qasm_source = arglist[1]
+    hardware_name = "ibm_perth"
+    
+    # Define the base folder path
+    base_folder = "~/Quantum_benchmarks/Paper_circuits/n_7/"
+    # base_folder = "~/Quantum_benchmarks/Paper_circuits/error-triq/"
 
-    # hardware_name = "ibmq_qasm_simulator"
-    # token = "f95d36071f6c066032d63d0ad3bd7424c4a09784a68ce0275de57d2a87794fd6d0307b2ce00b875987ae3def351ab210607b56fc04a9b54559d740b3deff11ad"
+    # List all files in the base folder with the .qasm extension
+    qasm_files = glob.glob(os.path.expanduser(os.path.join(base_folder, "*.qasm")))
+    qasm_files = sorted(qasm_files)
 
-    # token pepe 2
-    token = "2298ebebdf52aa8ef9258a07154bc62d335af0126f2bed26502a43f32a206309618c34344db22713f54bad3dc1c7569d7d1e3a0075e0421160e83b8c50967b45"
+    for i in qasm_files:
+        qasm_source = i
+        circuit_name = i.split("/")[-1].split(".")[0]
+        print("========== {}  ===========".format(circuit_name))
+        q = None
 
-    circuit_name = qasm_source.split("/")[-1].split(".")[0]
-    print("Selected circuit: {} ".format(circuit_name))
-    q = None
-
-    q = QEM(token, qasm_source, hardware_name=hardware_name, runs=10, run_in_simulator=True\
-            , circuit_name=circuit_name, user_id=99)
-    q.run()
-    # q.apply_triq(triq_optimization=2, qiskit_optimization_level=None, enable_sabre=None , apply_qiskit=None) 
-
-    # Send to backend
-    q.send_qasm_to_real_backend()
-
-    # # handy ut token
-    # # token = "ac1d8e54395f1935c9a861e335b6bc5a8f8a53ba33f07a3f75d8e8fa076d7296ee63b3e1780b6fd2d4f05eeff5adb08066a17ce46e573662dfba3f2eaa9c6ce8"
-
-    # # handy ucm token
-    # # token = "9b1a802766a56b6a51fdf73762fcf6f5c0bd33ef1f5afcef2157693593292c06b5bc92861d8758a585bd4f6d588b2155f5a45fb912f41610a1ad8bb2119f6521"
-
-    # # pepe 1
-    # token = "f95d36071f6c066032d63d0ad3bd7424c4a09784a68ce0275de57d2a87794fd6d0307b2ce00b875987ae3def351ab210607b56fc04a9b54559d740b3deff11ad"
-
-    # # laura token
-    # # token = "3efc1f6d5ced29bfa09060c23d32577dc5346087b8b86052cb5479652653a45a1698bec0a0ad45cd9ab255d12d8f5b47c3c1b154edab4ec6e66c52a9428a8905"
-
-    # hardware_name = "ibmq_qasm_simulator"
-    # # hardware_name = "ibm_perth"
-
-    # # Define the base folder path
-    # base_folder = "~/Quantum_benchmarks/Paper_circuits/n_7/"
-    # # base_folder = "~/Quantum_benchmarks/Paper_circuits/error-triq/"
-
-    # # List all files in the base folder with the .qasm extension
-    # qasm_files = glob.glob(os.path.expanduser(os.path.join(base_folder, "*.qasm")))
-    # qasm_files = sorted(qasm_files)
-
-    # for i in qasm_files:
-    #     qasm_source = i
-    #     circuit_name = i.split("/")[-1].split(".")[0]
-    #     print("========== {}  ===========".format(circuit_name))
-    #     q = None
-    #     q = QEM(token, qasm_source, hardware_name, circuit_name, 99)
-    #     q.run()
-    #     # q.apply_triq(triq_optimization=0, qiskit_optimization_level=None, enable_sabre=None , apply_qiskit=None) 
-    #     # q.apply_triq(triq_optimization=2, qiskit_optimization_level=1, enable_sabre=True , apply_qiskit="before") 
-    #     # q.apply_mirage(qiskit_optimization_level=2, enable_mirage = 1)
-
-    #     # Send to backend
-    #     q.send_qasm_to_real_backend()
+        q = QEM(token, qasm_source, hardware_name=hardware_name, runs=10, run_in_simulator=True\
+                , circuit_name=circuit_name, user_id=98)
+        q.run()
+        q.send_qasm_to_real_backend()
+        
 
 
 
