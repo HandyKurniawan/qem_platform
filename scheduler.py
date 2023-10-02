@@ -13,39 +13,15 @@ from qiskit.providers import JobStatus
 from qiskit.primitives import SamplerResult
 from qiskit_ibm_runtime.utils.runner_result import RunnerResult
 
-# IBMProvider.save_account(token,overwrite=True )
-# # token pepe 1
-# token = "924828a6b1671411b96c27b10123849b161154290707582dc60d0b900146ccc8fb93adda735a6d0805168b3007a8ad56f626f9f207881d5055c841a58e51a7d9"
-
-# # token pepe 2
-# token = "2298ebebdf52aa8ef9258a07154bc62d335af0126f2bed26502a43f32a206309618c34344db22713f54bad3dc1c7569d7d1e3a0075e0421160e83b8c50967b45"
-
-# # # token pepe 3
-# token = "01501f074b8bc9910185d5563408e2838951163e8f55b90a338c94c58116b92a1cd88081474827667b9d907604f2dd27eaa8399a83fbb9505a24e25875819b23"
-
-# token pepe 4
-token = "055a93864810f2fc66e4de35b13027e8e591f0d019abb91b4895971fa16a991bef0ac573457c707c3d1070e5105d8f0cdd489f842cc06723d29a233c9f483e74"
-
-# # token untukmain
-# token = "e9dc3b4555eaceaf68dd163b187fe3f2354d0ae5032b50f2e0a01693118c83ccdd2f86f77bb37f0983244358d776defaa18614aafede58d1d8bfaea7b51c5a98"
-
-# # token handyokur
-# token = "d6c68cd3c7151e9499fcaf54ff7982629e20ff25d38f32aea5b64db369985c82682f63b991dc6fc8424f4ac0349882d90a5399b03194d047b3b9b2eefb4613b3"
-
-# # token laura 1
-# token = "3efc1f6d5ced29bfa09060c23d32577dc5346087b8b86052cb5479652653a45a1698bec0a0ad45cd9ab255d12d8f5b47c3c1b154edab4ec6e66c52a9428a8905"
-IBMProvider.save_account(token=token, overwrite=True)
-provider = IBMProvider(token = token)
-backend = provider.get_backend("ibm_perth")
-service = QiskitRuntimeService()
-
 # MySQL connection parameters
 mysql_config = {
     'user': 'handy',
     'password': 'handy',
-    'host': 'ec2-3-80-240-233.compute-1.amazonaws.com',
+    'host': 'localhost',
     'database': 'calibration_data'
 }
+
+#'host': 'ec2-3-80-240-233.compute-1.amazonaws.com',
 
 ibm_perth_format = '{0:07b}'
 
@@ -57,11 +33,12 @@ def get_pending_jobs():
     try:
         conn = mysql.connector.connect(**mysql_config)
         cursor = conn.cursor()
-        # cursor.execute('SELECT id, job_id FROM calibration_data.result_detail WHERE status = %s LIMIT 0 , 500 ' , ('pending', ))
-        # cursor.execute('SELECT id, job_id FROM calibration_data.result_detail WHERE status = %s AND user_id = 99 LIMIT 0 , 500 ' , ('pending', ))
-        cursor.execute('SELECT DISTINCT header_id, job_id FROM calibration_data.result_detail WHERE status = %s AND user_id = %s LIMIT 0, 100 ', ('pending', 98, ))
-        # cursor.execute('SELECT DISTINCT header_id, job_id FROM calibration_data.result_detail WHERE status = %s AND header_id = %s LIMIT 0, 100 ', ('pending', 298, ))
+        
+        cursor.execute('''SELECT distinct h.id, d.job_id, qiskit_token FROM calibration_data.result_header h 
+                    INNER JOIN calibration_data.result_detail d ON h.id = d.header_id
+                    WHERE status = "pending" and h.user_id NOT IN (98, 99);''')
         results = cursor.fetchall()
+        
         cursor.close()
         conn.close()
 
@@ -475,15 +452,57 @@ def get_metrics(detail_id, job_id):
     conn.close()
 
 if __name__ == "__main__":
+
+    # IBMProvider.save_account(token,overwrite=True )
+    # # token pepe 1
+    # token = "924828a6b1671411b96c27b10123849b161154290707582dc60d0b900146ccc8fb93adda735a6d0805168b3007a8ad56f626f9f207881d5055c841a58e51a7d9"
+
+    # # token pepe 2
+    # token = "2298ebebdf52aa8ef9258a07154bc62d335af0126f2bed26502a43f32a206309618c34344db22713f54bad3dc1c7569d7d1e3a0075e0421160e83b8c50967b45"
+
+    # # # token pepe 3
+    # token = "01501f074b8bc9910185d5563408e2838951163e8f55b90a338c94c58116b92a1cd88081474827667b9d907604f2dd27eaa8399a83fbb9505a24e25875819b23"
+
+    # # token pepe 4
+    # token = "055a93864810f2fc66e4de35b13027e8e591f0d019abb91b4895971fa16a991bef0ac573457c707c3d1070e5105d8f0cdd489f842cc06723d29a233c9f483e74"
+
+    # # token untukmain
+    # token = "e9dc3b4555eaceaf68dd163b187fe3f2354d0ae5032b50f2e0a01693118c83ccdd2f86f77bb37f0983244358d776defaa18614aafede58d1d8bfaea7b51c5a98"
+
+    # # token handyokur
+    # token = "d6c68cd3c7151e9499fcaf54ff7982629e20ff25d38f32aea5b64db369985c82682f63b991dc6fc8424f4ac0349882d90a5399b03194d047b3b9b2eefb4613b3"
+
+    # # token laura 1
+    # token = "3efc1f6d5ced29bfa09060c23d32577dc5346087b8b86052cb5479652653a45a1698bec0a0ad45cd9ab255d12d8f5b47c3c1b154edab4ec6e66c52a9428a8905"
+    conn = mysql.connector.connect(**mysql_config)
+    cursor = conn.cursor()
+
     pending_jobs = get_pending_jobs()
-    print('Pending jobs: ', len(pending_jobs))
-    service = QiskitRuntimeService()
+        
+    tmp_qiskit_token = ""
+    header_id, job_id, qiskit_token = None, None, None
+    provider, backend, service = None, None, None
+    
     for result in pending_jobs:
-        header_id, job_id = result
+        header_id, job_id, qiskit_token = result
+
+        if tmp_qiskit_token == "" or tmp_qiskit_token != qiskit_token:
+            IBMProvider.save_account(token=qiskit_token, overwrite=True)
+            provider = IBMProvider(token = qiskit_token)
+            backend = provider.get_backend("ibm_perth")
+            service = QiskitRuntimeService()
+
+        # pending_jobs = get_pending_jobs()
+        print('Pending jobs: ', len(pending_jobs))
         status = check_result_availability(service, header_id, job_id)
 
         if (status == 10):
             continue
+
+        tmp_qiskit_token = qiskit_token
+
+    cursor.close()
+    conn.close()
 
     executed_jobs = get_executed_jobs()
     print('Executed jobs', len(executed_jobs))
