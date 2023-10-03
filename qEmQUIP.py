@@ -387,7 +387,7 @@ class QEM:
             self.provider = IBMProvider(token=self.qiskit_token)
             self.backend = self.provider.get_backend("ibmq_qasm_simulator")
                 
-        cursor.execute('''SELECT distinct header_id FROM calibration_data.result WHERE job_id IS NULL''')
+        cursor.execute('''SELECT distinct header_id FROM calibration_data.result WHERE job_id IS NULL AND user_id = 2 ''')
         results_1 = cursor.fetchall()
 
         for res_1 in results_1:
@@ -494,8 +494,8 @@ class QEM:
             
 
 if __name__ == "__main__":
-    # # token pepe 1
-    # token = "924828a6b1671411b96c27b10123849b161154290707582dc60d0b900146ccc8fb93adda735a6d0805168b3007a8ad56f626f9f207881d5055c841a58e51a7d9"
+    # token pepe 1
+    token = "924828a6b1671411b96c27b10123849b161154290707582dc60d0b900146ccc8fb93adda735a6d0805168b3007a8ad56f626f9f207881d5055c841a58e51a7d9"
 
     # # token pepe 2
     # token = "2298ebebdf52aa8ef9258a07154bc62d335af0126f2bed26502a43f32a206309618c34344db22713f54bad3dc1c7569d7d1e3a0075e0421160e83b8c50967b45"
@@ -512,8 +512,8 @@ if __name__ == "__main__":
     # # token handyokur
     # token = "d6c68cd3c7151e9499fcaf54ff7982629e20ff25d38f32aea5b64db369985c82682f63b991dc6fc8424f4ac0349882d90a5399b03194d047b3b9b2eefb4613b3"
 
-    # # token jose mario
-    token = "94882007fb17bcb98ad4c7d13adb024491bd30e72e4be58628dd685ce2c90bcbefb8abc65094cf051de77c8b676b4aa936bba8ad4a0df0e573e3cc01308c5421"
+    # # # token jose mario
+    # token = "94882007fb17bcb98ad4c7d13adb024491bd30e72e4be58628dd685ce2c90bcbefb8abc65094cf051de77c8b676b4aa936bba8ad4a0df0e573e3cc01308c5421"
 
     # # token laura 1
     # token = "3efc1f6d5ced29bfa09060c23d32577dc5346087b8b86052cb5479652653a45a1698bec0a0ad45cd9ab255d12d8f5b47c3c1b154edab4ec6e66c52a9428a8905"
@@ -547,8 +547,8 @@ if __name__ == "__main__":
         print("========== {}  ===========".format(circuit_name))
         q = None
 
-        q = QEM(token, qasm_source, hardware_name=hardware_name, runs=10, fixed_initial_layout = True, run_in_simulator=True\
-                , circuit_name=circuit_name, user_id=97)
+        q = QEM(token, qasm_source, hardware_name=hardware_name, runs=10, fixed_initial_layout = True, run_in_simulator=False\
+                , circuit_name=circuit_name, user_id=2)
         q.run()
         q.send_qasm_to_real_backend()
         time.sleep(5)
