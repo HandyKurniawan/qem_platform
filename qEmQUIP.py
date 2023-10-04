@@ -206,8 +206,8 @@ class QEM:
         self.qiskit_qasm = None
         self.qasm_before_decomposed_final = None
 
-        # updated_qasm = qiskit_wrapper.transpile_to_basis_gate(updated_qasm)
-        # self.qiskit_qasm = updated_qasm
+        updated_qasm = qiskit_wrapper.transpile_to_basis_gate(updated_qasm)
+        self.qiskit_qasm = updated_qasm
 
         # if apply_qiskit == "before":
         #     updated_qasm = self.apply_qiskit(updated_qasm, qiskit_optimization_level, 
@@ -285,8 +285,8 @@ class QEM:
         self.qiskit_qasm = None
         self.qasm_before_decomposed_final = None
 
-        # updated_qasm = qiskit_wrapper.transpile_to_basis_gate(updated_qasm)
-        # self.qiskit_qasm = updated_qasm
+        updated_qasm = qiskit_wrapper.transpile_to_basis_gate(updated_qasm)
+        self.qiskit_qasm = updated_qasm
 
         if apply_qiskit == "before":
             updated_qasm = self.apply_qiskit(updated_qasm, qiskit_optimization_level, 
@@ -387,7 +387,7 @@ class QEM:
             self.provider = IBMProvider(token=self.qiskit_token)
             self.backend = self.provider.get_backend("ibmq_qasm_simulator")
                 
-        cursor.execute('''SELECT distinct header_id FROM calibration_data.result WHERE job_id IS NULL AND user_id = 2 ''')
+        cursor.execute('''SELECT distinct header_id FROM calibration_data.result WHERE job_id IS NULL ''')
         results_1 = cursor.fetchall()
 
         for res_1 in results_1:
@@ -512,12 +512,24 @@ if __name__ == "__main__":
     # # token handyokur
     # token = "d6c68cd3c7151e9499fcaf54ff7982629e20ff25d38f32aea5b64db369985c82682f63b991dc6fc8424f4ac0349882d90a5399b03194d047b3b9b2eefb4613b3"
 
-    # # # token jose mario
+    # # token jose mario
     # token = "94882007fb17bcb98ad4c7d13adb024491bd30e72e4be58628dd685ce2c90bcbefb8abc65094cf051de77c8b676b4aa936bba8ad4a0df0e573e3cc01308c5421"
 
     # # token laura 1
     # token = "3efc1f6d5ced29bfa09060c23d32577dc5346087b8b86052cb5479652653a45a1698bec0a0ad45cd9ab255d12d8f5b47c3c1b154edab4ec6e66c52a9428a8905"
     
+    # # token laura 2
+    # token = "a24455caca05c1c55ff4659b7e851e39e154d86a22e318a21a28359de0fcd0bfda206168ceb594667fe476d3a750d32bd782ed0425e918f3fbe566b0f1d7021e"
+
+    # # token laura 3
+    # token = "ff8ffa074bf770f71a0d549ef6c4b873aec044d0b3a85d46057c0addc1e383d84c3a7f5d9c6298bca7e16badbc3431b57d632dfd56573f027c245120ef8bed33"
+
+    # token contact 07
+    token = "68fb7ac07545c0cc3b63bea6bae1a2e69fe11c4f84be2d4dc335abd5747c602701e9e687876adbf9bb61b11f25fa82ca2c932808fd3f128450cc13670d4822fe"
+
+    # # token cornice apple
+    # token = "bfbe3159e00973e14168671f8790ab7d2b85e8cb61160ee0b17225cf312df48e582cad577b02781ddca79d382e9e3aba3ad9c46c9c47d1b1b5ed27c8815cc2ca"
+
     # arglist = sys.argv[1:]
     # hardware_name = arglist[0]
     # qasm_source = arglist[1]
@@ -532,6 +544,7 @@ if __name__ == "__main__":
     # q.send_qasm_to_real_backend()
 
     hardware_name = "ibm_perth"
+    # hardware_name = "ibmq_qasm_simulator"
     
     # Define the base folder path
     base_folder = "~/Quantum_benchmarks/Paper_circuits/n_7/"
@@ -547,11 +560,11 @@ if __name__ == "__main__":
         print("========== {}  ===========".format(circuit_name))
         q = None
 
-        q = QEM(token, qasm_source, hardware_name=hardware_name, runs=10, fixed_initial_layout = True, run_in_simulator=False\
-                , circuit_name=circuit_name, user_id=2)
+        q = QEM(token, qasm_source, hardware_name=hardware_name, runs=10, fixed_initial_layout = False, run_in_simulator=True\
+                , circuit_name=circuit_name, user_id=98)
         q.run()
         q.send_qasm_to_real_backend()
-        time.sleep(5)
+        # time.sleep(5)
         
 
 
