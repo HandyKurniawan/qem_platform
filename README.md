@@ -5,7 +5,7 @@ qEmQuip is an open-source platform to implement error-aware compilation techniqu
 ## Table of contents
 
 - [Setup](#setup)
-- [Otimization levels](#optimization-levels)
+- [Optimization levels](#optimization-levels)
   - [Qiskit](#qiskit)
   - [TriQ](#triq)
   - [Mirage](#mirage)
@@ -89,9 +89,6 @@ The table below presents the various optimizations and combinations available on
 | ```T_0```      | TriQ               | 0                  | Yes (initial mapping)              |
 | ```T_1```      | TriQ               | 1                  | Yes (initial mapping)              |
 | ```T_2```      | TriQ               | 2                  | Yes (initial mapping and routing)  |
-| ```T_0_Q_0```  | TriQ + Qiskit      | TriQ: 0 Qiskit: 0  | Yes (initial mapping)              |
-| ```T_1_Q_0```  | TriQ + Qiskit      | TriQ: 1 Qiskit: 0  | Yes (initial mapping)              |
-| ```T_2_Q_0```  | TriQ + Qiskit      | TriQ: 2 Qiskit: 0  | Yes (initial mapping and routing)  |
 | ```T_0_Q_3```  | TriQ + Qiskit      | TriQ: 0 Qiskit: 3  | Yes (initial mapping)              |
 | ```T_1_Q_3```  | TriQ + Qiskit      | TriQ: 1 Qiskit: 3  | Yes (initial mapping)              |
 | ```T_2_Q_3```  | TriQ + Qiskit      | TriQ: 2 Qiskit: 3  | Yes (initial mapping and routing)  |
