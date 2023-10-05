@@ -55,7 +55,10 @@ class QiskitCircuit:
         return self.qasm
 
 class QEM:
-    def __init__(self, token, qasm_source, shots=8192, runs=2, fixed_initial_layout = False, run_in_simulator = False, hardware_name = "ibmq_qasm_simulator", circuit_name = "circuit", user_id = 99):
+    def __init__(self, token, qasm_source, shots=8192, runs=2, 
+                 fixed_initial_layout = False, run_in_simulator = False, 
+                 hardware_name = "ibmq_qasm_simulator", realtime_calibration_data = False,
+                 circuit_name = "circuit", user_id = 99):
         self.run_in_simulator = run_in_simulator
         self.hardware_name = hardware_name
         self.session = None
@@ -91,8 +94,13 @@ class QEM:
         self.initial_circuit = QiskitCircuit(qasm_source, name="initial circuit")
 
         self.set_variables()
+
         self.init_result_header(qasm_source)
+
         self.set_sampler_options()
+
+        if realtime_calibration_data:
+            triq_wrapper.generate_realtime_calibration_data(self)
 
         if fixed_initial_layout:
             self.set_initial_layout()
@@ -473,10 +481,10 @@ class QEM:
         #     self.apply_mirage(qiskit_optimization_level=qiskit_opt.value, enable_mirage = 1)
 
         for triq_opt in triq_optimization:
-            print("running apply_triq:triq_optimization={}, qiskit_optimization_level=None, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, None ))
+            # print("running apply_triq:triq_optimization={}, qiskit_optimization_level=None, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, None ))
             self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=None, enable_sabre=False, apply_qiskit=None)
 
-            print("running apply_triq:triq_optimization={}, qiskit_optimization_level=3, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, "after"))
+            # print("running apply_triq:triq_optimization={}, qiskit_optimization_level=3, enable_sabre=False, apply_qiskit={}..".format(triq_opt.value, "after"))
             self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=3, enable_sabre=False, apply_qiskit="after")
 
         # for triq_opt in triq_optimization:
@@ -486,16 +494,18 @@ class QEM:
         #     print("running apply_laura:laura_optimization={}, qiskit_optimization_level={}, enable_sabre=True, apply_qiskit={}..".format(triq_opt.value, None, "after" ))
         #     self.apply_laura(laura_optimization=triq_opt.value, qiskit_optimization_level=3, enable_sabre=True, apply_qiskit="after")
         
-        print("running apply_laura:laura_optimization={}, qiskit_optimization_level={}, enable_sabre=True, apply_qiskit={}..".format(2, None, None ))
+        # print("running apply_laura:laura_optimization={}, qiskit_optimization_level={}, enable_sabre=True, apply_qiskit={}..".format(2, None, None ))
         self.apply_laura(laura_optimization=2, qiskit_optimization_level=None, enable_sabre=False, apply_qiskit=None)
         
-        print("running apply_laura:laura_optimization={}, qiskit_optimization_level={}, enable_sabre=True, apply_qiskit={}..".format(2, None, "after" ))
+        # print("running apply_laura:laura_optimization={}, qiskit_optimization_level={}, enable_sabre=True, apply_qiskit={}..".format(2, None, "after" ))
         self.apply_laura(laura_optimization=2, qiskit_optimization_level=3, enable_sabre=True, apply_qiskit="after")
             
 
 if __name__ == "__main__":
-    # token pepe 1
-    token = "924828a6b1671411b96c27b10123849b161154290707582dc60d0b900146ccc8fb93adda735a6d0805168b3007a8ad56f626f9f207881d5055c841a58e51a7d9"
+
+#region token
+    # # token pepe 1
+    # token = "924828a6b1671411b96c27b10123849b161154290707582dc60d0b900146ccc8fb93adda735a6d0805168b3007a8ad56f626f9f207881d5055c841a58e51a7d9"
 
     # # token pepe 2
     # token = "2298ebebdf52aa8ef9258a07154bc62d335af0126f2bed26502a43f32a206309618c34344db22713f54bad3dc1c7569d7d1e3a0075e0421160e83b8c50967b45"
@@ -524,12 +534,34 @@ if __name__ == "__main__":
     # # token laura 3
     # token = "ff8ffa074bf770f71a0d549ef6c4b873aec044d0b3a85d46057c0addc1e383d84c3a7f5d9c6298bca7e16badbc3431b57d632dfd56573f027c245120ef8bed33"
 
-    # token contact 07
-    token = "68fb7ac07545c0cc3b63bea6bae1a2e69fe11c4f84be2d4dc335abd5747c602701e9e687876adbf9bb61b11f25fa82ca2c932808fd3f128450cc13670d4822fe"
+    # # token contact 07
+    # token = "68fb7ac07545c0cc3b63bea6bae1a2e69fe11c4f84be2d4dc335abd5747c602701e9e687876adbf9bb61b11f25fa82ca2c932808fd3f128450cc13670d4822fe"
 
     # # token cornice apple
     # token = "bfbe3159e00973e14168671f8790ab7d2b85e8cb61160ee0b17225cf312df48e582cad577b02781ddca79d382e9e3aba3ad9c46c9c47d1b1b5ed27c8815cc2ca"
 
+    # # token petrol
+    # token = "c0151c25a1bcb6e3f9274fb403cacf619f2508b2e70fcf350f1e44aba618f8d379f63f3554f58d2b6b7e04a63f20ba14895857e50b598c2c584c1b6519e6bc61"
+
+    # # token mash-pensive
+    # token = "76eaa6f112f125eae669975b89d1620f8ea96cc9c28c650a2d9bed8e171d1ddf21aa685f46fa5d9377a86f7526ace1477c37f5fd5b0e8c0b0a25813a958958ce"
+
+    # # token handy ut
+    # token = "ed88b12a8fcd39cac8e31e7097a2ed01839ef8d3bbad7e5c911aa16d7fb69314d077f901277b248739ed4f2bd66749588c51a35234620a64bf69ce485a20acd0"
+
+    # # token bylaw
+    # token = "30ea7c188f2b6531d2525875b7dab58f0d0091cb4c6e080472cdc76a96009aabbc3367ee1e1ac5f1aa2229941b08a7ef487066df163d47545c9524c4cad1c2ed"
+
+    # # token fasts
+    # token = "ad1527ea50d2b9fb3f122427c6423c55c036d6e3e6559c96a9d5bf4b2b813909a4aac65cbf23bc6ea8cc55da005be0dc85cfb72fa3cd5f57c3eec8a99ea3f9d8"
+
+    # token arrival point
+    token = "5c63e6d0dbc47a7c98741ea6b7de90afb0729f5e036dbea439cec03ee680d5dfa573bdb42920017edb942be678d54d4fb5d83d5e7296749f78dee5449a6f443b"
+
+
+#endregion
+
+#region with parameter
     # arglist = sys.argv[1:]
     # hardware_name = arglist[0]
     # qasm_source = arglist[1]
@@ -542,6 +574,7 @@ if __name__ == "__main__":
     # q.run()
     # # Send to backend
     # q.send_qasm_to_real_backend()
+#endregion
 
     hardware_name = "ibm_perth"
     # hardware_name = "ibmq_qasm_simulator"
@@ -560,12 +593,16 @@ if __name__ == "__main__":
         print("========== {}  ===========".format(circuit_name))
         q = None
 
-        q = QEM(token, qasm_source, hardware_name=hardware_name, runs=10, fixed_initial_layout = False, run_in_simulator=True\
-                , circuit_name=circuit_name, user_id=98)
+        q = QEM(token, qasm_source, hardware_name=hardware_name, runs=10, 
+                fixed_initial_layout = True, run_in_simulator=False, realtime_calibration_data = True,
+                circuit_name=circuit_name, user_id=3)
         q.run()
         q.send_qasm_to_real_backend()
         # time.sleep(5)
         
+
+
+    
 
 
 

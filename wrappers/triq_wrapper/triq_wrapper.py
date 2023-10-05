@@ -16,6 +16,7 @@ import os
 from datetime import datetime
 from .ir2dag import parse_ir
 import time, json
+import mysql.connector
 
 triq_path = os.path.expanduser("~/qem_platform/wrappers/triq_wrapper/")
 out_path = os.path.expanduser("./")
@@ -112,5 +113,70 @@ def get_mapping(qasm_str, hardware_name, triq_optimization):
         os.remove(log_path)
 
     return mapping_dict
+
+def generate_realtime_calibration_data(qem):
+    # Connect to the MySQL database
+    conn = mysql.connector.connect(**qem.mysql_config)
+    cursor = conn.cursor()
+
+    # get last calibration id
+    cursor.execute('''SELECT calibration_id FROM calibration_data.ibm 
+                   WHERE hw_name = %s 
+                   ORDER BY calibration_datetime DESC LIMIT 0, 1;
+                    ''', (qem.hardware_name, ))
+    results = cursor.fetchall()
+    calibration_id = results[0][0]
+
+    # get 1 qubit gate error
+    cursor.execute('''SELECT calibration_id, qubit, 1 - x_error as fidelity_1q 
+                   FROM calibration_data.ibm_one_qubit_gate_spec 
+                   WHERE calibration_id = %s;
+                    ''', (calibration_id, ))
+    results = cursor.fetchall()
+    count = len(results)
+    if count > 0:
+        f = open("./config/ibm_perth_S.rlb", "w+")
+        f.write("{}\n".format(count))
+        for res in results:
+            calibration_id, qubit, fidelity_1q = res
+            f.write("{} {} \n".format(qubit, fidelity_1q))
+
+        f.close()
+
+    # get 2 qubit gate error
+    cursor.execute('''SELECT calibration_id, qubit_control, qubit_target, 1 - cx_error as fidelity_2q
+                   FROM calibration_data.ibm_two_qubit_gate_spec 
+                   WHERE calibration_id = %s;
+                    ''', (calibration_id, ))
+    results = cursor.fetchall()
+    count = len(results)
+    if count > 0:
+        f = open("./config/ibm_perth_T.rlb", "w+")
+        f.write("{}\n".format(count))
+        for res in results:
+            calibration_id, qubit_control, qubit_target, fidelity_2q = res
+            f.write("{} {} {} \n".format(qubit_control, qubit_target, fidelity_2q))
+
+        f.close()
+
+    # get readout error
+    cursor.execute('''SELECT calibration_id, qubit, 1 - readout_error as readout_fidelity
+                   FROM calibration_data.ibm_qubit_spec 
+                   WHERE calibration_id = %s;;
+                    ''', (calibration_id, ))
+    results = cursor.fetchall()
+    count = len(results)
+    if count > 0:
+        f = open("./config/ibm_perth_M.rlb", "w+")
+        f.write("{}\n".format(count))
+        for res in results:
+            calibration_id, qubit, readout_fidelity = res
+            f.write("{} {}\n".format(qubit, readout_fidelity))
+
+        f.close()
+
+    conn.close()
+    
+
 
 

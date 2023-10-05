@@ -55,7 +55,7 @@ def transpile_to_basis_gate(input_qasm):
     # Load the input QASM circuit
     circuit = QuantumCircuit.from_qasm_str(input_qasm)
 
-    transpiled_circuit = transpile(circuit, basis_gates=['cx', 'id', 'rz', 'sx', 'x'])
+    transpiled_circuit = transpile(circuit, optimization_level=0, basis_gates=['cx', 'id', 'rz', 'sx', 'x'])
     transpiled_qasm = transpiled_circuit.qasm()
 
     return transpiled_qasm

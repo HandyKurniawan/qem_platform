@@ -17,7 +17,7 @@ from qiskit_ibm_runtime.utils.runner_result import RunnerResult
 mysql_config = {
     'user': 'handy',
     'password': 'handy',
-    'host': 'localhost',
+    'host': 'ec2-3-80-240-233.compute-1.amazonaws.com',
     'database': 'calibration_data'
 }
 
@@ -240,7 +240,7 @@ def get_executed_jobs():
         conn = mysql.connector.connect(**mysql_config)
         cursor = conn.cursor()
 
-        cursor.execute('SELECT id, job_id FROM calibration_data.result_detail WHERE status = %s ', ('executed', ))
+        cursor.execute('SELECT id, job_id FROM calibration_data.result_detail WHERE status = %s and user_id = 98 ', ('executed', ))
         results = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -356,7 +356,6 @@ def get_metrics(detail_id, job_id):
             tvd = 1
 
             correct_output = normalize_counts(correct_output)
-
             quasi_dists_dict = json.loads(quasi_dists) 
             for key, value in quasi_dists_dict.items():
                 if key in correct_output:
@@ -390,9 +389,11 @@ def get_metrics(detail_id, job_id):
                     hd_aux = hd_aux + (math.sqrt(correct_output[key]) - math.sqrt(value))**2
                 else: 
                     hd_aux = hd_aux + value
-            hd = math.sqrt(hd_aux)/math.sqrt(2)
-            # print(hd)
 
+            if hd_aux < 0:
+                hd_aux = 0
+
+            hd = math.sqrt(hd_aux)/math.sqrt(2)
             # print(correct_output)
             # print("---")
             # print(quasi_dists_dict)
@@ -425,7 +426,7 @@ def get_metrics(detail_id, job_id):
                 if key in correct_output:
                     sr_nassc_std = sr_nassc_std + value
 
-            print('sr_nassc_std: ',sr_nassc_std)    
+            # print('sr_nassc_std: ',sr_nassc_std)    
             
             for key, value in qc_counts.items():
                 if key in correct_output:
@@ -453,7 +454,7 @@ def get_metrics(detail_id, job_id):
         k = 0.995
         qc_cost = -np.log(k) * qc_depth - np.log(f_1q_gate) * count_1q - np.log(f_2q_gate) * count_2q
 
-        #print(qc_cost)
+        # print(qc_cost)
 
         metrics_info = {
                         "total_gate_count": total_gate_count,
@@ -493,57 +494,35 @@ def get_metrics(detail_id, job_id):
     conn.close()
 
 if __name__ == "__main__":
+    # conn = mysql.connector.connect(**mysql_config)
+    # cursor = conn.cursor()
 
-    # IBMProvider.save_account(token,overwrite=True )
-    # # token pepe 1
-    # token = "924828a6b1671411b96c27b10123849b161154290707582dc60d0b900146ccc8fb93adda735a6d0805168b3007a8ad56f626f9f207881d5055c841a58e51a7d9"
-
-    # # token pepe 2
-    # token = "2298ebebdf52aa8ef9258a07154bc62d335af0126f2bed26502a43f32a206309618c34344db22713f54bad3dc1c7569d7d1e3a0075e0421160e83b8c50967b45"
-
-    # # # token pepe 3
-    # token = "01501f074b8bc9910185d5563408e2838951163e8f55b90a338c94c58116b92a1cd88081474827667b9d907604f2dd27eaa8399a83fbb9505a24e25875819b23"
-
-    # # token pepe 4
-    # token = "055a93864810f2fc66e4de35b13027e8e591f0d019abb91b4895971fa16a991bef0ac573457c707c3d1070e5105d8f0cdd489f842cc06723d29a233c9f483e74"
-
-    # # token untukmain
-    # token = "e9dc3b4555eaceaf68dd163b187fe3f2354d0ae5032b50f2e0a01693118c83ccdd2f86f77bb37f0983244358d776defaa18614aafede58d1d8bfaea7b51c5a98"
-
-    # # token handyokur
-    # token = "d6c68cd3c7151e9499fcaf54ff7982629e20ff25d38f32aea5b64db369985c82682f63b991dc6fc8424f4ac0349882d90a5399b03194d047b3b9b2eefb4613b3"
-
-    # # token laura 1
-    # token = "3efc1f6d5ced29bfa09060c23d32577dc5346087b8b86052cb5479652653a45a1698bec0a0ad45cd9ab255d12d8f5b47c3c1b154edab4ec6e66c52a9428a8905"
-    conn = mysql.connector.connect(**mysql_config)
-    cursor = conn.cursor()
-
-    pending_jobs = get_pending_jobs()
+    # pending_jobs = get_pending_jobs()
         
-    tmp_qiskit_token = ""
-    header_id, job_id, qiskit_token = None, None, None
-    provider, backend, service = None, None, None
+    # tmp_qiskit_token = ""
+    # header_id, job_id, qiskit_token = None, None, None
+    # provider, backend, service = None, None, None
     
-    for result in pending_jobs:
-        header_id, job_id, qiskit_token = result
+    # for result in pending_jobs:
+    #     header_id, job_id, qiskit_token = result
 
-        if tmp_qiskit_token == "" or tmp_qiskit_token != qiskit_token:
-            IBMProvider.save_account(token=qiskit_token, overwrite=True)
-            provider = IBMProvider(token = qiskit_token)
-            backend = provider.get_backend("ibm_perth")
-            service = QiskitRuntimeService()
+    #     if tmp_qiskit_token == "" or tmp_qiskit_token != qiskit_token:
+    #         IBMProvider.save_account(token=qiskit_token, overwrite=True)
+    #         provider = IBMProvider(token = qiskit_token)
+    #         backend = provider.get_backend("ibm_perth")
+    #         service = QiskitRuntimeService()
 
-        # pending_jobs = get_pending_jobs()
-        print('Pending jobs: ', len(pending_jobs))
-        status = check_result_availability(service, header_id, job_id)
+    #     # pending_jobs = get_pending_jobs()
+    #     print('Pending jobs: ', len(pending_jobs))
+    #     status = check_result_availability(service, header_id, job_id)
 
-        if (status == 10):
-            continue
+    #     if (status == 10):
+    #         continue
 
-        tmp_qiskit_token = qiskit_token
+    #     tmp_qiskit_token = qiskit_token
 
-    cursor.close()
-    conn.close()
+    # cursor.close()
+    # conn.close()
 
     executed_jobs = get_executed_jobs()
     print('Executed jobs', len(executed_jobs))
