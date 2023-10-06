@@ -23,7 +23,8 @@ mysql_config = {
 
 #'host': 'ec2-3-80-240-233.compute-1.amazonaws.com',
 
-ibm_perth_format = '{0:07b}'
+# bit_format = '{0:07b}'
+bit_format = '{0:0127b}'
 
 def get_pending_jobs():
     '''
@@ -118,7 +119,7 @@ def check_result_availability(service, header_id, job_id):
                     res_dict = quasi_dists[idx_1]
                     
                     for key, value in res_dict.items():
-                        key_bin = ibm_perth_format.format(key)
+                        key_bin = bit_format.format(key)
                         sum_result[key_bin] = 0
                         std_dict[key_bin] = 0
                         std_dev[key_bin] = []
@@ -129,7 +130,7 @@ def check_result_availability(service, header_id, job_id):
                     res_dict = quasi_dists[idx_2]
                     
                     for key, value in res_dict.items():
-                        key_bin = ibm_perth_format.format(key)
+                        key_bin = bit_format.format(key)
                         sum_result[key_bin] += value
                         std_dev[key_bin].append(value)
                         
@@ -180,7 +181,7 @@ def check_result_availability(service, header_id, job_id):
                     res_dict = count_list[idx_1]
                     
                     for key, value in res_dict.items():
-                        key_bin = ibm_perth_format.format(int(key, base=2))
+                        key_bin = bit_format.format(int(key, base=2))
                         sum_result[key_bin] = 0
                         std_dict[key_bin] = 0
                         std_dev[key_bin] = []
@@ -191,7 +192,7 @@ def check_result_availability(service, header_id, job_id):
                     res_dict = count_list[idx_2]
                     
                     for key, value in res_dict.items():
-                        key_bin = ibm_perth_format.format(int(key, base=2))
+                        key_bin = bit_format.format(int(key, base=2))
                         sum_result[key_bin] += value
                         std_dev[key_bin].append(value)
                         
@@ -267,7 +268,7 @@ def normalize_counts(result_counts, shots=8192):
     result_counts = json.loads(result_counts)
     new_keys = []
     for key, value in result_counts.items():
-        new_keys.append(ibm_perth_format.format(int(key, base=2)))
+        new_keys.append(bit_format.format(int(key, base=2)))
    
     result_counts = dict(zip(new_keys, list(result_counts.values())))
 
@@ -406,7 +407,7 @@ def get_metrics(detail_id, job_id):
         else:
             new_keys = []
             for key, value in json.loads(counts).items():
-                new_keys.append(ibm_perth_format.format(int(key,base=2))) 
+                new_keys.append(bit_format.format(int(key,base=2))) 
         
             correct_output = normalize_counts(correct_output)
             qc_counts = normalize_counts(counts)

@@ -51,11 +51,11 @@ def optimize_qasm(input_qasm, backend, optimization, initial_layout = None, enab
 
     return optimized_qasm
 
-def transpile_to_basis_gate(input_qasm):
+def transpile_to_basis_gate(input_qasm, backend):
     # Load the input QASM circuit
     circuit = QuantumCircuit.from_qasm_str(input_qasm)
 
-    transpiled_circuit = transpile(circuit, optimization_level=0, basis_gates=['cx', 'id', 'rz', 'sx', 'x'])
+    transpiled_circuit = transpile(circuit, optimization_level=0, basis_gates=backend.basis_gates)
     transpiled_qasm = transpiled_circuit.qasm()
 
     return transpiled_qasm
