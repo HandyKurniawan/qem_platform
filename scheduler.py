@@ -17,11 +17,13 @@ from qiskit_ibm_runtime.utils.runner_result import RunnerResult
 mysql_config = {
     'user': 'handy',
     'password': 'handy',
-    'host': 'ec2-3-80-240-233.compute-1.amazonaws.com',
+    'host': 'localhost',
     'database': 'calibration_data'
 }
 
-#'host': 'ec2-3-80-240-233.compute-1.amazonaws.com',
+user_id = "96"
+
+#'host': 'ec2-3-81-169-234.compute-1.amazonaws.com',
 
 # bit_format = '{0:07b}'
 bit_format = '{0:0127b}'
@@ -37,7 +39,7 @@ def get_pending_jobs():
         
         cursor.execute('''SELECT distinct h.id, d.job_id, qiskit_token FROM calibration_data.result_header h 
                     INNER JOIN calibration_data.result_detail d ON h.id = d.header_id
-                    WHERE status = "pending" ;''')
+                    WHERE status = "pending" AND h.user_id LIKE %s ;''', (user_id,))
         
         # and h.user_id NOT IN (98, 99)
         results = cursor.fetchall()
@@ -241,7 +243,7 @@ def get_executed_jobs():
         conn = mysql.connector.connect(**mysql_config)
         cursor = conn.cursor()
 
-        cursor.execute('SELECT id, job_id FROM calibration_data.result_detail WHERE status = %s and user_id = 98 ', ('executed', ))
+        cursor.execute('SELECT id, job_id FROM calibration_data.result_detail WHERE status = %s AND user_id LIKE %s ;', ("executed", user_id,))
         results = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -495,35 +497,39 @@ def get_metrics(detail_id, job_id):
     conn.close()
 
 if __name__ == "__main__":
-    # conn = mysql.connector.connect(**mysql_config)
-    # cursor = conn.cursor()
+    conn = mysql.connector.connect(**mysql_config)
+    cursor = conn.cursor()
 
-    # pending_jobs = get_pending_jobs()
+    pending_jobs = get_pending_jobs()
         
-    # tmp_qiskit_token = ""
-    # header_id, job_id, qiskit_token = None, None, None
-    # provider, backend, service = None, None, None
+    tmp_qiskit_token = ""
+    header_id, job_id, qiskit_token = None, None, None
+    provider, backend, service = None, None, None
     
-    # for result in pending_jobs:
-    #     header_id, job_id, qiskit_token = result
+    for result in pending_jobs:
+        header_id, job_id, qiskit_token = result
 
-    #     if tmp_qiskit_token == "" or tmp_qiskit_token != qiskit_token:
-    #         IBMProvider.save_account(token=qiskit_token, overwrite=True)
-    #         provider = IBMProvider(token = qiskit_token)
-    #         backend = provider.get_backend("ibm_perth")
-    #         service = QiskitRuntimeService()
+        if tmp_qiskit_token == "" or tmp_qiskit_token != qiskit_token:
+            #IBMProvider.save_account(token=qiskit_token, overwrite=True)
+            #provider = IBMProvider(token = qiskit_token)
 
-    #     # pending_jobs = get_pending_jobs()
-    #     print('Pending jobs: ', len(pending_jobs))
-    #     status = check_result_availability(service, header_id, job_id)
+            # QiskitRuntimeService.save_account(channel="ibm_cloud", token=qiskit_token, instance="Qiskit Runtime-ucm", overwrite=True)
+            # service = QiskitRuntimeService(channel="ibm_cloud", token=qiskit_token, instance="Qiskit Runtime-ucm")
 
-    #     if (status == 10):
-    #         continue
+            QiskitRuntimeService.save_account(channel="ibm_quantum", token=qiskit_token, overwrite=True)
+            service = QiskitRuntimeService(channel="ibm_quantum", token=qiskit_token)
 
-    #     tmp_qiskit_token = qiskit_token
+        # pending_jobs = get_pending_jobs()
+        print('Pending jobs: ', len(pending_jobs))
+        status = check_result_availability(service, header_id, job_id)
 
-    # cursor.close()
-    # conn.close()
+        if (status == 10):
+            continue
+
+        tmp_qiskit_token = qiskit_token
+
+    cursor.close()
+    conn.close()
 
     executed_jobs = get_executed_jobs()
     print('Executed jobs', len(executed_jobs))

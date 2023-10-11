@@ -11,7 +11,10 @@ class apply_qiskit_optimization(Enum):
     no_apply, before, after = None, "before", "after"
 
 class calibration_type_enum(Enum):
-    average, mix, realtime = "avg", "mix", "real"
+    average, mix = "avg", "mix"
+
+# class calibration_type_enum(Enum):
+#     average, mix, realtime = "avg", "mix", "real"
 
 def read_file(file_path):
     try:

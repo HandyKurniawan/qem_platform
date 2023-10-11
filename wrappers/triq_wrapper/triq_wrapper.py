@@ -52,8 +52,6 @@ def create_dir(path):
 
 def generate_qasm(qasm_str, hardware_name, triq_optimization):
     tmp_hw_name = hardware_name
-    if hardware_name == "ibmq_qasm_simulator":
-        tmp_hw_name = "ibm_brisbane_mix"
 
     # parse qasm into .in
     parse_ir(qasm_str, os.path.join(dag_path, dag_name))
@@ -146,7 +144,7 @@ WHERE i.hw_name = %s ORDER BY calibration_datetime DESC LIMIT 0, 1;
     # get 2 qubit gate error
     cursor.execute('''SELECT calibration_id, qubit_control, qubit_target, 1 - ''' + native_gates_2q + '''_error as fidelity_2q
                    FROM calibration_data.ibm_two_qubit_gate_spec 
-                   WHERE calibration_id = %s;
+                   WHERE calibration_id = %s AND ''' + native_gates_2q + '''_error != 1;
                     ''', (calibration_id, ))
     results = cursor.fetchall()
     count = len(results)
@@ -256,7 +254,7 @@ MIN(''' + native_gates_2q + '''_fidelity) AS ''' + native_gates_2q + '''_fidelit
 SELECT DISTINCT qubit_control, qubit_target, 1 - ''' + native_gates_2q + '''_error AS ''' + native_gates_2q + '''_fidelity, ''' + native_gates_2q + '''_date FROM calibration_data.ibm_two_qubit_gate_spec q
 INNER JOIN calibration_data.ibm i ON q.calibration_id = i.calibration_id 
 WHERE i.hw_name = %s) X GROUP BY qubit_control, qubit_target) a ON q.qubit_control = a.qubit_control AND q.qubit_target = a.qubit_target
-WHERE q.calibration_id = %s;
+WHERE q.calibration_id = %s AND ''' + native_gates_2q + '''_error != 1;
 ''', (calibration_date, qem.hardware_name, calibration_id, ))
     results = cursor.fetchall()
     count = len(results)

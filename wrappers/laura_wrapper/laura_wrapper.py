@@ -51,8 +51,6 @@ def create_dir(path):
 
 def generate_qasm(qasm_str, hardware_name, laura_optimization):
     tmp_hw_name = hardware_name
-    if hardware_name == "ibmq_qasm_simulator":
-        tmp_hw_name = "ibm_brisbane_mix"
 
     # parse qasm into .in
     parse_ir(qasm_str, os.path.join(dag_path, dag_name))
