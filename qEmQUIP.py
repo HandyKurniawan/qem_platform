@@ -107,7 +107,7 @@ class QEM:
         # if self.calibration_type == calibration_type_enum.realtime:
         #     triq_wrapper.generate_realtime_calibration_data(self)
         if self.calibration_type == calibration_type_enum.mix:
-            # triq_wrapper.generate_realtime_calibration_data(self)
+            triq_wrapper.generate_realtime_calibration_data(self)
             triq_wrapper.generate_mix_calibration_data(self)
 
         if fixed_initial_layout:
@@ -524,6 +524,10 @@ class QEM:
         for calibration_opt in calibration_type_enum:
 
             for triq_opt in triq_optimization:
+
+                if triq_opt == triq_optimization.CompileDijsktra or triq_opt == triq_optimization.CompileRevSwaps:
+                    continue
+
                 print("running apply_triq:triq_optimization={}, qiskit_optimization_level=None, calibration_type={}..".format(triq_opt.value, calibration_opt.value))
                 self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=None, 
                                 enable_sabre=False, apply_qiskit=None, calibration_type=calibration_opt.value)
@@ -531,6 +535,15 @@ class QEM:
                 print("running apply_triq:triq_optimization={}, qiskit_optimization_level=3, apply_qiskit={}, calibration_type={}..".format(triq_opt.value, "after", calibration_opt.value))
                 self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=3, 
                                 enable_sabre=False, apply_qiskit="after", calibration_type=calibration_opt.value)
+
+            # for triq_opt in triq_optimization:
+            #     print("running apply_laura:laura_optimization={}, qiskit_optimization_level={}, enable_sabre=False, apply_qiskit={}, calibration_type={}..".format(triq_opt.value, None, None, calibration_opt.value ))
+            #     self.apply_laura(laura_optimization=triq_opt.value, qiskit_optimization_level=None, 
+            #                     enable_sabre=False, apply_qiskit=None, calibration_type=calibration_opt.value)
+                
+            #     print("running apply_laura:laura_optimization={}, qiskit_optimization_level={}, enable_sabre=False, apply_qiskit={}, calibration_type={}..".format(triq_opt.value, 3, "after", calibration_opt.value ))
+            #     self.apply_laura(laura_optimization=triq_opt.value, qiskit_optimization_level=3, 
+            #                     enable_sabre=False, apply_qiskit="after", calibration_type=calibration_opt.value)
 
             print("running apply_laura:laura_optimization={}, qiskit_optimization_level={}, enable_sabre=False, apply_qiskit={}, calibration_type={}..".format(2, None, None, calibration_opt.value ))
             self.apply_laura(laura_optimization=2, qiskit_optimization_level=None, 
@@ -603,8 +616,11 @@ if __name__ == "__main__":
     # # token arrival point
     # token = "5c63e6d0dbc47a7c98741ea6b7de90afb0729f5e036dbea439cec03ee680d5dfa573bdb42920017edb942be678d54d4fb5d83d5e7296749f78dee5449a6f443b"
 
-    # token frisbee
-    token = "68d7a37e272a1a29ab8a3c767c63443fbf78fb82cfc34ac689d92f8f77f8fcdc4fd48dec46aa257a116f3194ba6532334f67d1b0a6f9feb53f1296804cb418b2"
+    # # token frisbee
+    # token = "68d7a37e272a1a29ab8a3c767c63443fbf78fb82cfc34ac689d92f8f77f8fcdc4fd48dec46aa257a116f3194ba6532334f67d1b0a6f9feb53f1296804cb418b2"
+
+    # token button
+    token = "ec5f9f43cea1eb948b374f22419e8e96307aa8ed59af234cd9133db2564dcc0f1c36eafc99f1565a9c5488d06296d0a291f1fff571fea5e8d01d0eddce7fa14f"
 
 #endregion
 
@@ -654,6 +670,11 @@ if __name__ == "__main__":
                 fixed_initial_layout = False, run_in_simulator=False, 
                 calibration_type = calibration_type_enum.mix, 
                 circuit_name=circuit_name, user_id=5)
+
+        # q = QEM(token, qasm_source, hardware_name=hardware_name, runs=10, 
+        #         fixed_initial_layout = False, run_in_simulator=True, 
+        #         calibration_type = calibration_type_enum.mix, 
+        #         circuit_name=circuit_name, user_id=96)
         tmp_end_time = time.perf_counter()
 
         print("Time for initialization: {} seconds".format(tmp_end_time - tmp_start_time))

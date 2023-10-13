@@ -2,7 +2,7 @@ import json
 from enum import Enum
 
 class triq_optimization(Enum):
-    CompileOpt, CompileDijsktra, CompileNoise = range(3)
+    CompileOpt, CompileDijsktra, CompileRevSwaps = range(3)
 
 class qiskit_optimization(Enum):
     level_0, level_1, level_2, level_3 = range(4)
