@@ -225,7 +225,7 @@ class QEM:
         # MySQL connection parameters
         self.mysql_config = {
             'user': 'handy',
-            'password': 'handy',s
+            'password': 'handy',
             'host': 'ec2-16-171-33-207.eu-north-1.compute.amazonaws.com',
             'database': 'calibration_data'
         }
