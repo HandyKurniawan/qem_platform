@@ -108,7 +108,7 @@ class QEM:
         #     triq_wrapper.generate_realtime_calibration_data(self)
         if self.calibration_type == calibration_type_enum.realtime:
             triq_wrapper.generate_realtime_calibration_data(self)
-            triq_wrapper.generate_mix_calibration_data(self)
+            # triq_wrapper.generate_mix_calibration_data(self)
             triq_wrapper.generate_recent_average_calibration_data(self)
 
         if fixed_initial_layout:
@@ -225,8 +225,8 @@ class QEM:
         # MySQL connection parameters
         self.mysql_config = {
             'user': 'handy',
-            'password': 'handy',
-            'host': 'ec2-51-20-9-98.eu-north-1.compute.amazonaws.com',
+            'password': 'handy',s
+            'host': 'ec2-16-171-33-207.eu-north-1.compute.amazonaws.com',
             'database': 'calibration_data'
         }
 
@@ -656,8 +656,11 @@ if __name__ == "__main__":
     # # token lodging
     # token = "73e5caa60d526c2122261d8b1d93d451f8e8add930a03d2ab6fe16702673ccfcdce9dd018820f5ca6bed692112c9a5d32e2d2f2b75d367d38dde3ed2a51e3c6b"
 
-    # token bionic
-    token = "dc8be56745da5fe77438ee9a3cfc0b6fa87f219ec3e50db59788cf157ed43ed776a1986b569ad5ec57525aa5f299fdb17c90cb34d3a04be7ca4af1bfbbc85eca"
+    # # token bionic
+    # token = "dc8be56745da5fe77438ee9a3cfc0b6fa87f219ec3e50db59788cf157ed43ed776a1986b569ad5ec57525aa5f299fdb17c90cb34d3a04be7ca4af1bfbbc85eca"
+
+    # token ropes
+    token = "b94c13374ae4f0b04fb2539b727e165ec695373f7fe198dd69c3b11f22a2aa380c8adca06390f201d2aa09247348aeae6f7664e0735698c9d8ad59880e58b8b8"
 
 #endregion
 
@@ -703,15 +706,15 @@ if __name__ == "__main__":
         q = None
 
         tmp_start_time  = time.perf_counter()
-        q = QEM(token, qasm_source, hardware_name=hardware_name, runs=4, 
-                fixed_initial_layout = False, run_in_simulator=False, 
-                calibration_type = calibration_type_enum.realtime, 
-                circuit_name=circuit_name, user_id=6)
-
-        # q = QEM(token, qasm_source, hardware_name=hardware_name, runs=10, 
-        #         fixed_initial_layout = False, run_in_simulator=True, 
+        # q = QEM(token, qasm_source, hardware_name=hardware_name, runs=4, 
+        #         fixed_initial_layout = False, run_in_simulator=False, 
         #         calibration_type = calibration_type_enum.realtime, 
-        #         circuit_name=circuit_name, user_id=95)
+        #         circuit_name=circuit_name, user_id=6)
+
+        q = QEM(token, qasm_source, hardware_name=hardware_name, runs=10, 
+                fixed_initial_layout = False, run_in_simulator=True, 
+                calibration_type = calibration_type_enum.realtime, 
+                circuit_name=circuit_name, user_id=99)
         tmp_end_time = time.perf_counter()
 
         print("Time for initialization: {} seconds".format(tmp_end_time - tmp_start_time))
