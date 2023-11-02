@@ -11,7 +11,8 @@ class apply_qiskit_optimization(Enum):
     no_apply, before, after = None, "before", "after"
 
 class calibration_type_enum(Enum):
-    average, realtime, decay, recent = "avg", "real", "decay", "recent"
+    average, realtime, recent_45, recent_15, mix, decay_r, decay_45, decay_15, decay_mix \
+     = "avg", "real", "recent_45", "recent_15", "mix", "decay_r", "decay_45", "decay_15", "decay_mix"
 
 # class calibration_type_enum(Enum):
 #     average, mix, realtime = "avg", "mix", "real"

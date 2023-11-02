@@ -108,8 +108,9 @@ class QEM:
         #     triq_wrapper.generate_realtime_calibration_data(self)
         if self.calibration_type == calibration_type_enum.realtime:
             triq_wrapper.generate_realtime_calibration_data(self)
-            # triq_wrapper.generate_mix_calibration_data(self)
-            triq_wrapper.generate_recent_average_calibration_data(self)
+            triq_wrapper.generate_mix_calibration_data(self)
+            triq_wrapper.generate_recent_average_calibration_data(self, 45)
+            triq_wrapper.generate_recent_average_calibration_data(self, 15)
 
         if fixed_initial_layout:
             self.set_initial_layout()
@@ -584,8 +585,8 @@ if __name__ == "__main__":
     # # token pepe 1
     # token = "924828a6b1671411b96c27b10123849b161154290707582dc60d0b900146ccc8fb93adda735a6d0805168b3007a8ad56f626f9f207881d5055c841a58e51a7d9"
 
-    # # token pepe 2
-    # token = "2298ebebdf52aa8ef9258a07154bc62d335af0126f2bed26502a43f32a206309618c34344db22713f54bad3dc1c7569d7d1e3a0075e0421160e83b8c50967b45"
+    # token pepe 2
+    token = "2298ebebdf52aa8ef9258a07154bc62d335af0126f2bed26502a43f32a206309618c34344db22713f54bad3dc1c7569d7d1e3a0075e0421160e83b8c50967b45"
 
     # # # token pepe 3
     # token = "01501f074b8bc9910185d5563408e2838951163e8f55b90a338c94c58116b92a1cd88081474827667b9d907604f2dd27eaa8399a83fbb9505a24e25875819b23"
@@ -659,8 +660,11 @@ if __name__ == "__main__":
     # # token bionic
     # token = "dc8be56745da5fe77438ee9a3cfc0b6fa87f219ec3e50db59788cf157ed43ed776a1986b569ad5ec57525aa5f299fdb17c90cb34d3a04be7ca4af1bfbbc85eca"
 
-    # token ropes
-    token = "b94c13374ae4f0b04fb2539b727e165ec695373f7fe198dd69c3b11f22a2aa380c8adca06390f201d2aa09247348aeae6f7664e0735698c9d8ad59880e58b8b8"
+    # # token ropes
+    # token = "b94c13374ae4f0b04fb2539b727e165ec695373f7fe198dd69c3b11f22a2aa380c8adca06390f201d2aa09247348aeae6f7664e0735698c9d8ad59880e58b8b8"
+
+    # # token rudder
+    # token = "26f4ebc603700e1d56ac25c2a18c6ef196859f3a5547abe12ced49f3c16ef3c8391008db57e5bc77cd4ec3b3c62d26aeccf9983f311a279b714b5378ff4415cf"
 
 #endregion
 
@@ -714,7 +718,7 @@ if __name__ == "__main__":
         q = QEM(token, qasm_source, hardware_name=hardware_name, runs=10, 
                 fixed_initial_layout = False, run_in_simulator=True, 
                 calibration_type = calibration_type_enum.realtime, 
-                circuit_name=circuit_name, user_id=99)
+                circuit_name=circuit_name, user_id=95)
         tmp_end_time = time.perf_counter()
 
         print("Time for initialization: {} seconds".format(tmp_end_time - tmp_start_time))
