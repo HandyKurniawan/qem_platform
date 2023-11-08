@@ -30,12 +30,12 @@ code
 
 ### Qiskit
 
-| Level | Initial mapping   | Routing      | Optimizations                            | Error-aware            |
-|--- |------------------ |-------------- |----------------------------------------- |----------------------- |
-| 0  | Trivial           | Stochastic    | None                                     | No                     |
-| 1  | Dense             | Sabre        | Adjacent gate collapsing                 | Yes (initial mapping)  |
-| 2  | Sabre             | Sabre         | Gate cancellation                        | No                     |
-| 3  | Sabre             | Sabre         | Gate cancellation and unitary synthesis  | No                     |
+| Level | Initial mapping| Routing                  | Optimizations                            | Error-aware            |
+|--- |------------------ |------------------------- |----------------------------------------- |----------------------- |
+| 0  | Trivial           | Stochastic               | None                                     | No                     |
+| 1  | Sabre             | Sabre (5 swap trials)    | Adjacent gate collapsing                 | No                     |
+| 2  | Sabre             | Sabre (10 swap trials)   | Gate cancellation                        | No                     |
+| 3  | Sabre             | Sabre (20 swap trials)   | Gate cancellation and unitary synthesis  | No                     |
 
 #### Initial mapping methods
 
