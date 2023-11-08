@@ -79,11 +79,11 @@ The table below presents the various optimizations and combinations available on
 | Name            | Compiling technique  | Optimization level  | Error aware                        |
 |------------     |--------------------- |-------------------- |-----------------------             |
 | ```Q_0```        | Qiskit               | 0                   | No                                 |
-| ```Q_1```         | Qiskit               | 1                   | Yes (initial mapping)              |
+| ```Q_1```         | Qiskit               | 1                   | No              |
 | ```Q_2```         | Qiskit               | 2                   | No                                 |
 | ```Q_3```         | Qiskit               | 3                   | No                                 |
 | ```Q_0_mirage```  | Qiskit + Mirage      | Qiskit: 0           | No                                 |
-| ```Q_1_mirage```  | Qiskit + Mirage      | Qiskit: 1           | Yes (initial mapping)              |
+| ```Q_1_mirage```  | Qiskit + Mirage      | Qiskit: 1           | No              |
 | ```Q_2_mirage```  | Qiskit + Mirage      | Qiskit: 2           | No                                 |
 | ```Q_3_mirage```  | Qiskit + Mirage      | Qiskit: 3           | No                                 |
 | ```T_0```      | TriQ               | 0                  | Yes (initial mapping)              |
