@@ -28,7 +28,7 @@ code
 
 ## Optimization levels
 
-### Qiskit
+### Qiskit (0.44.3)
 
 | Level | Initial mapping| Routing                  | Optimizations                            | Error-aware            |
 |--- |------------------ |------------------------- |----------------------------------------- |----------------------- |
