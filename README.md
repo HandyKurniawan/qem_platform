@@ -33,18 +33,18 @@ code
 | Level | Initial mapping| Routing                  | Optimizations                            | Error-aware            |
 |--- |------------------ |------------------------- |----------------------------------------- |----------------------- |
 | 0  | Trivial           | Stochastic               | None                                     | No                     |
-| 1  | Sabre             | Sabre (5 swap trials)    | Adjacent gate collapsing                 | No                     |
-| 2  | Sabre             | Sabre (10 swap trials)   | Gate cancellation                        | No                     |
-| 3  | Sabre             | Sabre (20 swap trials)   | Gate cancellation and unitary synthesis  | No                     |
+| 1  | VF2 > Sabre       | Sabre (5 swap trials)    | Adjacent gate collapsing                 | Yes (VF2), No (Sabre)  |
+| 2  | VF2 > Sabre       | Sabre (10 swap trials)   | Gate cancellation                        | Yes (VF2), No (Sabre)  |
+| 3  | VF2 > Sabre       | Sabre (20 swap trials)   | Gate cancellation and unitary synthesis  | Yes (VF2), No (Sabre)  |
 
-#### Initial mapping methods
+#### Initial mapping methods (layout)
 
-To find the perfect initial mapping (layout):
+First, Qiskit tries to find the perfect initial mapping (no need to add swaps):
 
 - **[Trivial]((https://qiskit.org/documentation/stubs/qiskit.transpiler.passes.TrivialLayout.html)):** Map the *i-th* virtual qubit to the *i-th* physical qubit.
 - **[VF2](https://qiskit.org/documentation/stubs/qiskit.transpiler.passes.VF2Layout.html):** Find a subgraph of the connectivity graph isomorphic to the circuit's qubit interaction graph.
 
-Heuristic passes:
+If it cannot find the perfect initial mapping, it uses heuristic passes:
 
 - **[Sabre]((https://qiskit.org/documentation/stubs/qiskit.transpiler.passes.SabreLayout.html)):** Use the Reverse Trasversal Technique several times to find a good initial mapping.
 - **[Dense]((https://qiskit.org/documentation/stubs/qiskit.transpiler.passes.DenseLayout.html)):** Map the qubits to the most connected part of the chip and lower error rate (considering 2q and readout error rates).
