@@ -28,23 +28,23 @@ code
 
 ## Optimization levels
 
-### Qiskit
+### Qiskit (0.44.3)
 
-| Level | Initial mapping   | Routing      | Optimizations                            | Error-aware            |
-|--- |------------------ |-------------- |----------------------------------------- |----------------------- |
-| 0  | Trivial           | Stochastic    | None                                     | No                     |
-| 1  | Dense             | Sabre        | Adjacent gate collapsing                 | Yes (initial mapping)  |
-| 2  | Sabre             | Sabre         | Gate cancellation                        | No                     |
-| 3  | Sabre             | Sabre         | Gate cancellation and unitary synthesis  | No                     |
+| Level | Initial mapping| Routing                  | Optimizations                            | Error-aware            |
+|--- |------------------ |------------------------- |----------------------------------------- |----------------------- |
+| 0  | Trivial           | Stochastic               | None                                     | No                     |
+| 1  | VF2 > Sabre       | Sabre (5 swap trials)    | Adjacent gate collapsing                 | Yes (VF2), No (Sabre)  |
+| 2  | VF2 > Sabre       | Sabre (10 swap trials)   | Gate cancellation                        | Yes (VF2), No (Sabre)  |
+| 3  | VF2 > Sabre       | Sabre (20 swap trials)   | Gate cancellation and unitary synthesis  | Yes (VF2), No (Sabre)  |
 
-#### Initial mapping methods
+#### Initial mapping methods (layout)
 
-To find the perfect initial mapping (layout):
+First, Qiskit tries to find the perfect initial mapping (no need to add swaps):
 
 - **[Trivial]((https://qiskit.org/documentation/stubs/qiskit.transpiler.passes.TrivialLayout.html)):** Map the *i-th* virtual qubit to the *i-th* physical qubit.
 - **[VF2](https://qiskit.org/documentation/stubs/qiskit.transpiler.passes.VF2Layout.html):** Find a subgraph of the connectivity graph isomorphic to the circuit's qubit interaction graph.
 
-Heuristic passes:
+If it cannot find the perfect initial mapping, it uses heuristic passes:
 
 - **[Sabre]((https://qiskit.org/documentation/stubs/qiskit.transpiler.passes.SabreLayout.html)):** Use the Reverse Trasversal Technique several times to find a good initial mapping.
 - **[Dense]((https://qiskit.org/documentation/stubs/qiskit.transpiler.passes.DenseLayout.html)):** Map the qubits to the most connected part of the chip and lower error rate (considering 2q and readout error rates).
@@ -79,11 +79,11 @@ The table below presents the various optimizations and combinations available on
 | Name            | Compiling technique  | Optimization level  | Error aware                        |
 |------------     |--------------------- |-------------------- |-----------------------             |
 | ```Q_0```        | Qiskit               | 0                   | No                                 |
-| ```Q_1```         | Qiskit               | 1                   | Yes (initial mapping)              |
+| ```Q_1```         | Qiskit               | 1                   | No              |
 | ```Q_2```         | Qiskit               | 2                   | No                                 |
 | ```Q_3```         | Qiskit               | 3                   | No                                 |
 | ```Q_0_mirage```  | Qiskit + Mirage      | Qiskit: 0           | No                                 |
-| ```Q_1_mirage```  | Qiskit + Mirage      | Qiskit: 1           | Yes (initial mapping)              |
+| ```Q_1_mirage```  | Qiskit + Mirage      | Qiskit: 1           | No              |
 | ```Q_2_mirage```  | Qiskit + Mirage      | Qiskit: 2           | No                                 |
 | ```Q_3_mirage```  | Qiskit + Mirage      | Qiskit: 3           | No                                 |
 | ```T_0```      | TriQ               | 0                  | Yes (initial mapping)              |
