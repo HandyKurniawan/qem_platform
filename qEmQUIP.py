@@ -455,6 +455,7 @@ class QEM:
         self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.recent_15_adjust.value)
         self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.mix.value)
         self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.mix_adjust.value)
+        self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.average.value)
         self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.average_adjust.value)
 
 
@@ -611,22 +612,20 @@ if __name__ == "__main__":
         q = None
 
         tmp_start_time  = time.perf_counter()
-        q = QEM(token, qasm_source, hardware_name=hardware_name, runs=4, 
-                fixed_initial_layout = False, run_in_simulator=False, 
-                calibration_type = calibration_type_enum.realtime, 
-                circuit_name=circuit_name, user_id=6)
+        # q = QEM(token, qasm_source, hardware_name=hardware_name, runs=4, 
+        #         fixed_initial_layout = False, run_in_simulator=False, 
+        #         calibration_type = calibration_type_enum.realtime, 
+        #         circuit_name=circuit_name, user_id=6)
 
         # q = QEM(token, qasm_source, hardware_name=hardware_name, runs=10, 
         #         fixed_initial_layout = False, run_in_simulator=True, 
         #         calibration_type = calibration_type_enum.realtime, 
         #         circuit_name=circuit_name, user_id=95)
-        # q = QEM(token, qasm_source, hardware_name=hardware_name, runs=10, 
-        #         fixed_initial_layout = False, run_in_simulator=True, 
-        #         calibration_type = calibration_type_enum.realtime, 
-        #         circuit_name=circuit_name, user_id=99)
+        q = QEM(token, qasm_source, hardware_name=hardware_name, runs=10, 
+                fixed_initial_layout = False, run_in_simulator=True, 
+                calibration_type = calibration_type_enum.realtime, 
+                circuit_name=circuit_name, user_id=99)
         tmp_end_time = time.perf_counter()
-
-        
 
         print("Time for initialization: {} seconds".format(tmp_end_time - tmp_start_time))
         

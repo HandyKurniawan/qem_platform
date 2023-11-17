@@ -123,7 +123,7 @@ def _get_std_readout_error(prop_dict, hw_name):
     WHERE i.hw_name = %s 
     ) X GROUP BY qubit;
     """
-    parms = (hw_name)
+    parms = (hw_name, )
     readout_results = sql_query(sql, parms)
 
     for res in readout_results:
@@ -138,7 +138,7 @@ def _get_readout_error_sql(hw_name, calibration_type):
     sql = ""
     parms = ()
 
-    if calibration_type == calibration_type_enum.realtime_adjust:
+    if calibration_type == calibration_type_enum.realtime_adjust.value:
         last_cal_id, last_cal_date = _get_last_calibration_id(hw_name)
 
         sql = """
@@ -147,8 +147,9 @@ def _get_readout_error_sql(hw_name, calibration_type):
         WHERE calibration_id = %s;
         """
 
-        parms = (last_cal_id)
-    elif calibration_type == calibration_type_enum.recent_15 or calibration_type == calibration_type_enum.recent_15_adjust:
+        parms = (last_cal_id, )
+
+    elif calibration_type == calibration_type_enum.recent_15.value or calibration_type == calibration_type_enum.recent_15_adjust.value:
         sql = """
         SELECT qubit, AVG(readout_error) FROM (
         SELECT DISTINCT qubit, readout_error, readout_error_date FROM calibration_data.ibm_qubit_spec q
@@ -159,7 +160,7 @@ def _get_readout_error_sql(hw_name, calibration_type):
 
         parms = (hw_name, -15)
 
-    elif calibration_type == calibration_type_enum.average or calibration_type == calibration_type_enum.average_adjust:
+    elif calibration_type == calibration_type_enum.average.value or calibration_type == calibration_type_enum.average_adjust.value:
         sql = """
         SELECT qubit, AVG(readout_error) FROM (
         SELECT DISTINCT qubit, readout_error, readout_error_date FROM calibration_data.ibm_qubit_spec q
@@ -170,7 +171,7 @@ def _get_readout_error_sql(hw_name, calibration_type):
 
         parms = (hw_name, )
 
-    elif calibration_type == calibration_type_enum.mix or calibration_type == calibration_type_enum.mix_adjust:
+    elif calibration_type == calibration_type_enum.mix.value or calibration_type == calibration_type_enum.mix_adjust.value:
         last_cal_id, last_cal_date = _get_last_calibration_id(hw_name)
 
         sql = """
@@ -192,7 +193,6 @@ def _get_readout_error_sql(hw_name, calibration_type):
 def _update_readout_error(prop_dict, hw_name, calibration_type):
 
     sql, parms = _get_readout_error_sql(hw_name, calibration_type)
-
     readout_results = sql_query(sql, parms)
 
     # update readout error
@@ -219,7 +219,7 @@ def _get_std_two_qubit_error(prop_dict, hw_name, native_gates_2q):
         WHERE q.hw_name = %s AND ''' + native_gates_2q + '''_error != 1
         ) X GROUP BY qubit_control, qubit_target;
         '''
-    parms = (hw_name)
+    parms = (hw_name, )
     two_q_results = sql_query(sql, parms)
 
     for res in two_q_results:
@@ -240,7 +240,7 @@ def _get_two_qubit_error_sql(hw_name, calibration_type, native_gates_2q):
     sql = ""
     parms = ()
 
-    if calibration_type == calibration_type_enum.realtime_adjust:
+    if calibration_type == calibration_type_enum.realtime_adjust.value:
         last_cal_id, last_cal_date = _get_last_calibration_id(hw_name)
 
         sql = '''
@@ -249,8 +249,8 @@ def _get_two_qubit_error_sql(hw_name, calibration_type, native_gates_2q):
         WHERE calibration_id = %s AND ''' + native_gates_2q + '''_error != 1;
         '''
 
-        parms = (last_cal_id)
-    elif calibration_type == calibration_type_enum.recent_15 or calibration_type == calibration_type_enum.recent_15_adjust:
+        parms = (last_cal_id, )
+    elif calibration_type == calibration_type_enum.recent_15.value or calibration_type == calibration_type_enum.recent_15_adjust.value:
         sql = '''
         SELECT qubit_control, qubit_target, AVG(''' + native_gates_2q + '''_error) FROM (
         SELECT DISTINCT qubit_control, qubit_target, ''' + native_gates_2q + '''_error, 
@@ -263,7 +263,7 @@ def _get_two_qubit_error_sql(hw_name, calibration_type, native_gates_2q):
 
         parms = (hw_name, -15)
 
-    elif calibration_type == calibration_type_enum.average or calibration_type == calibration_type_enum.average_adjust:
+    elif calibration_type == calibration_type_enum.average.value or calibration_type == calibration_type_enum.average_adjust.value:
         sql = '''
         SELECT qubit_control, qubit_target, AVG(''' + native_gates_2q + '''_error) FROM (
         SELECT DISTINCT qubit_control, qubit_target, ''' + native_gates_2q + '''_error
@@ -274,14 +274,14 @@ def _get_two_qubit_error_sql(hw_name, calibration_type, native_gates_2q):
 
         parms = (hw_name, )
 
-    elif calibration_type == calibration_type_enum.mix or calibration_type == calibration_type_enum.mix_adjust:
+    elif calibration_type == calibration_type_enum.mix.value or calibration_type == calibration_type_enum.mix_adjust.value:
         last_cal_id, last_cal_date = _get_last_calibration_id(hw_name)
 
         sql = '''SELECT q.qubit_control, q.qubit_target, 
         CASE WHEN DATE_FORMAT(q.''' + native_gates_2q + '''_date , '%Y%m%d') = %s 
         THEN ''' + native_gates_2q + '''_error ELSE ''' + native_gates_2q + '''_error_avg END AS ''' + native_gates_2q + '''_error
         FROM calibration_data.ibm_two_qubit_gate_spec q
-        INNER JOIN (SELECT qubit_control, qubit_target, AVG(''' + native_gates_2q + '''_error) AS ''' + native_gates_2q + '''_error_avg,  FROM (
+        INNER JOIN (SELECT qubit_control, qubit_target, AVG(''' + native_gates_2q + '''_error) AS ''' + native_gates_2q + '''_error_avg FROM (
         SELECT DISTINCT qubit_control, qubit_target, ''' + native_gates_2q + '''_error, ''' + native_gates_2q + '''_date FROM calibration_data.ibm_two_qubit_gate_spec q
         INNER JOIN calibration_data.ibm i ON q.calibration_id = i.calibration_id 
         WHERE i.hw_name = %s) X GROUP BY qubit_control, qubit_target) a ON q.qubit_control = a.qubit_control AND q.qubit_target = a.qubit_target
@@ -326,7 +326,7 @@ def _update_one_qubit_error(prop_dict, hw_name, calibration_type):
     ) X GROUP BY qubit;
     '''
 
-    parms = (hw_name)
+    parms = (hw_name, )
 
     one_q_results = sql_query(sql, parms)
 
@@ -349,6 +349,7 @@ def generate_new_props(backend, calibration_type):
     properties = backend.properties()
     prop_dict = properties.to_dict()
 
+    print(calibration_type)
     _update_readout_error(prop_dict, hw_name, calibration_type)
     _update_one_qubit_error(prop_dict, hw_name, calibration_type)
     _update_two_qubit_error(prop_dict, hw_name, calibration_type)
