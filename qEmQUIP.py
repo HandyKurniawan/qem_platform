@@ -92,7 +92,6 @@ class QEM:
         
         self.header_id = None
         self.user_id = user_id
-        self.list_detail_id = {}
 
         self.load_account(token)
 
@@ -100,7 +99,7 @@ class QEM:
 
         self.set_variables()
 
-        self.init_result_header(qasm_source)
+        # self.init_result_header()
 
         self.set_sampler_options()
 
@@ -194,13 +193,13 @@ class QEM:
         options.resilience_level = 0
 
         if (self.run_in_simulator):            
-            self.session = Session(service=service, backend=backend_sim, max_time="25m")
-            self.sampler = Sampler(backend_sim, options=options, session=self.session) 
+            #self.session = Session(service=service, backend=backend_sim, max_time="25m")
+            self.sampler = Sampler(backend_sim, options=options) 
         else:
-            self.session = Session(service=service, backend=self.backend_service, max_time="25m")
-            self.sampler = Sampler(self.backend_service, options=options, session=self.session) 
+            #self.session = Session(service=service, backend=self.backend_service, max_time="25m")
+            self.sampler = Sampler(self.backend_service, options=options) 
 
-    def init_result_header(self, qasm):
+    def init_result_header(self):
         
         # Connect to the MySQL database
         conn = mysql.connector.connect(**self.mysql_config)
@@ -245,36 +244,20 @@ class QEM:
 
     def apply_qiskit(self, 
                      updated_qasm = None,
-                     qiskit_optimization_level = 0, 
-                     initial_layout = None,
-                     enable_sabre = False,
+                     qiskit_optimization_level = 3, 
+                     enable_noise_adaptive = False,
                      enable_mirage = False,
-                     enable_send = True
+                     calibration_type = None
                      ):
         """
         hmmm
         """
-        if enable_send:
-           updated_qasm = self.qasm
-
-        # print(updated_qasm)
-        if initial_layout == None and self.fixed_initial_layout:
-            initial_layout = self.initial_layout_qiskit
-
         updated_qasm = qiskit_wrapper.optimize_qasm(
-            updated_qasm, self.backend, qiskit_optimization_level, initial_layout=initial_layout,
-            enable_sabre=enable_sabre, enable_mirage=enable_mirage)
+            self.qasm, self.backend, qiskit_optimization_level,
+            enable_noise_adaptive=enable_noise_adaptive, enable_mirage=enable_mirage, calibration_type=calibration_type)
+        
+        detail_id = self._save_result_to_db(updated_qasm)
 
-        # print("after qiskit")
-        # print(updated_qasm)
-
-        if enable_send:
-            detail_id = self._save_result_to_db(updated_qasm)
-
-            # save it to the list and run later
-            self.list_detail_id[detail_id] = updated_qasm
-        else:
-            return updated_qasm
     
     def apply_mirage(self, qiskit_optimization_level, enable_mirage = 1):
         
@@ -283,15 +266,8 @@ class QEM:
 
         detail_id = self._save_result_to_db(updated_qasm)
 
-        # save it to the list and run later
-        self.list_detail_id[detail_id] = updated_qasm
-
-    def apply_triq(self, triq_optimization, qiskit_optimization_level = 0, 
-                   enable_sabre = False, apply_qiskit = None, calibration_type = calibration_type_enum.realtime):
+    def apply_triq(self, triq_optimization, calibration_type = calibration_type_enum.realtime.value):
         """
-        apply_qiskit:
-            "before" : before triq
-            "after"  : after triq
         """    
         updated_qasm = self.qasm
         self.qiskit_qasm = None
@@ -300,32 +276,15 @@ class QEM:
         updated_qasm = qiskit_wrapper.transpile_to_basis_gate(updated_qasm, self.backend_service)
         self.qiskit_qasm = updated_qasm
 
-        # if apply_qiskit == "before":
-        #     updated_qasm = self.apply_qiskit(updated_qasm, qiskit_optimization_level, 
-        #                                      enable_sabre=enable_sabre, enable_mirage=False, enable_send=False)
-            
-        #     self.qiskit_qasm = updated_qasm
-
         updated_qasm = triq_wrapper.run(updated_qasm, 
                                         self.hardware_name + "_" + calibration_type, 
                                         triq_optimization)
 
-        if apply_qiskit == "after":
-            updated_qasm = self.apply_qiskit(updated_qasm, qiskit_optimization_level, 
-                                             initial_layout=self.initial_layout_triq,
-                                             enable_sabre=enable_sabre, enable_mirage=False, enable_send=False)
-
-
         detail_id = self._save_result_to_db(updated_qasm)
-
-        # save it to the list and run later
-        self.list_detail_id[detail_id] = updated_qasm
-
 
         return updated_qasm
 
-    def apply_laura(self, laura_optimization = 0, qiskit_optimization_level = 0, 
-                    enable_sabre = False, apply_qiskit = None, calibration_type = calibration_type_enum.realtime):
+    def apply_laura(self, laura_optimization = 0, calibration_type = calibration_type_enum.realtime.value):
         """
         apply_qiskit:
             "before" : before laura's version of triq
@@ -338,26 +297,11 @@ class QEM:
         updated_qasm = qiskit_wrapper.transpile_to_basis_gate(updated_qasm, self.backend_service)
         self.qiskit_qasm = updated_qasm
 
-        if apply_qiskit == "before":
-            updated_qasm = self.apply_qiskit(updated_qasm, qiskit_optimization_level, 
-                                             enable_sabre=enable_sabre, enable_mirage=False, enable_send=False)
-            
-            self.qiskit_qasm = updated_qasm
-
         updated_qasm = laura_wrapper.run(updated_qasm, self.hardware_name + "_" + calibration_type, laura_optimization)
-
-        if apply_qiskit == "after":
-            updated_qasm = self.apply_qiskit(updated_qasm, qiskit_optimization_level, 
-                                             initial_layout=self.initial_layout_triq,
-                                             enable_sabre=enable_sabre, enable_mirage=False, enable_send=False)
-
 
         detail_id = self._save_result_to_db(updated_qasm)
 
-        # save it to the list and run later
-        self.list_detail_id[detail_id] = updated_qasm
-
-
+    
         return updated_qasm
     
     
@@ -377,7 +321,7 @@ class QEM:
         try:
             
             p_qiskit_optimization, p_apply_qiskit, p_triq_optimization = None, None, None
-            sabre, mirage, mitiq, p_laura_optimization = None, None, None, None
+            p_noise_adaptive, mirage, p_hamap, p_laura_optimization = None, None, None, None
             p_calibration_type = None
 
             for i in calling_function_locals.keys():
@@ -390,8 +334,8 @@ class QEM:
                         p_triq_optimization = calling_function_locals[i]
                     elif i == "laura_optimization":
                         p_laura_optimization = calling_function_locals[i]
-                    elif i == "enable_sabre":
-                        sabre = 1 if calling_function_locals[i] == True else 0
+                    elif i == "enable_noise_adaptive":
+                        p_noise_adaptive = 1 if calling_function_locals[i] == True else 0
                     elif i == "enable_mirage":
                         mirage = 1 if calling_function_locals[i] == True else 0
                     elif i == "calibration_type":
@@ -403,16 +347,19 @@ class QEM:
             
             # insert to detail
             now_time = datetime.now().strftime("%Y%m%d%H%M%S")
-            cursor.execute('''INSERT INTO result_detail (user_id, header_id, job_id, status, 
-                           qiskit_optimization, apply_qiskit, triq_optimization, calibration_type, sabre, 
-                           mirage, mitiq, laura_optimization, created_datetime) 
+            sql = '''INSERT INTO result_detail (user_id, header_id, job_id, status, 
+                           qiskit_optimization, apply_qiskit, triq_optimization, calibration_type, noise_adaptive, 
+                           mirage, hamap, laura_optimization, created_datetime) 
                            VALUES (
                            %s, %s, %s, %s, 
                            %s, %s, %s, %s, %s, 
-                           %s, %s, %s, %s)''',
-                        (self.user_id, self.header_id, job_id, "pending",  
-                         p_qiskit_optimization, p_apply_qiskit, p_triq_optimization, p_calibration_type, sabre,
-                         mirage, mitiq, p_laura_optimization, now_time))
+                           %s, %s, %s, %s)'''
+            
+            parms = (self.user_id, self.header_id, job_id, "pending",  
+                         p_qiskit_optimization, p_apply_qiskit, p_triq_optimization, p_calibration_type, p_noise_adaptive,
+                         mirage, p_hamap, p_laura_optimization, now_time)
+
+            cursor.execute(sql, parms)
             detail_id = cursor.lastrowid
 
             # insert to result_updated_qasm
@@ -436,43 +383,29 @@ class QEM:
         conn = mysql.connector.connect(**self.mysql_config)
         cursor = conn.cursor()
 
-        if self.run_in_simulator:
-            # self.provider = IBMProvider(token=self.qiskit_token)
-            # self.backend = self.provider.get_backend("ibmq_qasm_simulator")
-            self.backend = self.service.get_backend("ibmq_qasm_simulator")
+        # if self.run_in_simulator:
+        #     # self.provider = IBMProvider(token=self.qiskit_token)
+        #     # self.backend = self.provider.get_backend("ibmq_qasm_simulator")
+        #     self.backend = self.service.get_backend("ibmq_qasm_simulator")
                 
-        cursor.execute('''SELECT distinct header_id FROM calibration_data.result WHERE job_id IS NULL ''')
+        cursor.execute('''SELECT DISTINCT header_id FROM calibration_data.result_detail WHERE job_id IS NULL ''')
         results_1 = cursor.fetchall()
 
         for res_1 in results_1:
             header_id = res_1[0]
 
-            cursor.execute('''SELECT detail_id, updated_qasm, qiskit_optimization, apply_qiskit, triq_optimization,
-                        sabre, mirage, laura_optimization 
-                        FROM calibration_data.result 
-                        WHERE header_id = %s AND job_id IS NULL''', (header_id,))
+            cursor.execute('''SELECT detail_id, updated_qasm FROM calibration_data.result_detail d
+                            INNER JOIN calibration_data.result_updated_qasm q ON d.id = q.detail_id 
+                            WHERE d.job_id IS NULL AND header_id = %s ''', (header_id,))
             results = cursor.fetchall()
 
-
+            success = False
             list_circuits = []
 
             for res in results:
-                detail_id, updated_qasm, qiskit_optimization, apply_qiskit, triq_optimization,\
-                        sabre, mirage, laura_optimization = res
+                detail_id, updated_qasm = res
 
-                
-                metadata = {"qiskit_optimization":qiskit_optimization,
-                            "apply_qiskit":apply_qiskit,
-                            "triq_optimization":triq_optimization,
-                            "sabre":sabre,
-                            "mirage":mirage,
-                            "laura_optimization":laura_optimization,
-                            "header_id": header_id,
-                            "detail_id":detail_id
-                            }
-
-                success = False
-                qc = QiskitCircuit(updated_qasm, name=self.circuit_name + "-" + str(detail_id), metadata=metadata)
+                qc = QiskitCircuit(updated_qasm, name=self.circuit_name + "-" + str(detail_id))
                 circuit = qc.get_native_gates_circuit(self.backend)
 
                 for i in range(self.runs):
@@ -514,70 +447,38 @@ class QEM:
         """
         
         """
-#region remark
-        # for qiskit_opt in qiskit_optimization:
-        #     # print('{:15} = {}'.format(opt.name, opt.value))
-        #     print("running qiskit:qiskit_optimization_level={}, enable_sabre=False , enable_mirage=False..".format(qiskit_opt.value))
-        #     self.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=False , enable_mirage=False)
-        #     # print("running qiskit:qiskit_optimization_level={}, enable_sabre=True , enable_mirage=False..".format(qiskit_opt.value))
-        #     # self.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=True , enable_mirage=False)
-        #     print("running qiskit:qiskit_optimization_level={}, enable_sabre=False , enable_mirage=True..".format(qiskit_opt.value))
-        #     self.apply_qiskit(qiskit_optimization_level=qiskit_opt.value, enable_sabre=False, enable_mirage=True)
-
-        # for calibration_opt in calibration_type_enum:
-
-        #     for triq_opt in triq_optimization:
-
-        #         if triq_opt == triq_optimization.CompileDijsktra or triq_opt == triq_optimization.CompileRevSwaps:
-        #             continue
-
-        #         print("running apply_triq:triq_optimization={}, qiskit_optimization_level=None, calibration_type={}..".format(triq_opt.value, calibration_opt.value))
-        #         self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=None, 
-        #                         enable_sabre=False, apply_qiskit=None, calibration_type=calibration_opt.value)
-
-        #         print("running apply_triq:triq_optimization={}, qiskit_optimization_level=3, apply_qiskit={}, calibration_type={}..".format(triq_opt.value, "after", calibration_opt.value))
-        #         self.apply_triq(triq_optimization=triq_opt.value, qiskit_optimization_level=3, 
-        #                         enable_sabre=False, apply_qiskit="after", calibration_type=calibration_opt.value)
-
-        #     # for triq_opt in triq_optimization:
-        #     #     print("running apply_laura:laura_optimization={}, qiskit_optimization_level={}, enable_sabre=False, apply_qiskit={}, calibration_type={}..".format(triq_opt.value, None, None, calibration_opt.value ))
-        #     #     self.apply_laura(laura_optimization=triq_opt.value, qiskit_optimization_level=None, 
-        #     #                     enable_sabre=False, apply_qiskit=None, calibration_type=calibration_opt.value)
-                
-        #     #     print("running apply_laura:laura_optimization={}, qiskit_optimization_level={}, enable_sabre=False, apply_qiskit={}, calibration_type={}..".format(triq_opt.value, 3, "after", calibration_opt.value ))
-        #     #     self.apply_laura(laura_optimization=triq_opt.value, qiskit_optimization_level=3, 
-        #     #                     enable_sabre=False, apply_qiskit="after", calibration_type=calibration_opt.value)
-
-        #     print("running apply_laura:laura_optimization={}, qiskit_optimization_level={}, enable_sabre=False, apply_qiskit={}, calibration_type={}..".format(2, None, None, calibration_opt.value ))
-        #     self.apply_laura(laura_optimization=2, qiskit_optimization_level=None, 
-        #                      enable_sabre=False, apply_qiskit=None, calibration_type=calibration_opt.value)
-            
-        #     print("running apply_laura:laura_optimization={}, qiskit_optimization_level={}, enable_sabre=False, apply_qiskit={}, calibration_type={}..".format(2, 3, "after", calibration_opt.value ))
-        #     self.apply_laura(laura_optimization=2, qiskit_optimization_level=3, 
-        #                      enable_sabre=False, apply_qiskit="after", calibration_type=calibration_opt.value)
-            
-        # for qiskit_opt in qiskit_optimization:
-        #     print("running apply_mirage:qiskit_optimization_level={}, enable_mirage = 1..".format(qiskit_opt.value))
-        #     self.apply_mirage(qiskit_optimization_level=qiskit_opt.value, enable_mirage = 1)
-#endregion
-
-        print("running qiskit:qiskit_optimization_level={}, enable_sabre=False , enable_mirage=False..".format(3))
-        self.apply_qiskit(qiskit_optimization_level=3, enable_sabre=False , enable_mirage=False)
-
-        print("running qiskit:qiskit_optimization_level={}, enable_sabre=False , enable_mirage=True..".format(3))
-        self.apply_qiskit(qiskit_optimization_level=3, enable_sabre=False , enable_mirage=True)
-
-        for calibration_opt in calibration_type_enum:
-
-            print("running apply_triq:triq_optimization={}, qiskit_optimization_level=None, calibration_type={}..".format(0, calibration_opt.value))
-            self.apply_triq(triq_optimization=0, qiskit_optimization_level=None, 
-                            enable_sabre=False, apply_qiskit=None, calibration_type=calibration_opt.value)
+        self.apply_qiskit(qiskit_optimization_level=3)
+        self.apply_qiskit(qiskit_optimization_level=3, enable_mirage=True)
+        self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.realtime.value)
+        self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.realtime_adjust.value)
+        self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.recent_15.value)
+        self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.recent_15_adjust.value)
+        self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.mix.value)
+        self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.mix_adjust.value)
+        self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.average_adjust.value)
 
 
-            print("running apply_laura:laura_optimization={}, qiskit_optimization_level={}, enable_sabre=False, apply_qiskit={}, calibration_type={}..".format(2, None, None, calibration_opt.value ))
-            self.apply_laura(laura_optimization=2, qiskit_optimization_level=None, 
-                             enable_sabre=False, apply_qiskit=None, calibration_type=calibration_opt.value)
-            
+        self.apply_triq(triq_optimization=0, calibration_type=calibration_type_enum.realtime.value)
+        self.apply_triq(triq_optimization=0, calibration_type=calibration_type_enum.decay_15.value)
+        self.apply_triq(triq_optimization=0, calibration_type=calibration_type_enum.recent_15.value)
+
+        self.apply_laura(laura_optimization=2, calibration_type=calibration_type_enum.realtime.value)
+        self.apply_laura(laura_optimization=2, calibration_type=calibration_type_enum.decay_15.value)
+        self.apply_laura(laura_optimization=2, calibration_type=calibration_type_enum.recent_15.value)
+
+    def get_fake_perth(self):
+        fake_perth = qiskit_wrapper.NewFakePerth()
+        print(fake_perth.name)
+
+        fake_perth = qiskit_wrapper.NewFakePerthRecent15()
+        print(fake_perth.name)
+
+        transpile(self.initial_circuit.circuit, 
+                    fake_perth,
+                    optimization_level=3,
+                    routing_method="sabre",
+                    layout_method="noise_adaptive",
+                    )
 
 if __name__ == "__main__":
 
@@ -585,13 +486,13 @@ if __name__ == "__main__":
     # # token pepe 1
     # token = "924828a6b1671411b96c27b10123849b161154290707582dc60d0b900146ccc8fb93adda735a6d0805168b3007a8ad56f626f9f207881d5055c841a58e51a7d9"
 
-    # token pepe 2
-    token = "2298ebebdf52aa8ef9258a07154bc62d335af0126f2bed26502a43f32a206309618c34344db22713f54bad3dc1c7569d7d1e3a0075e0421160e83b8c50967b45"
+    # # token pepe 2
+    # token = "2298ebebdf52aa8ef9258a07154bc62d335af0126f2bed26502a43f32a206309618c34344db22713f54bad3dc1c7569d7d1e3a0075e0421160e83b8c50967b45"
 
-    # # # token pepe 3
+    # # token pepe 3
     # token = "01501f074b8bc9910185d5563408e2838951163e8f55b90a338c94c58116b92a1cd88081474827667b9d907604f2dd27eaa8399a83fbb9505a24e25875819b23"
 
-    # token pepe 4
+    # # token pepe 4
     # token = "055a93864810f2fc66e4de35b13027e8e591f0d019abb91b4895971fa16a991bef0ac573457c707c3d1070e5105d8f0cdd489f842cc06723d29a233c9f483e74"
 
     # # token untukmain
@@ -639,8 +540,8 @@ if __name__ == "__main__":
     # # token frisbee
     # token = "68d7a37e272a1a29ab8a3c767c63443fbf78fb82cfc34ac689d92f8f77f8fcdc4fd48dec46aa257a116f3194ba6532334f67d1b0a6f9feb53f1296804cb418b2"
 
-    # # token button
-    # token = "ec5f9f43cea1eb948b374f22419e8e96307aa8ed59af234cd9133db2564dcc0f1c36eafc99f1565a9c5488d06296d0a291f1fff571fea5e8d01d0eddce7fa14f"
+    # token button
+    token = "ec5f9f43cea1eb948b374f22419e8e96307aa8ed59af234cd9133db2564dcc0f1c36eafc99f1565a9c5488d06296d0a291f1fff571fea5e8d01d0eddce7fa14f"
 
     # # token known
     # token = "78b48009dcb68d57e164d1929cf4f0b248a827d18fc739107e127eef34d87bf67ad9b445744f7c7cd2cd1232ea8b92db11d7878be3542a131d17621586cf410c"
@@ -706,25 +607,33 @@ if __name__ == "__main__":
     for i in qasm_files:
         qasm_source = i
         circuit_name = i.split("/")[-1].split(".")[0]
-        print("========== {}  ===========".format(circuit_name))
+        print("=========== {} ===========".format(circuit_name))
         q = None
 
         tmp_start_time  = time.perf_counter()
-        # q = QEM(token, qasm_source, hardware_name=hardware_name, runs=4, 
-        #         fixed_initial_layout = False, run_in_simulator=False, 
-        #         calibration_type = calibration_type_enum.realtime, 
-        #         circuit_name=circuit_name, user_id=6)
-
-        q = QEM(token, qasm_source, hardware_name=hardware_name, runs=10, 
-                fixed_initial_layout = False, run_in_simulator=True, 
+        q = QEM(token, qasm_source, hardware_name=hardware_name, runs=4, 
+                fixed_initial_layout = False, run_in_simulator=False, 
                 calibration_type = calibration_type_enum.realtime, 
-                circuit_name=circuit_name, user_id=95)
+                circuit_name=circuit_name, user_id=6)
+
+        # q = QEM(token, qasm_source, hardware_name=hardware_name, runs=10, 
+        #         fixed_initial_layout = False, run_in_simulator=True, 
+        #         calibration_type = calibration_type_enum.realtime, 
+        #         circuit_name=circuit_name, user_id=95)
+        # q = QEM(token, qasm_source, hardware_name=hardware_name, runs=10, 
+        #         fixed_initial_layout = False, run_in_simulator=True, 
+        #         calibration_type = calibration_type_enum.realtime, 
+        #         circuit_name=circuit_name, user_id=99)
         tmp_end_time = time.perf_counter()
+
+        
 
         print("Time for initialization: {} seconds".format(tmp_end_time - tmp_start_time))
         
+        # q.get_fake_perth()
         
         tmp_start_time  = time.perf_counter()
+        q.init_result_header()
         q.run()
         tmp_end_time = time.perf_counter()
 

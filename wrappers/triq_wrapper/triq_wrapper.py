@@ -160,7 +160,7 @@ WHERE i.hw_name = %s ORDER BY calibration_datetime DESC LIMIT 0, 1;
     # get readout error
     cursor.execute('''SELECT calibration_id, qubit, 1 - readout_error as readout_fidelity
                    FROM calibration_data.ibm_qubit_spec 
-                   WHERE calibration_id = %s;;
+                   WHERE calibration_id = %s;
                     ''', (calibration_id, ))
     results = cursor.fetchall()
     count = len(results)

@@ -1,5 +1,13 @@
 import json
 from enum import Enum
+import mysql.connector
+
+mysql_config = {
+    'user': 'handy',
+    'password': 'handy',
+    'host': 'ec2-16-171-33-207.eu-north-1.compute.amazonaws.com',
+    'database': 'calibration_data'
+}
 
 class triq_optimization(Enum):
     CompileOpt, CompileDijsktra, CompileRevSwaps = range(3)
@@ -11,8 +19,12 @@ class apply_qiskit_optimization(Enum):
     no_apply, before, after = None, "before", "after"
 
 class calibration_type_enum(Enum):
-    average, realtime, recent_45, recent_15, mix, decay_r, decay_45, decay_15, decay_mix \
-     = "avg", "real", "recent_45", "recent_15", "mix", "decay_r", "decay_45", "decay_15", "decay_mix"
+    realtime, average, recent_15, recent_45, mix, \
+        decay_r, decay_15, decay_mix, \
+    realtime_adjust, average_adjust, recent_15_adjust, mix_adjust \
+     = "real", "avg", "recent_15", "recent_45", "mix", \
+        "decay_r", "decay_15", "decay_mix", \
+        "real_adjust", "avg_adjust", "recent_15_adjust", "mix_adjust" 
 
 # class calibration_type_enum(Enum):
 #     average, mix, realtime = "avg", "mix", "real"
@@ -32,3 +44,22 @@ def read_file(file_path):
 
 def convert_to_json(dictiontary):
     return json.dumps(dictiontary, indent = 0) 
+
+def sql_query(sql, parms):
+    # Connect to the MySQL database
+    conn = mysql.connector.connect(**mysql_config)
+    cursor = conn.cursor()
+    
+    # insert to circuit
+    cursor.execute(sql, parms)
+    
+    results = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+
+    return results
+
+def sql_execute(cursor, sql, parms):
+    cursor.execute(sql, parms)
+    

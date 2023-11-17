@@ -1,5 +1,5 @@
 from .commons import read_file, convert_to_json, triq_optimization,\
-qiskit_optimization, apply_qiskit_optimization, calibration_type_enum
+qiskit_optimization, apply_qiskit_optimization, calibration_type_enum, sql_query, sql_execute
 
 __all__ = [
     "read_file",
@@ -7,5 +7,7 @@ __all__ = [
     "triq_optimization",
     "qiskit_optimization",
     "apply_qiskit_optimization",
-    "calibration_type_enum"
+    "calibration_type_enum",
+    "sql_query",
+    "sql_execute"
 ]
