@@ -95,6 +95,9 @@ def check_result_availability(service, header_id, job_id):
             conn.close()
             return 10
 
+        finished_datetime = job.metrics()["timestamps"]["finished"]
+        cursor.execute('UPDATE calibration_data.result_header SET created_datetime= %s WHERE id = %s', (finished_datetime, header_id))
+
         # get list of detail_id here
         cursor.execute('SELECT id FROM calibration_data.result_detail WHERE status = %s AND header_id = %s LIMIT 0, 100 ', ('pending', header_id, ))
         results = cursor.fetchall()

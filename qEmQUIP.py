@@ -388,7 +388,10 @@ class QEM:
         #     # self.backend = self.provider.get_backend("ibmq_qasm_simulator")
         #     self.backend = self.service.get_backend("ibmq_qasm_simulator")
                 
-        cursor.execute('''SELECT DISTINCT header_id FROM calibration_data.result_detail WHERE job_id IS NULL ''')
+        cursor.execute('''SELECT DISTINCT header_id
+                       FROM calibration_data.result_detail 
+                       WHERE job_id IS NULL 
+                       ''')
         results_1 = cursor.fetchall()
 
         for res_1 in results_1:
@@ -396,7 +399,7 @@ class QEM:
 
             cursor.execute('''SELECT detail_id, updated_qasm FROM calibration_data.result_detail d
                             INNER JOIN calibration_data.result_updated_qasm q ON d.id = q.detail_id 
-                            WHERE d.job_id IS NULL AND header_id = %s ''', (header_id,))
+                            WHERE d.job_id IS NULL AND d.header_id = %s ''', (header_id,))
             results = cursor.fetchall()
 
             success = False
@@ -448,7 +451,7 @@ class QEM:
         
         """
         self.apply_qiskit(qiskit_optimization_level=3)
-        self.apply_qiskit(qiskit_optimization_level=3, enable_mirage=True)
+        # self.apply_qiskit(qiskit_optimization_level=3, enable_mirage=True)
         self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.realtime.value)
         self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.realtime_adjust.value)
         self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.recent_15.value)
@@ -460,12 +463,25 @@ class QEM:
 
 
         self.apply_triq(triq_optimization=0, calibration_type=calibration_type_enum.realtime.value)
-        self.apply_triq(triq_optimization=0, calibration_type=calibration_type_enum.decay_15.value)
         self.apply_triq(triq_optimization=0, calibration_type=calibration_type_enum.recent_15.value)
+        self.apply_triq(triq_optimization=0, calibration_type=calibration_type_enum.decay_15.value)
+        # self.apply_triq(triq_optimization=0, calibration_type=calibration_type_enum.average.value)
+        # self.apply_triq(triq_optimization=0, calibration_type=calibration_type_enum.recent_45.value)
+        # self.apply_triq(triq_optimization=0, calibration_type=calibration_type_enum.mix.value)
+        # self.apply_triq(triq_optimization=0, calibration_type=calibration_type_enum.decay_r.value)
+        # self.apply_triq(triq_optimization=0, calibration_type="decay_45")
+        # self.apply_triq(triq_optimization=0, calibration_type=calibration_type_enum.decay_mix.value)
 
         self.apply_laura(laura_optimization=2, calibration_type=calibration_type_enum.realtime.value)
-        self.apply_laura(laura_optimization=2, calibration_type=calibration_type_enum.decay_15.value)
         self.apply_laura(laura_optimization=2, calibration_type=calibration_type_enum.recent_15.value)
+        self.apply_laura(laura_optimization=2, calibration_type=calibration_type_enum.decay_15.value)
+
+        # self.apply_laura(laura_optimization=2, calibration_type=calibration_type_enum.average.value)
+        # self.apply_laura(laura_optimization=2, calibration_type=calibration_type_enum.recent_45.value)
+        # self.apply_laura(laura_optimization=2, calibration_type=calibration_type_enum.mix.value)
+        # self.apply_laura(laura_optimization=2, calibration_type=calibration_type_enum.decay_r.value)
+        # self.apply_laura(laura_optimization=2, calibration_type="decay_45")
+        # self.apply_laura(laura_optimization=2, calibration_type=calibration_type_enum.decay_mix.value)
 
     def get_fake_perth(self):
         fake_perth = qiskit_wrapper.NewFakePerth()
@@ -505,20 +521,11 @@ if __name__ == "__main__":
     # # token jose mario
     # token = "94882007fb17bcb98ad4c7d13adb024491bd30e72e4be58628dd685ce2c90bcbefb8abc65094cf051de77c8b676b4aa936bba8ad4a0df0e573e3cc01308c5421"
 
-    # # token laura 1
-    # token = "3efc1f6d5ced29bfa09060c23d32577dc5346087b8b86052cb5479652653a45a1698bec0a0ad45cd9ab255d12d8f5b47c3c1b154edab4ec6e66c52a9428a8905"
-    
-    # # token laura 2
-    # token = "a24455caca05c1c55ff4659b7e851e39e154d86a22e318a21a28359de0fcd0bfda206168ceb594667fe476d3a750d32bd782ed0425e918f3fbe566b0f1d7021e"
-
-    # # token laura 3
-    # token = "ff8ffa074bf770f71a0d549ef6c4b873aec044d0b3a85d46057c0addc1e383d84c3a7f5d9c6298bca7e16badbc3431b57d632dfd56573f027c245120ef8bed33"
-
     # # token contact 07
     # token = "68fb7ac07545c0cc3b63bea6bae1a2e69fe11c4f84be2d4dc335abd5747c602701e9e687876adbf9bb61b11f25fa82ca2c932808fd3f128450cc13670d4822fe"
 
-    # # token cornice apple
-    # token = "bfbe3159e00973e14168671f8790ab7d2b85e8cb61160ee0b17225cf312df48e582cad577b02781ddca79d382e9e3aba3ad9c46c9c47d1b1b5ed27c8815cc2ca"
+    # token cornice apple
+    token = "bfbe3159e00973e14168671f8790ab7d2b85e8cb61160ee0b17225cf312df48e582cad577b02781ddca79d382e9e3aba3ad9c46c9c47d1b1b5ed27c8815cc2ca"
 
     # # token petrol
     # token = "c0151c25a1bcb6e3f9274fb403cacf619f2508b2e70fcf350f1e44aba618f8d379f63f3554f58d2b6b7e04a63f20ba14895857e50b598c2c584c1b6519e6bc61"
@@ -541,8 +548,8 @@ if __name__ == "__main__":
     # # token frisbee
     # token = "68d7a37e272a1a29ab8a3c767c63443fbf78fb82cfc34ac689d92f8f77f8fcdc4fd48dec46aa257a116f3194ba6532334f67d1b0a6f9feb53f1296804cb418b2"
 
-    # token button
-    token = "ec5f9f43cea1eb948b374f22419e8e96307aa8ed59af234cd9133db2564dcc0f1c36eafc99f1565a9c5488d06296d0a291f1fff571fea5e8d01d0eddce7fa14f"
+    # # token button
+    # token = "ec5f9f43cea1eb948b374f22419e8e96307aa8ed59af234cd9133db2564dcc0f1c36eafc99f1565a9c5488d06296d0a291f1fff571fea5e8d01d0eddce7fa14f"
 
     # # token known
     # token = "78b48009dcb68d57e164d1929cf4f0b248a827d18fc739107e127eef34d87bf67ad9b445744f7c7cd2cd1232ea8b92db11d7878be3542a131d17621586cf410c"
@@ -567,6 +574,39 @@ if __name__ == "__main__":
 
     # # token rudder
     # token = "26f4ebc603700e1d56ac25c2a18c6ef196859f3a5547abe12ced49f3c16ef3c8391008db57e5bc77cd4ec3b3c62d26aeccf9983f311a279b714b5378ff4415cf"
+
+    # # token mercury
+    # token = "243e229672da5f0a602a816c821b96ded412c2c17041da434aed04e8e225603e40093013bc1a3392566ef090a48b389c80c9c38cb3b7626046a7682f16414e84"
+
+    # # token clashes
+    # token = "39a9660087b540bce0c4faebfa9fc5e32b7efd79b5c590a685ab4b20b4087a469dfb4e890f4308d62ebdb21be6cc421f27c5be553a42b43738aee05f02e13b48"
+
+    # # token roosts
+    # token = "2b2c8db93b834b4ef95fc0da7d6fd70f345de16464f8037655f87c96373703e46d0b0f48f8f5dbea70c82fd06c3405d7810f2f9e14b9d4e92d6487f62dbe2269"
+
+    # # token platoon
+    # token = "c6593b682f0a88379cdfdf83dee4399376885c04ca605d9471367d6313690772c338f4b1683af2ff9f713511f83cdf1357529882a5687fd67f7a37ec85c0e186"
+
+    # # token bobs
+    # token = "eeaa19292016f1efc96f7dc11676fe47cbfc12a85869374e6b8ce3c225c5e8ef029d1fa912bb5def86a7b3c62ea55cf16b386d1ea0051fa26676efa2a7df1db2"
+
+    # # token bygone
+    # token = "e62477a6e14315c89eb74f224f4aa6d44ae4fe4739bac484ab485ceedc97d4df9962b81286ead7ffe27a4b5443e8c03dd9ee516f09213a49fd3fa88976eba103"
+
+    # # token pore
+    # token = "a0347b951804a105a6c256d274c49ddcb284da7c20c9058e064afaea6844505f5451027feb6c335fbabe7c1e1b0bc62a9304f32ca54ed89a0d1e6d253eaf32fa"
+
+    # token chores
+    # token = "83fae468c72cb0e06e66c77c7520a24058a4ec4629b7e45236f7cf336237abc4cc5ce6ef9d2192ab652da68c7667143d09454687d76e42f9919f1e91ffb043a3"
+
+    # # token ales
+    # token = "7f531e9960905f9a3142ead5d8c004bf5dc39a59462dd70e5f623918bd539fecc0f7434dcbbf453aecad2cc6545595ce1f9edfbb029fc948e6e22c35ebf5e331"
+
+    # # token anion
+    # token = "4bcab1e9db485961e3a583b52b04c7fd35f476751e1c0107406e7fa6b2b6ae899c65142ac5547842f02bd6c667b1ce92a790b107acf56c3e748d32dd63830a55"
+
+    # token lumbar
+    token = "6955cf58b16e371d4b788ffd7602b6b1c134701f6a058a8ef02a71d6547b912f0602bc04f5e80a55ad67e4e64b29e0863b568760e7e7baa62159c975fe3df07b"
 
 #endregion
 
@@ -596,7 +636,7 @@ if __name__ == "__main__":
     # hardware_name = "ibmq_qasm_simulator"
     
     # Define the base folder path
-    base_folder = "~/Quantum_benchmarks/Paper_circuits/n_7/"
+    base_folder = "~/Quantum_benchmarks/Paper_circuits/n_7_run/"
     # base_folder = "~/Quantum_benchmarks/Paper_circuits/error-triq/"
 
     # List all files in the base folder with the .qasm extension
@@ -612,19 +652,19 @@ if __name__ == "__main__":
         q = None
 
         tmp_start_time  = time.perf_counter()
-        # q = QEM(token, qasm_source, hardware_name=hardware_name, runs=4, 
-        #         fixed_initial_layout = False, run_in_simulator=False, 
-        #         calibration_type = calibration_type_enum.realtime, 
-        #         circuit_name=circuit_name, user_id=6)
+        q = QEM(token, qasm_source, hardware_name=hardware_name, runs=8, 
+                fixed_initial_layout = False, run_in_simulator=False, 
+                calibration_type = calibration_type_enum.realtime, 
+                circuit_name=circuit_name, user_id=6)
 
         # q = QEM(token, qasm_source, hardware_name=hardware_name, runs=10, 
         #         fixed_initial_layout = False, run_in_simulator=True, 
         #         calibration_type = calibration_type_enum.realtime, 
         #         circuit_name=circuit_name, user_id=95)
-        q = QEM(token, qasm_source, hardware_name=hardware_name, runs=10, 
-                fixed_initial_layout = False, run_in_simulator=True, 
-                calibration_type = calibration_type_enum.realtime, 
-                circuit_name=circuit_name, user_id=99)
+        # q = QEM(token, qasm_source, hardware_name=hardware_name, runs=10, 
+        #         fixed_initial_layout = False, run_in_simulator=True, 
+        #         calibration_type = calibration_type_enum.realtime, 
+        #         circuit_name=circuit_name, user_id=99)
         tmp_end_time = time.perf_counter()
 
         print("Time for initialization: {} seconds".format(tmp_end_time - tmp_start_time))

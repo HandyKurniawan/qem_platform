@@ -205,7 +205,7 @@ def _update_readout_error(prop_dict, hw_name, calibration_type):
                 i["value"] = val
 
     if "adjust" in calibration_type:
-        print("Adding the deviation readout : ", calibration_type)
+        # print("Adding the deviation readout : ", calibration_type)
         _get_std_readout_error(prop_dict, hw_name)
 
 def _get_std_two_qubit_error(prop_dict, hw_name, native_gates_2q):
@@ -313,7 +313,7 @@ def _update_two_qubit_error(prop_dict, hw_name, calibration_type):
                             par["value"] = float(avg_value) 
 
     if "adjust" in calibration_type:
-        print("Adding the deviation two qubit : ", calibration_type)
+        # print("Adding the deviation two qubit : ", calibration_type)
         _get_std_two_qubit_error(prop_dict, hw_name, native_gates_2q)
 
 def _update_one_qubit_error(prop_dict, hw_name, calibration_type):
