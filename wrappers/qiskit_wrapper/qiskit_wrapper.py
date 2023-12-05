@@ -14,8 +14,10 @@ from qiskit.transpiler import CouplingMap
 from commons import calibration_type_enum, sql_query
 from qiskit.providers.models import BackendProperties
 import json
-from .fake_perth import NewFakePerthRealAdjust, NewFakePerthRecent15, NewFakePerthRecent15Adjust, \
+from .fake_ibm_perth import NewFakePerthRealAdjust, NewFakePerthRecent15, NewFakePerthRecent15Adjust, \
                         NewFakePerthMix, NewFakePerthMixAdjust, NewFakePerthAverage, NewFakePerthAverageAdjust
+from .fake_ibm_brisbane import NewFakeBrisbaneRealAdjust, NewFakeBrisbaneRecent15, NewFakeBrisbaneRecent15Adjust, \
+                        NewFakeBrisbaneMix, NewFakeBrisbaneMixAdjust, NewFakeBrisbaneAverage, NewFakeBrisbaneAverageAdjust
 
 
 # Function to import and optimize a QASM circuit
@@ -35,25 +37,25 @@ def optimize_qasm(input_qasm, backend, optimization, enable_noise_adaptive = Fal
         routing_method = 'sabre'
         if calibration_type == calibration_type_enum.realtime_adjust.value:
             generate_new_props(backend, calibration_type)
-            tmp_backend = NewFakePerthRealAdjust()
+            tmp_backend = NewFakeBrisbaneRealAdjust()
         elif calibration_type == calibration_type_enum.recent_15.value:
             generate_new_props(backend, calibration_type)
-            tmp_backend = NewFakePerthRecent15()
+            tmp_backend = NewFakeBrisbaneRecent15()
         elif calibration_type == calibration_type_enum.recent_15_adjust.value:
             generate_new_props(backend, calibration_type)
-            tmp_backend = NewFakePerthRecent15Adjust()
+            tmp_backend = NewFakeBrisbaneRecent15Adjust()
         elif calibration_type == calibration_type_enum.mix.value:
             generate_new_props(backend, calibration_type)
-            tmp_backend = NewFakePerthMix()
+            tmp_backend = NewFakeBrisbaneMix()
         elif calibration_type == calibration_type_enum.mix_adjust.value:
             generate_new_props(backend, calibration_type)
-            tmp_backend = NewFakePerthMixAdjust()
+            tmp_backend = NewFakeBrisbaneMixAdjust()
         elif calibration_type == calibration_type_enum.average.value:
             generate_new_props(backend, calibration_type)
-            tmp_backend = NewFakePerthAverage()
+            tmp_backend = NewFakeBrisbaneAverage()
         elif calibration_type == calibration_type_enum.average_adjust.value:
             generate_new_props(backend, calibration_type)
-            tmp_backend = NewFakePerthAverageAdjust()
+            tmp_backend = NewFakeBrisbaneAverageAdjust()
 
     elif enable_mirage:
         layout_method = 'sabre'
@@ -359,7 +361,7 @@ def generate_new_props(backend, calibration_type):
     new_prop_json = json.dumps(new_prop_dict, indent = 0, default=str) 
     new_prop_json = new_prop_json.replace("\n", "")
 
-    file_path = "./wrappers/qiskit_wrapper/fake_backend/{}/props_perth_{}.json".format(hw_name, calibration_type)
+    file_path = "./wrappers/qiskit_wrapper/fake_backend/{}/props_{}_{}.json".format(hw_name, hw_name, calibration_type)
     f = open(file_path, "w+")
     f.write(new_prop_json)
     f.close()

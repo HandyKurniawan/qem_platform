@@ -12,7 +12,7 @@ from htbuilder.funcs import rgba, rgb
 mysql_config = {
     'user': 'handy',
     'password': 'handy',
-    'host': 'ec2-3-80-240-233.compute-1.amazonaws.com',
+    'host': 'ec2-16-170-224-118.eu-north-1.compute.amazonaws.com',
     'database': 'calibration_data'
 }
 

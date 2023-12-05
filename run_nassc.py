@@ -24,7 +24,7 @@ results = nassc_wrapper.run(yamlfile)
 mysql_config = {
             'user': 'handy',
             'password': 'handy',
-            'host': 'ec2-34-228-189-223.compute-1.amazonaws.com',
+            'host': 'ec2-16-170-224-118.eu-north-1.compute.amazonaws.com',
             'database': 'calibration_data'
         }
 

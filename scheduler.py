@@ -361,7 +361,7 @@ def get_metrics(detail_id, job_id):
             hd = 1
             tvd = 1
 
-            correct_output = normalize_counts(correct_output)
+            # correct_output = normalize_counts(correct_output)
             quasi_dists_dict = json.loads(quasi_dists) 
             for key, value in quasi_dists_dict.items():
                 if key in correct_output:

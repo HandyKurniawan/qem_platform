@@ -5,7 +5,7 @@ import mysql.connector
 mysql_config = {
     'user': 'handy',
     'password': 'handy',
-    'host': 'ec2-16-171-33-207.eu-north-1.compute.amazonaws.com',
+    'host': 'ec2-16-171-161-92.eu-north-1.compute.amazonaws.com',
     'database': 'calibration_data'
 }
 
