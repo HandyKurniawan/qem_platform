@@ -192,6 +192,8 @@ class QEM:
                 # "basis_gates": self.backend_service.configuration().basis_gates,
                 "coupling_map": self.backend_service.configuration().coupling_map
             }
+            # options.transpilation.initial_layout = "noise_adaptive"
+            # options.transpilation.routing_method = "sabre"
             # Set number of shots, optimization_level and resilience_level
             options.execution.shots = self.shots
             options.optimization_level = 0
@@ -200,8 +202,11 @@ class QEM:
             #self.session = Session(service=service, backend=backend_sim, max_time="25m")
             self.sampler = Sampler(backend_sim, options=options) 
         else:
-            #self.session = Session(service=service, backend=self.backend_service, max_time="25m")
-            self.sampler = Sampler(self.backend_service) 
+            options = Options()
+            options.execution.shots = self.shots
+            options.optimization_level = 0
+            options.resilience_level = 0
+            self.sampler = Sampler(self.backend_service, options=options) 
 
     def init_result_header(self):
         
@@ -230,7 +235,7 @@ class QEM:
         self.mysql_config = {
             'user': 'handy',
             'password': 'handy',
-            'host': 'ec2-16-171-161-92.eu-north-1.compute.amazonaws.com',
+            'host': 'ec2-13-51-160-194.eu-north-1.compute.amazonaws.com',
             'database': 'calibration_data'
         }
 
@@ -458,15 +463,15 @@ class QEM:
         """
         
         """
-        self.apply_qiskit(qiskit_optimization_level=0)
-        self.apply_qiskit(qiskit_optimization_level=3)
-        # # self.apply_qiskit(qiskit_optimization_level=3, enable_mirage=True)
-        self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.realtime.value)
-        self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.realtime_adjust.value)
-        self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.recent_15.value)
-        self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.recent_15_adjust.value)
-        self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.mix.value)
-        self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.mix_adjust.value)
+        # self.apply_qiskit(qiskit_optimization_level=0)
+        # self.apply_qiskit(qiskit_optimization_level=3)
+        # # # self.apply_qiskit(qiskit_optimization_level=3, enable_mirage=True)
+        # self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.realtime.value)
+        # self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.realtime_adjust.value)
+        # self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.recent_15.value)
+        # self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.recent_15_adjust.value)
+        # self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.mix.value)
+        # self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.mix_adjust.value)
         self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.average.value)
         self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.average_adjust.value)
 
@@ -516,8 +521,8 @@ class QEM:
 if __name__ == "__main__":
 
 #region token
-    # # token pepe 1
-    # token = "924828a6b1671411b96c27b10123849b161154290707582dc60d0b900146ccc8fb93adda735a6d0805168b3007a8ad56f626f9f207881d5055c841a58e51a7d9"
+    # token pepe 1
+    token = "924828a6b1671411b96c27b10123849b161154290707582dc60d0b900146ccc8fb93adda735a6d0805168b3007a8ad56f626f9f207881d5055c841a58e51a7d9"
 
     # # token pepe 2
     # token = "2298ebebdf52aa8ef9258a07154bc62d335af0126f2bed26502a43f32a206309618c34344db22713f54bad3dc1c7569d7d1e3a0075e0421160e83b8c50967b45"
@@ -641,8 +646,8 @@ if __name__ == "__main__":
     # q.send_qasm_to_real_backend()
 #endregion
 
-    # handy UCM regular
-    token = "9b1a802766a56b6a51fdf73762fcf6f5c0bd33ef1f5afcef2157693593292c06b5bc92861d8758a585bd4f6d588b2155f5a45fb912f41610a1ad8bb2119f6521"
+    # # handy UCM regular
+    # token = "9b1a802766a56b6a51fdf73762fcf6f5c0bd33ef1f5afcef2157693593292c06b5bc92861d8758a585bd4f6d588b2155f5a45fb912f41610a1ad8bb2119f6521"
 
     # # handy UCM API cloud
     # token = "isz-S9_mFwh8ikGssvCSoxoL3yk6mCyAkmsKoRyI8O0P"
@@ -668,19 +673,19 @@ if __name__ == "__main__":
         q = None
 
         tmp_start_time  = time.perf_counter()
-        # q = QEM(token, qasm_source, hardware_name=hardware_name, runs=1, 
-        #         fixed_initial_layout = False, run_in_simulator=False, 
-        #         calibration_type = calibration_type_enum.realtime, 
-        #         circuit_name=circuit_name, user_id=8)
+        q = QEM(token, qasm_source, hardware_name=hardware_name, runs=1, 
+                fixed_initial_layout = False, run_in_simulator=False, 
+                calibration_type = calibration_type_enum.realtime, 
+                circuit_name=circuit_name, user_id=8)
 
         # q = QEM(token, qasm_source, hardware_name=hardware_name, runs=10, 
         #         fixed_initial_layout = False, run_in_simulator=True, 
         #         calibration_type = calibration_type_enum.realtime, 
         #         circuit_name=circuit_name, user_id=95)
-        q = QEM(token, qasm_source, hardware_name=hardware_name, runs=1, 
-                fixed_initial_layout = False, run_in_simulator=True, 
-                calibration_type = calibration_type_enum.realtime, 
-                circuit_name=circuit_name, user_id=99)
+        # q = QEM(token, qasm_source, hardware_name=hardware_name, runs=1, 
+        #         fixed_initial_layout = False, run_in_simulator=True, 
+        #         calibration_type = calibration_type_enum.realtime, 
+        #         circuit_name=circuit_name, user_id=99)
         tmp_end_time = time.perf_counter()
 
         print("Time for initialization: {} seconds".format(tmp_end_time - tmp_start_time))

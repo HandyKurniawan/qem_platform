@@ -135,6 +135,8 @@ def _get_std_readout_error(prop_dict, hw_name):
             if (i["name"] == "readout_error"):
                 val = float(stddev_value)
                 i["value"] = i["value"] + val
+                if i["value"] >= 1:
+                    i["value"] = 1
 
 def _get_readout_error_sql(hw_name, calibration_type):
     sql = ""
@@ -237,6 +239,9 @@ def _get_std_two_qubit_error(prop_dict, hw_name, native_gates_2q):
                     for par in pars:
                         if (par["name"] == "gate_error"):
                             par["value"] = par["value"] + float(stddev_value) 
+
+                            if par["value"] >= 1:
+                                par["value"] = 1
 
 def _get_two_qubit_error_sql(hw_name, calibration_type, native_gates_2q):
     sql = ""
@@ -345,6 +350,8 @@ def _update_one_qubit_error(prop_dict, hw_name, calibration_type):
                     for par in pars:
                         if (par["name"] == "gate_error"):
                             par["value"] = float(avg_value) + float(stddev_value)
+                            if par["value"] >= 1:
+                                par["value"] = 1
 
 def generate_new_props(backend, calibration_type):
     hw_name = backend.name
