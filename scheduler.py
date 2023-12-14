@@ -21,9 +21,9 @@ mysql_config = {
     'database': 'calibration_data'
 }
 
-user_id = "96"
+user_id = "%"
 
-#'host': 'ec2-3-81-169-234.compute-1.amazonaws.com',
+#'host': 'ec2-51-20-5-90.eu-north-1.compute.amazonaws.com',
 
 # bit_format = '{0:07b}'
 bit_format = '{0:0127b}'
@@ -96,7 +96,7 @@ def check_result_availability(service, header_id, job_id):
             return 10
 
         finished_datetime = job.metrics()["timestamps"]["finished"]
-        cursor.execute('UPDATE calibration_data.result_header SET created_datetime= %s WHERE id = %s', (finished_datetime, header_id))
+        cursor.execute('UPDATE calibration_data.result_header SET created_datetime= %s WHERE id = %s', (finished_datetime[:-1], header_id))
 
         # get list of detail_id here
         cursor.execute('SELECT id FROM calibration_data.result_detail WHERE status = %s AND header_id = %s LIMIT 0, 100 ', ('pending', header_id, ))
@@ -282,7 +282,7 @@ def normalize_counts(result_counts, shots=8192):
 def get_count_1q(qc):
     count_1q = 0
     for key, value in dict(qc.count_ops()).items():
-        if key != 'cx' and key != "cy" and key != "cz" and key != "ch" and key != "crz" and key != "cp" and key != "cu" and key != "swap":
+        if key != 'cx' and key != "cy" and key != "cz" and key != "ch" and key != "crz" and key != "cp" and key != "cu" and key != "swap" and key != "ecr":
             count_1q += value
 
     return count_1q
@@ -290,7 +290,7 @@ def get_count_1q(qc):
 def get_count_2q(qc):
     count_2q = 0
     for key, value in dict(qc.count_ops()).items():
-        if key == 'cx' or key == "cy" or key == "cz" or key == "ch" or key == "crz" or key == "cp" or key == "cu" or key == "swap":
+        if key == 'cx' or key == "cy" or key == "cz" or key == "ch" or key == "crz" or key == "cp" or key == "cu" or key == "swap" or key == "ecr":
             count_2q += value
 
     return count_2q
@@ -361,15 +361,22 @@ def get_metrics(detail_id, job_id):
             hd = 1
             tvd = 1
 
-            # correct_output = normalize_counts(correct_output)
+            # binary_correct_output = {}
+            # print(type(correct_output))
+            # for key, value in correct_output.items():
+            #     print(key)
+
+            correct_output = json.loads(correct_output)
             quasi_dists_dict = json.loads(quasi_dists) 
             for key, value in quasi_dists_dict.items():
+                key = "{}".format(int(key, 2))
                 if key in correct_output:
                     sr_quasi = sr_quasi + value
-
+                
             # get standard deviation value
             quasi_dists_std_dict = json.loads(quasti_dists_std) 
             for key, value in quasi_dists_std_dict.items():
+                key = "{}".format(int(key, 2))
                 if key in correct_output:
                     sr_quasi_std = sr_quasi_std + value
 
@@ -382,6 +389,7 @@ def get_metrics(detail_id, job_id):
             # print('sr_nassc: ',sr_nassc)    
             
             for key, value in qc_counts.items():
+                key = "{}".format(int(key, 2))
                 if key in correct_output:
                     sr_aux = sr_aux + abs(correct_output[key] - value)
                 else: 
@@ -391,6 +399,7 @@ def get_metrics(detail_id, job_id):
             # print('sr_tvd: ', 1-tvd)
 
             for key, value in qc_counts.items():
+                key = "{}".format(int(key, 2))
                 if key in correct_output:
                     hd_aux = hd_aux + (math.sqrt(correct_output[key]) - math.sqrt(value))**2
                 else: 

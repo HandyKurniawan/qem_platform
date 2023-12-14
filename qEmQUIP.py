@@ -27,6 +27,13 @@ import mysql.connector
 import time
 
 activate_debugging_time = True
+# MySQL connection parameters
+mysql_config = {
+    'user': 'handy',
+    'password': 'handy',
+    'host': 'ec2-51-20-5-90.eu-north-1.compute.amazonaws.com',
+    'database': 'calibration_data'
+}
 
 class QiskitCircuit:
     def __init__(self, qasm, name = None, metadata = {}):
@@ -104,7 +111,7 @@ class QEM:
 
         # self.init_result_header()
 
-        self.set_sampler_options()
+        # self.set_sampler_options()
 
         # if self.calibration_type == calibration_type_enum.realtime:
         #     triq_wrapper.generate_realtime_calibration_data(self)
@@ -155,8 +162,10 @@ class QEM:
         # self.provider = IBMProvider(token=self.qiskit_token)
         # self.backend = self.provider.get_backend(self.hardware_name)
 
-        # self.service = QiskitRuntimeService(channel="ibm_cloud", token=self.qiskit_token, instance="Qiskit Runtime-ucm")
-        self.service = QiskitRuntimeService(channel="ibm_quantum", token=self.qiskit_token)
+        if self.hardware_name == "ibm_algiers":
+            self.service = QiskitRuntimeService(channel="ibm_cloud", token=self.qiskit_token, instance="Qiskit Runtime-ucm")
+        else:
+            self.service = QiskitRuntimeService(channel="ibm_quantum", token=self.qiskit_token)
         self.backend = self.service.get_backend(self.hardware_name)
         backend_sim = self.service.get_backend("simulator_mps")
         sampler = Sampler(backend_sim) 
@@ -167,7 +176,7 @@ class QEM:
         self.gates = dict(qc.count_ops())
         self.depth = qc.depth()
 
-    def set_sampler_options(self):
+    def set_sampler_options(self, use_default = False):
         start_time = time.perf_counter()
 
         service = None
@@ -204,8 +213,9 @@ class QEM:
         else:
             options = Options()
             options.execution.shots = self.shots
-            options.optimization_level = 0
-            options.resilience_level = 0
+            if not use_default:
+                options.optimization_level = 0
+                options.resilience_level = 0
             self.sampler = Sampler(self.backend_service, options=options) 
 
     def init_result_header(self):
@@ -232,12 +242,7 @@ class QEM:
     def load_account(self, token):
 
         # MySQL connection parameters
-        self.mysql_config = {
-            'user': 'handy',
-            'password': 'handy',
-            'host': 'ec2-13-51-160-194.eu-north-1.compute.amazonaws.com',
-            'database': 'calibration_data'
-        }
+        self.mysql_config = mysql_config
 
         self.qiskit_token = token
 
@@ -410,7 +415,7 @@ class QEM:
         for res_1 in results_1:
             header_id = res_1[0]
 
-            cursor.execute('''SELECT detail_id, updated_qasm FROM calibration_data.result_detail d
+            cursor.execute('''SELECT detail_id, updated_qasm, d.qiskit_optimization FROM calibration_data.result_detail d
                             INNER JOIN calibration_data.result_updated_qasm q ON d.id = q.detail_id 
                             WHERE d.job_id IS NULL AND d.header_id = %s ''', (header_id,))
             results = cursor.fetchall()
@@ -419,10 +424,11 @@ class QEM:
             list_circuits = []
 
             for res in results:
-                detail_id, updated_qasm = res
+                detail_id, updated_qasm, qiskit_optimization = res
 
                 qc = QiskitCircuit(updated_qasm, name=self.circuit_name + "-" + str(detail_id))
-                circuit = qc.get_native_gates_circuit(self.backend, self.run_in_simulator)
+                # circuit = qc.get_native_gates_circuit(self.backend, self.run_in_simulator)
+                circuit = qc.circuit
 
                 for i in range(self.runs):
                     list_circuits.append(circuit)
@@ -432,6 +438,11 @@ class QEM:
                 try:
 
                     print("Sending to {} with batch id: {} ... ".format(self.hardware_name, header_id))
+
+                    if qiskit_optimization == 99:
+                        self.set_sampler_options(use_default=True)
+                    else:
+                        self.set_sampler_options()
 
                     job, job_id = None, None
                     if self.run_in_simulator:
@@ -463,15 +474,19 @@ class QEM:
         """
         
         """
-        # self.apply_qiskit(qiskit_optimization_level=0)
-        # self.apply_qiskit(qiskit_optimization_level=3)
+        print("Running qiskit opt 0")
+        self.apply_qiskit(qiskit_optimization_level=0)
+        print("Running qiskit opt 3")
+        self.apply_qiskit(qiskit_optimization_level=3)
         # # # self.apply_qiskit(qiskit_optimization_level=3, enable_mirage=True)
-        # self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.realtime.value)
-        # self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.realtime_adjust.value)
-        # self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.recent_15.value)
-        # self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.recent_15_adjust.value)
-        # self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.mix.value)
-        # self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.mix_adjust.value)
+        print("Running qiskit opt 3 NA Realtime")
+        self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.realtime.value)
+        print("Running qiskit opt 3 NA Realtime Adjust")
+        self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.realtime_adjust.value)
+        self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.recent_15.value)
+        self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.recent_15_adjust.value)
+        self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.mix.value)
+        self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.mix_adjust.value)
         self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.average.value)
         self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.average_adjust.value)
 
@@ -521,8 +536,8 @@ class QEM:
 if __name__ == "__main__":
 
 #region token
-    # token pepe 1
-    token = "924828a6b1671411b96c27b10123849b161154290707582dc60d0b900146ccc8fb93adda735a6d0805168b3007a8ad56f626f9f207881d5055c841a58e51a7d9"
+    # # token pepe 1
+    # token = "924828a6b1671411b96c27b10123849b161154290707582dc60d0b900146ccc8fb93adda735a6d0805168b3007a8ad56f626f9f207881d5055c841a58e51a7d9"
 
     # # token pepe 2
     # token = "2298ebebdf52aa8ef9258a07154bc62d335af0126f2bed26502a43f32a206309618c34344db22713f54bad3dc1c7569d7d1e3a0075e0421160e83b8c50967b45"
@@ -542,8 +557,8 @@ if __name__ == "__main__":
     # # token jose mario
     # token = "94882007fb17bcb98ad4c7d13adb024491bd30e72e4be58628dd685ce2c90bcbefb8abc65094cf051de77c8b676b4aa936bba8ad4a0df0e573e3cc01308c5421"
 
-    # # token contact 07
-    # token = "68fb7ac07545c0cc3b63bea6bae1a2e69fe11c4f84be2d4dc335abd5747c602701e9e687876adbf9bb61b11f25fa82ca2c932808fd3f128450cc13670d4822fe"
+    # token contact 07
+    token = "68fb7ac07545c0cc3b63bea6bae1a2e69fe11c4f84be2d4dc335abd5747c602701e9e687876adbf9bb61b11f25fa82ca2c932808fd3f128450cc13670d4822fe"
 
     # # token cornice apple
     # token = "bfbe3159e00973e14168671f8790ab7d2b85e8cb61160ee0b17225cf312df48e582cad577b02781ddca79d382e9e3aba3ad9c46c9c47d1b1b5ed27c8815cc2ca"
@@ -657,7 +672,8 @@ if __name__ == "__main__":
     # hardware_name = "simulator_mps"
     
     # Define the base folder path
-    base_folder = "~/Quantum_benchmarks/QASMBench/run/"
+    # base_folder = "~/Quantum_benchmarks/QASMBench/run/"
+    base_folder = "~/Quantum_benchmarks/Paper_circuits/n_7_run/"
     # base_folder = "~/Quantum_benchmarks/Paper_circuits/error-triq/"
 
     # List all files in the base folder with the .qasm extension
@@ -673,10 +689,10 @@ if __name__ == "__main__":
         q = None
 
         tmp_start_time  = time.perf_counter()
-        q = QEM(token, qasm_source, hardware_name=hardware_name, runs=1, 
+        q = QEM(token, qasm_source, hardware_name=hardware_name, runs=4, 
                 fixed_initial_layout = False, run_in_simulator=False, 
                 calibration_type = calibration_type_enum.realtime, 
-                circuit_name=circuit_name, user_id=8)
+                circuit_name=circuit_name, user_id=10)
 
         # q = QEM(token, qasm_source, hardware_name=hardware_name, runs=10, 
         #         fixed_initial_layout = False, run_in_simulator=True, 
@@ -694,6 +710,11 @@ if __name__ == "__main__":
         
         tmp_start_time  = time.perf_counter()
         q.init_result_header()
+        tmp_end_time = time.perf_counter()
+
+        print("Time for running the init header: {} seconds".format(tmp_end_time - tmp_start_time))
+
+        tmp_start_time  = time.perf_counter()
         q.run()
         tmp_end_time = time.perf_counter()
 
