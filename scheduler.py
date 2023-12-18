@@ -17,7 +17,7 @@ from qiskit_ibm_runtime.utils.runner_result import RunnerResult
 mysql_config = {
     'user': 'handy',
     'password': 'handy',
-    'host': 'localhost',
+    'host': 'ec2-51-20-84-230.eu-north-1.compute.amazonaws.com',
     'database': 'calibration_data'
 }
 

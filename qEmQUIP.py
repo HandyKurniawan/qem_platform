@@ -31,7 +31,7 @@ activate_debugging_time = True
 mysql_config = {
     'user': 'handy',
     'password': 'handy',
-    'host': 'ec2-51-20-5-90.eu-north-1.compute.amazonaws.com',
+    'host': 'ec2-51-20-84-230.eu-north-1.compute.amazonaws.com',
     'database': 'calibration_data'
 }
 
@@ -176,7 +176,7 @@ class QEM:
         self.gates = dict(qc.count_ops())
         self.depth = qc.depth()
 
-    def set_sampler_options(self, use_default = False):
+    def set_sampler_options(self):
         start_time = time.perf_counter()
 
         service = None
@@ -213,9 +213,9 @@ class QEM:
         else:
             options = Options()
             options.execution.shots = self.shots
-            if not use_default:
-                options.optimization_level = 0
-                options.resilience_level = 0
+            options.optimization_level = 0
+            options.resilience_level = 0
+            # options.resilience_level = 1
             self.sampler = Sampler(self.backend_service, options=options) 
 
     def init_result_header(self):
@@ -417,7 +417,7 @@ class QEM:
 
             cursor.execute('''SELECT detail_id, updated_qasm, d.qiskit_optimization FROM calibration_data.result_detail d
                             INNER JOIN calibration_data.result_updated_qasm q ON d.id = q.detail_id 
-                            WHERE d.job_id IS NULL AND d.header_id = %s ''', (header_id,))
+                            WHERE d.job_id IS NULL AND d.header_id = %s AND d.user_id IN (10, 11) ''', (header_id,))
             results = cursor.fetchall()
 
             success = False
@@ -439,10 +439,8 @@ class QEM:
 
                     print("Sending to {} with batch id: {} ... ".format(self.hardware_name, header_id))
 
-                    if qiskit_optimization == 99:
-                        self.set_sampler_options(use_default=True)
-                    else:
-                        self.set_sampler_options()
+                    
+                    self.set_sampler_options()
 
                     job, job_id = None, None
                     if self.run_in_simulator:
@@ -490,8 +488,8 @@ class QEM:
         self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.average.value)
         self.apply_qiskit(qiskit_optimization_level=3, enable_noise_adaptive=True, calibration_type=calibration_type_enum.average_adjust.value)
 
-        # for sending without any transpilation to the backend
-        self.apply_qiskit(qiskit_optimization_level=99)
+        # # for sending without any transpilation to the backend
+        # self.apply_qiskit(qiskit_optimization_level=99)
 
 
         # self.apply_triq(triq_optimization=0, calibration_type=calibration_type_enum.realtime.value)
@@ -557,8 +555,8 @@ if __name__ == "__main__":
     # # token jose mario
     # token = "94882007fb17bcb98ad4c7d13adb024491bd30e72e4be58628dd685ce2c90bcbefb8abc65094cf051de77c8b676b4aa936bba8ad4a0df0e573e3cc01308c5421"
 
-    # token contact 07
-    token = "68fb7ac07545c0cc3b63bea6bae1a2e69fe11c4f84be2d4dc335abd5747c602701e9e687876adbf9bb61b11f25fa82ca2c932808fd3f128450cc13670d4822fe"
+    # # token contact 07
+    # token = "68fb7ac07545c0cc3b63bea6bae1a2e69fe11c4f84be2d4dc335abd5747c602701e9e687876adbf9bb61b11f25fa82ca2c932808fd3f128450cc13670d4822fe"
 
     # # token cornice apple
     # token = "bfbe3159e00973e14168671f8790ab7d2b85e8cb61160ee0b17225cf312df48e582cad577b02781ddca79d382e9e3aba3ad9c46c9c47d1b1b5ed27c8815cc2ca"
@@ -581,8 +579,8 @@ if __name__ == "__main__":
     # # token arrival point
     # token = "5c63e6d0dbc47a7c98741ea6b7de90afb0729f5e036dbea439cec03ee680d5dfa573bdb42920017edb942be678d54d4fb5d83d5e7296749f78dee5449a6f443b"
 
-    # # token frisbee
-    # token = "68d7a37e272a1a29ab8a3c767c63443fbf78fb82cfc34ac689d92f8f77f8fcdc4fd48dec46aa257a116f3194ba6532334f67d1b0a6f9feb53f1296804cb418b2"
+    # token frisbee
+    token = "68d7a37e272a1a29ab8a3c767c63443fbf78fb82cfc34ac689d92f8f77f8fcdc4fd48dec46aa257a116f3194ba6532334f67d1b0a6f9feb53f1296804cb418b2"
 
     # # token button
     # token = "ec5f9f43cea1eb948b374f22419e8e96307aa8ed59af234cd9133db2564dcc0f1c36eafc99f1565a9c5488d06296d0a291f1fff571fea5e8d01d0eddce7fa14f"
@@ -692,7 +690,12 @@ if __name__ == "__main__":
         q = QEM(token, qasm_source, hardware_name=hardware_name, runs=4, 
                 fixed_initial_layout = False, run_in_simulator=False, 
                 calibration_type = calibration_type_enum.realtime, 
-                circuit_name=circuit_name, user_id=10)
+                circuit_name=circuit_name, user_id=11)
+        
+        # q = QEM(token, qasm_source, hardware_name=hardware_name, runs=2, 
+        #         fixed_initial_layout = False, run_in_simulator=False, 
+        #         calibration_type = calibration_type_enum.realtime, 
+        #         circuit_name=circuit_name, user_id=10)
 
         # q = QEM(token, qasm_source, hardware_name=hardware_name, runs=10, 
         #         fixed_initial_layout = False, run_in_simulator=True, 
