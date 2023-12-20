@@ -22,7 +22,7 @@ from .fake_ibm_brisbane import NewFakeBrisbaneRealAdjust, NewFakeBrisbaneRecent1
 
 # Function to import and optimize a QASM circuit
 def optimize_qasm(input_qasm, backend, optimization, enable_noise_adaptive = False, enable_mirage = False,
-                  calibration_type = calibration_type_enum.realtime):
+                  calibration_type = calibration_type_enum.realtime, initial_layout = None):
     # Load the input QASM circuit
     circuit = QuantumCircuit.from_qasm_str(input_qasm)
 
@@ -70,7 +70,8 @@ def optimize_qasm(input_qasm, backend, optimization, enable_noise_adaptive = Fal
                                 optimization_level=optimization,
                                 routing_method=routing_method,
                                 layout_method=layout_method,
-                                basis_gates=basis_gates
+                                basis_gates=basis_gates,
+                                initial_layout=initial_layout
                                 )
 
 

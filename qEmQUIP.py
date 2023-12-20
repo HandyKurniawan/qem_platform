@@ -31,7 +31,7 @@ activate_debugging_time = True
 mysql_config = {
     'user': 'handy',
     'password': 'handy',
-    'host': 'ec2-51-20-84-230.eu-north-1.compute.amazonaws.com',
+    'host': 'ec2-16-171-196-225.eu-north-1.compute.amazonaws.com',
     'database': 'calibration_data'
 }
 
@@ -214,8 +214,8 @@ class QEM:
             options = Options()
             options.execution.shots = self.shots
             options.optimization_level = 0
-            options.resilience_level = 0
-            # options.resilience_level = 1
+            # options.resilience_level = 0
+            options.resilience_level = 1
             self.sampler = Sampler(self.backend_service, options=options) 
 
     def init_result_header(self):
@@ -261,7 +261,8 @@ class QEM:
                      qiskit_optimization_level = 3, 
                      enable_noise_adaptive = False,
                      enable_mirage = False,
-                     calibration_type = None
+                     calibration_type = None,
+                     initial_layout = None
                      ):
         """
         hmmm
@@ -272,7 +273,8 @@ class QEM:
         else:
             updated_qasm = qiskit_wrapper.optimize_qasm(
                 self.qasm, self.backend, qiskit_optimization_level,
-                enable_noise_adaptive=enable_noise_adaptive, enable_mirage=enable_mirage, calibration_type=calibration_type)
+                enable_noise_adaptive=enable_noise_adaptive, enable_mirage=enable_mirage, 
+                calibration_type=calibration_type, initial_layout=initial_layout)
         
         detail_id = self._save_result_to_db(updated_qasm)
 
@@ -573,14 +575,14 @@ if __name__ == "__main__":
     # # token bylaw
     # token = "30ea7c188f2b6531d2525875b7dab58f0d0091cb4c6e080472cdc76a96009aabbc3367ee1e1ac5f1aa2229941b08a7ef487066df163d47545c9524c4cad1c2ed"
 
-    # # token fasts
-    # token = "ad1527ea50d2b9fb3f122427c6423c55c036d6e3e6559c96a9d5bf4b2b813909a4aac65cbf23bc6ea8cc55da005be0dc85cfb72fa3cd5f57c3eec8a99ea3f9d8"
+    # token fasts
+    token = "ad1527ea50d2b9fb3f122427c6423c55c036d6e3e6559c96a9d5bf4b2b813909a4aac65cbf23bc6ea8cc55da005be0dc85cfb72fa3cd5f57c3eec8a99ea3f9d8"
 
     # # token arrival point
     # token = "5c63e6d0dbc47a7c98741ea6b7de90afb0729f5e036dbea439cec03ee680d5dfa573bdb42920017edb942be678d54d4fb5d83d5e7296749f78dee5449a6f443b"
 
-    # token frisbee
-    token = "68d7a37e272a1a29ab8a3c767c63443fbf78fb82cfc34ac689d92f8f77f8fcdc4fd48dec46aa257a116f3194ba6532334f67d1b0a6f9feb53f1296804cb418b2"
+    # # token frisbee
+    # token = "68d7a37e272a1a29ab8a3c767c63443fbf78fb82cfc34ac689d92f8f77f8fcdc4fd48dec46aa257a116f3194ba6532334f67d1b0a6f9feb53f1296804cb418b2"
 
     # # token button
     # token = "ec5f9f43cea1eb948b374f22419e8e96307aa8ed59af234cd9133db2564dcc0f1c36eafc99f1565a9c5488d06296d0a291f1fff571fea5e8d01d0eddce7fa14f"
@@ -687,15 +689,15 @@ if __name__ == "__main__":
         q = None
 
         tmp_start_time  = time.perf_counter()
-        q = QEM(token, qasm_source, hardware_name=hardware_name, runs=4, 
-                fixed_initial_layout = False, run_in_simulator=False, 
-                calibration_type = calibration_type_enum.realtime, 
-                circuit_name=circuit_name, user_id=11)
-        
-        # q = QEM(token, qasm_source, hardware_name=hardware_name, runs=2, 
+        # q = QEM(token, qasm_source, hardware_name=hardware_name, runs=4, 
         #         fixed_initial_layout = False, run_in_simulator=False, 
         #         calibration_type = calibration_type_enum.realtime, 
-        #         circuit_name=circuit_name, user_id=10)
+        #         circuit_name=circuit_name, user_id=11)
+        
+        q = QEM(token, qasm_source, hardware_name=hardware_name, runs=2, 
+                fixed_initial_layout = False, run_in_simulator=False, 
+                calibration_type = calibration_type_enum.realtime, 
+                circuit_name=circuit_name, user_id=10)
 
         # q = QEM(token, qasm_source, hardware_name=hardware_name, runs=10, 
         #         fixed_initial_layout = False, run_in_simulator=True, 
