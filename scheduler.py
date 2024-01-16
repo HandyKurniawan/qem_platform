@@ -12,14 +12,10 @@ from qiskit_ibm_runtime import QiskitRuntimeService
 from qiskit.providers import JobStatus
 from qiskit.primitives import SamplerResult
 from qiskit_ibm_runtime.utils.runner_result import RunnerResult
+from commons import get_mysql_config
 
 # MySQL connection parameters
-mysql_config = {
-    'user': 'handy',
-    'password': 'handy',
-    'host': 'ec2-16-171-254-2.eu-north-1.compute.amazonaws.com',
-    'database': 'calibration_data'
-}
+mysql_config = get_mysql_config()
 
 user_id = "%"
 

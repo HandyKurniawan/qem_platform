@@ -19,6 +19,36 @@ from .fake_ibm_perth import NewFakePerthRealAdjust, NewFakePerthRecent15, NewFak
 from .fake_ibm_brisbane import NewFakeBrisbaneRealAdjust, NewFakeBrisbaneRecent15, NewFakeBrisbaneRecent15Adjust, \
                         NewFakeBrisbaneMix, NewFakeBrisbaneMixAdjust, NewFakeBrisbaneAverage, NewFakeBrisbaneAverageAdjust
 
+class QiskitCircuit:
+    def __init__(self, qasm, name = None, metadata = {}):
+        qc = None
+        if isinstance(qasm, str):
+            try:
+                qc = QuantumCircuit.from_qasm_file(qasm)
+            except Exception as e:
+                try: 
+                    qc = QuantumCircuit.from_qasm_str(qasm)
+                except Exception as ex:
+                    raise ValueError("Input circuit must be a string path to QASM file, QASM string or a QuantumCircuit object")
+                
+        if not (isinstance(qasm, str) or isinstance(qc, QuantumCircuit)):
+            raise ValueError("Input must be a string or a QuantumCircuit object")
+        
+        
+        self.circuit = qc
+        self.qasm = qc.qasm()
+        self.circuit.name = name
+        self.circuit.metadata = metadata
+
+    def get_native_gates_circuit(self, backend, simulator = False):
+        if simulator:
+            return transpile(self.circuit.decompose(), backend, basis_gates=["u3", "cx"], optimization_level=0, layout_method="trivial")
+        else:
+            return transpile(self.circuit.decompose(), backend, basis_gates=backend.basis_gates, optimization_level=0, layout_method="trivial")
+    
+    def get_qasm(self):
+        return self.qasm
+    
 
 # Function to import and optimize a QASM circuit
 def optimize_qasm(input_qasm, backend, optimization, enable_noise_adaptive = False, enable_mirage = False,
