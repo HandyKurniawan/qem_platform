@@ -15,7 +15,7 @@ import wrappers.qiskit_wrapper as qiskit_wrapper
 import wrappers.mirage_wrapper as mirage_wrapper
 import wrappers.laura_wrapper as laura_wrapper
 import sys, glob, os
-from commons import convert_to_json, triq_optimization, qiskit_optimization, calibration_type_enum
+from commons import convert_to_json, triq_optimization, qiskit_optimization, calibration_type_enum, normalize_counts
 import inspect
 from qiskit import Aer, QuantumCircuit, transpile
 from qiskit_ibm_provider import IBMProvider
@@ -31,9 +31,11 @@ activate_debugging_time = True
 mysql_config = {
     'user': 'handy',
     'password': 'handy',
-    'host': 'ec2-16-171-196-225.eu-north-1.compute.amazonaws.com',
+    'host': 'ec2-16-171-254-2.eu-north-1.compute.amazonaws.com',
     'database': 'calibration_data'
 }
+
+simulator_hardware = "ibmq_qasm_simulator"
 
 class QiskitCircuit:
     def __init__(self, qasm, name = None, metadata = {}):
@@ -68,7 +70,7 @@ class QiskitCircuit:
 class QEM:
     def __init__(self, token, qasm_source, shots=8192, runs=2, 
                  fixed_initial_layout = False, 
-                 run_in_simulator = False, hardware_name = "simulator_mps", 
+                 run_in_simulator = False, hardware_name = simulator_hardware, 
                  calibration_type = calibration_type_enum.realtime,
                  circuit_name = "circuit", user_id = 99):
         self.run_in_simulator = run_in_simulator
@@ -167,12 +169,19 @@ class QEM:
         else:
             self.service = QiskitRuntimeService(channel="ibm_quantum", token=self.qiskit_token)
         self.backend = self.service.get_backend(self.hardware_name)
-        backend_sim = self.service.get_backend("simulator_mps")
-        sampler = Sampler(backend_sim) 
-        job_sim = sampler.run(transpile(qc, backend_sim, basis_gates=["u3", "cx"]), shots=10000)
-        result_sim = job_sim.result()    
 
-        self.correct_output = dict(result_sim.quasi_dists[0])
+        if simulator_hardware != "ibmq_qasm_simulator":
+            backend_sim = self.service.get_backend(simulator_hardware)
+            sampler = Sampler(backend_sim) 
+            job_sim = sampler.run(transpile(qc, backend_sim, basis_gates=["u3", "cx"]), shots=8192)
+            result_sim = job_sim.result()  
+            self.correct_output = dict(result_sim.quasi_dists[0])  
+        else:
+            backend_sim = Aer.get_backend('qasm_simulator')
+            job_sim = backend_sim.run(transpile(qc, backend_sim), shots=8192)
+            result_sim = job_sim.result()  
+            self.correct_output = normalize_counts(dict(result_sim.get_counts(qc)))
+        
         self.gates = dict(qc.count_ops())
         self.depth = qc.depth()
 
@@ -186,7 +195,7 @@ class QEM:
             service = QiskitRuntimeService(channel="ibm_quantum", token=self.qiskit_token)
 
         self.backend_service = service.get_backend(self.hardware_name)
-        backend_sim = service.get_backend("simulator_mps")
+        backend_sim = service.get_backend(simulator_hardware)
         noise_model = NoiseModel.from_backend(self.backend_service)
 
         end_time = time.perf_counter()
@@ -419,7 +428,7 @@ class QEM:
 
             cursor.execute('''SELECT detail_id, updated_qasm, d.qiskit_optimization FROM calibration_data.result_detail d
                             INNER JOIN calibration_data.result_updated_qasm q ON d.id = q.detail_id 
-                            WHERE d.job_id IS NULL AND d.header_id = %s AND d.user_id IN (10, 11) ''', (header_id,))
+                            WHERE d.job_id IS NULL AND d.header_id = %s AND d.user_id IN (10, 11, 99) ''', (header_id,))
             results = cursor.fetchall()
 
             success = False
@@ -575,8 +584,8 @@ if __name__ == "__main__":
     # # token bylaw
     # token = "30ea7c188f2b6531d2525875b7dab58f0d0091cb4c6e080472cdc76a96009aabbc3367ee1e1ac5f1aa2229941b08a7ef487066df163d47545c9524c4cad1c2ed"
 
-    # token fasts
-    token = "ad1527ea50d2b9fb3f122427c6423c55c036d6e3e6559c96a9d5bf4b2b813909a4aac65cbf23bc6ea8cc55da005be0dc85cfb72fa3cd5f57c3eec8a99ea3f9d8"
+    # # token fasts
+    # token = "ad1527ea50d2b9fb3f122427c6423c55c036d6e3e6559c96a9d5bf4b2b813909a4aac65cbf23bc6ea8cc55da005be0dc85cfb72fa3cd5f57c3eec8a99ea3f9d8"
 
     # # token arrival point
     # token = "5c63e6d0dbc47a7c98741ea6b7de90afb0729f5e036dbea439cec03ee680d5dfa573bdb42920017edb942be678d54d4fb5d83d5e7296749f78dee5449a6f443b"
@@ -608,7 +617,7 @@ if __name__ == "__main__":
     # # token ropes
     # token = "b94c13374ae4f0b04fb2539b727e165ec695373f7fe198dd69c3b11f22a2aa380c8adca06390f201d2aa09247348aeae6f7664e0735698c9d8ad59880e58b8b8"
 
-    # # token rudder
+    # # token rudder (license)
     # token = "26f4ebc603700e1d56ac25c2a18c6ef196859f3a5547abe12ced49f3c16ef3c8391008db57e5bc77cd4ec3b3c62d26aeccf9983f311a279b714b5378ff4415cf"
 
     # # token mercury
@@ -626,13 +635,13 @@ if __name__ == "__main__":
     # # token bobs
     # token = "eeaa19292016f1efc96f7dc11676fe47cbfc12a85869374e6b8ce3c225c5e8ef029d1fa912bb5def86a7b3c62ea55cf16b386d1ea0051fa26676efa2a7df1db2"
 
-    # # token bygone
-    # token = "e62477a6e14315c89eb74f224f4aa6d44ae4fe4739bac484ab485ceedc97d4df9962b81286ead7ffe27a4b5443e8c03dd9ee516f09213a49fd3fa88976eba103"
+    # token bygone
+    token = "e62477a6e14315c89eb74f224f4aa6d44ae4fe4739bac484ab485ceedc97d4df9962b81286ead7ffe27a4b5443e8c03dd9ee516f09213a49fd3fa88976eba103"
 
     # # token pore
     # token = "a0347b951804a105a6c256d274c49ddcb284da7c20c9058e064afaea6844505f5451027feb6c335fbabe7c1e1b0bc62a9304f32ca54ed89a0d1e6d253eaf32fa"
 
-    # token chores
+    # # token chores
     # token = "83fae468c72cb0e06e66c77c7520a24058a4ec4629b7e45236f7cf336237abc4cc5ce6ef9d2192ab652da68c7667143d09454687d76e42f9919f1e91ffb043a3"
 
     # # token ales
@@ -698,6 +707,9 @@ if __name__ == "__main__":
                 fixed_initial_layout = False, run_in_simulator=False, 
                 calibration_type = calibration_type_enum.realtime, 
                 circuit_name=circuit_name, user_id=10)
+        
+        # # set initial layout
+        # q.initial_layout_qiskit = None
 
         # q = QEM(token, qasm_source, hardware_name=hardware_name, runs=10, 
         #         fixed_initial_layout = False, run_in_simulator=True, 

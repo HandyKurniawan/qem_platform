@@ -17,7 +17,7 @@ from qiskit_ibm_runtime.utils.runner_result import RunnerResult
 mysql_config = {
     'user': 'handy',
     'password': 'handy',
-    'host': 'ec2-51-20-84-230.eu-north-1.compute.amazonaws.com',
+    'host': 'ec2-16-171-254-2.eu-north-1.compute.amazonaws.com',
     'database': 'calibration_data'
 }
 
@@ -366,7 +366,18 @@ def get_metrics(detail_id, job_id):
             # for key, value in correct_output.items():
             #     print(key)
 
+            # correct_output = normalize_counts(correct_output)
+            
+
             correct_output = json.loads(correct_output)
+
+            tmp_correct_output = {}
+            for key, value in correct_output.items():
+                new_key = "{}".format(int(key, 2))
+                tmp_correct_output[new_key] = value
+            correct_output = tmp_correct_output
+
+
             quasi_dists_dict = json.loads(quasi_dists) 
             for key, value in quasi_dists_dict.items():
                 key = "{}".format(int(key, 2))
