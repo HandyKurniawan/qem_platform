@@ -24,6 +24,8 @@ class Config:
 
         self.hardware_name = self.config_parser['QuantumConfig']['hardware_name']
         self.base_folder = self.config_parser['QuantumConfig']['base_folder']
+        self.shots = self.config_parser['QuantumConfig']['shots']
+        self.ibm_cloud_instance = self.config_parser['QuantumConfig']['ibm_cloud_instance']
         self.qiskit_token = self.config_parser['QuantumConfig']['token']
         
 

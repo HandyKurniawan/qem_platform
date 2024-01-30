@@ -36,7 +36,7 @@ print("terus masuk sini", conf.hardware_name)
 
 
 class QEM:
-    def __init__(self, qasm_source, shots=8192, runs=2, 
+    def __init__(self, qasm_source, runs=2, 
                  fixed_initial_layout = False, 
                  run_in_simulator = False, 
                  calibration_type = calibration_type_enum.realtime,
@@ -59,7 +59,6 @@ class QEM:
         self.qiskit_qasm = None
         self.qasm_before_decomposed_final = None
         
-        self.shots = shots
         self.runs = runs
         self.correct_output = None
         self.total_gate = None
@@ -129,7 +128,7 @@ class QEM:
         # self.backend = self.provider.get_backend(conf.hardware_name)
 
         if conf.hardware_name == "ibm_algiers":
-            self.service = QiskitRuntimeService(channel="ibm_cloud", token=conf.qiskit_token, instance="Qiskit Runtime-ucm")
+            self.service = QiskitRuntimeService(channel="ibm_cloud", token=conf.qiskit_token, instance=conf.ibm_cloud_instance)
         else:
             self.service = QiskitRuntimeService(channel="ibm_quantum", token=conf.qiskit_token)
         self.backend = self.service.get_backend(conf.hardware_name)
@@ -137,12 +136,12 @@ class QEM:
         if conf.simulator_hardware != "ibmq_qasm_simulator":
             backend_sim = self.service.get_backend(conf.simulator_hardware)
             sampler = Sampler(backend_sim) 
-            job_sim = sampler.run(transpile(qc, backend_sim, basis_gates=["u3", "cx"]), shots=8192)
+            job_sim = sampler.run(transpile(qc, backend_sim, basis_gates=["u3", "cx"]), shots=conf.shots)
             result_sim = job_sim.result()  
             self.correct_output = dict(result_sim.quasi_dists[0])  
         else:
             backend_sim = Aer.get_backend('qasm_simulator')
-            job_sim = backend_sim.run(transpile(qc, backend_sim), shots=8192)
+            job_sim = backend_sim.run(transpile(qc, backend_sim), shots=conf.shots)
             result_sim = job_sim.result()  
             self.correct_output = normalize_counts(dict(result_sim.get_counts(qc)))
         
@@ -154,7 +153,7 @@ class QEM:
 
         service = None
         if conf.hardware_name == "ibm_algiers":
-            service = QiskitRuntimeService(channel="ibm_cloud", token=conf.qiskit_token, instance="Qiskit Runtime-ucm")
+            service = QiskitRuntimeService(channel="ibm_cloud", token=conf.qiskit_token, instance=conf.ibm_cloud_instance)
         else:
             service = QiskitRuntimeService(channel="ibm_quantum", token=conf.qiskit_token)
 
@@ -177,7 +176,7 @@ class QEM:
             # options.transpilation.initial_layout = "noise_adaptive"
             # options.transpilation.routing_method = "sabre"
             # Set number of shots, optimization_level and resilience_level
-            options.execution.shots = self.shots
+            options.execution.shots = conf.shots
             options.optimization_level = 0
             options.resilience_level = 0
 
@@ -185,7 +184,7 @@ class QEM:
             self.sampler = Sampler(backend_sim, options=options) 
         else:
             options = Options()
-            options.execution.shots = self.shots
+            options.execution.shots = conf.shots
             options.optimization_level = 0
             # options.resilience_level = 0
             options.resilience_level = 1
@@ -417,11 +416,11 @@ class QEM:
 
                     job, job_id = None, None
                     if self.run_in_simulator:
-                        job = self.sampler.run(list_circuits, shots=self.shots)
+                        job = self.sampler.run(list_circuits, shots=conf.shots)
                         job_id = job.job_id()
                     else:
                         # job = self.backend.run(list_circuits, shots=self.shots)
-                        job = self.sampler.run(list_circuits, shots=self.shots)
+                        job = self.sampler.run(list_circuits, shots=conf.shots)
                         job_id = job.job_id()
 
                     success = True
