@@ -23,7 +23,7 @@ from .fake_ibm_brisbane import NewFakeBrisbaneRealAdjust, NewFakeBrisbaneRecent1
 conf = Config()
 
 class QiskitCircuit:
-    def __init__(self, qasm, name = None, metadata = {}):
+    def __init__(self, qasm, name = None, skip_simulation = False, metadata = {}):
         qc = None
         if isinstance(qasm, str):
             try:
@@ -37,26 +37,28 @@ class QiskitCircuit:
         if not (isinstance(qasm, str) or isinstance(qc, QuantumCircuit)):
             raise ValueError("Input must be a string or a QuantumCircuit object")
 
-        if conf.simulator_hardware != "ibmq_qasm_simulator":
-            backend_sim = self.service.get_backend(conf.simulator_hardware)
-            sampler = Sampler(backend_sim) 
-            job_sim = sampler.run(transpile(qc, backend_sim, basis_gates=["u3", "cx"]), shots=conf.shots)
-            result_sim = job_sim.result()  
-            self.correct_output = dict(result_sim.quasi_dists[0])  
-        else:
-            backend_sim = Aer.get_backend('qasm_simulator')
-            job_sim = backend_sim.run(transpile(qc, backend_sim), shots=conf.shots)
-            result_sim = job_sim.result()  
-            self.correct_output = normalize_counts(dict(result_sim.get_counts(qc)))
-
         self.circuit = qc
         self.qasm = qc.qasm()
         self.circuit.name = name
         self.circuit.metadata = metadata
-
         self.total_gate = sum(qc.count_ops().values())
         self.gates = dict(qc.count_ops())
         self.depth = qc.depth()
+
+        if not skip_simulation:
+            if conf.simulator_hardware != "ibmq_qasm_simulator":
+                backend_sim = self.service.get_backend(conf.simulator_hardware)
+                sampler = Sampler(backend_sim) 
+                job_sim = sampler.run(transpile(qc, backend_sim, basis_gates=["u3", "cx"]), shots=conf.shots)
+                result_sim = job_sim.result()  
+                self.correct_output = dict(result_sim.quasi_dists[0])  
+            else:
+                backend_sim = Aer.get_backend('qasm_simulator')
+                job_sim = backend_sim.run(transpile(qc, backend_sim), shots=conf.shots)
+                result_sim = job_sim.result()  
+                self.correct_output = normalize_counts(dict(result_sim.get_counts(qc)))
+
+        
         
 
 

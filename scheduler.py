@@ -1,9 +1,6 @@
-import requests
-import datetime
 import mysql.connector
 import numpy as np
 import json
-import math
 
 from qiskit import *
 from qiskit.result import *
@@ -47,7 +44,7 @@ def update_result_header_status_by_header_id(cursor, header_id, new_status):
     '''
     Updates result_header entries that contained prev_status to new_status by header_id
     '''
-    cursor.execute('UPDATE result_header SET status= %s WHERE id = %s', (new_status, header_id))
+    cursor.execute('UPDATE result_header SET status = %s, updated_datetime = NOW() WHERE id = %s', (new_status, header_id))
 
 def update_result_header(cursor, job):
     execution_time = job.metrics()["usage"]["quantum_seconds"]
@@ -72,7 +69,6 @@ def check_result_availability(service, header_id, job_id):
         conn = mysql.connector.connect(**conf.mysql_config)
         cursor = conn.cursor()
 
-        # service = QiskitRuntimeService()
         job = service.job(job_id)
 
         # print(job.status())
@@ -266,7 +262,7 @@ def get_metrics(header_id, job_id):
             update_result_header_status_by_header_id(cursor, header_id, 'done')
 
             conn.commit()
-            
+
     except Exception as e:
         print("Error in getting the metrics : ", e)
 

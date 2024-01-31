@@ -309,7 +309,7 @@ WHERE h.job_id IS NULL AND d.header_id = %s  ''', (header_id,))
             for res in results:
                 detail_id, updated_qasm = res
 
-                qc = QiskitCircuit(updated_qasm, name="")
+                qc = QiskitCircuit(updated_qasm, skip_simulation=True)
                 # circuit = qc.get_native_gates_circuit(self.backend, self.run_in_simulator)
                 circuit = qc.circuit
 
@@ -329,7 +329,7 @@ WHERE h.job_id IS NULL AND d.header_id = %s  ''', (header_id,))
                     success = True
 
                     # update to result detail
-                    self.cursor.execute('UPDATE result_header SET job_id= %s WHERE id = %s', (job_id, header_id))
+                    self.cursor.execute('UPDATE result_header SET job_id = %s, status = "pending", updated_datetime = NOW() WHERE id = %s', (job_id, header_id))
 
                     self.conn.commit()
 
@@ -407,32 +407,32 @@ if __name__ == "__main__":
     if debug: tmp_end_time = time.perf_counter()
     if debug: print("Time for initialization: {} seconds".format(tmp_end_time - tmp_start_time))
 
-    # # init header
-    # if debug: tmp_start_time  = time.perf_counter()
-    # q.init_result_header()
-    # if debug: tmp_end_time = time.perf_counter()
-    # if debug: print("Time for running the init header: {} seconds".format(tmp_end_time - tmp_start_time))
+    # init header
+    if debug: tmp_start_time  = time.perf_counter()
+    q.init_result_header()
+    if debug: tmp_end_time = time.perf_counter()
+    if debug: print("Time for running the init header: {} seconds".format(tmp_end_time - tmp_start_time))
 
-    # # generate_props = True
-    # generate_props = False
+    # generate_props = True
+    generate_props = False
 
-    # for i in qasm_files:
-    #     qasm_source = i
-    #     q.circuit_name = i.split("/")[-1].split(".")[0]
-    #     print("=========== {} ===========".format(q.circuit_name))
+    for i in qasm_files:
+        qasm_source = i
+        q.circuit_name = i.split("/")[-1].split(".")[0]
+        print("=========== {} ===========".format(q.circuit_name))
         
-    #     qc = q.get_circuit_properties(qasm_source=qasm_source)
-    #     q.qasm = qc.qasm
+        qc = q.get_circuit_properties(qasm_source=qasm_source)
+        q.qasm = qc.qasm
     
-    #     # q.get_fake_perth()
+        # q.get_fake_perth()
 
-    #     # Run Optimization
-    #     if debug: tmp_start_time  = time.perf_counter()
-    #     q.run(generate_props)
-    #     if debug: tmp_end_time = time.perf_counter()
-    #     if debug: print("Time for running the optimization: {} seconds".format(tmp_end_time - tmp_start_time))
+        # Run Optimization
+        if debug: tmp_start_time  = time.perf_counter()
+        q.run(generate_props)
+        if debug: tmp_end_time = time.perf_counter()
+        if debug: print("Time for running the optimization: {} seconds".format(tmp_end_time - tmp_start_time))
         
-    #     generate_props = False
+        generate_props = False
 
     
     # Send to backend
