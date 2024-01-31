@@ -9,15 +9,18 @@ Functions:
 
 Example:
 """
-from qiskit import QuantumCircuit, transpile
+from qiskit import QuantumCircuit, transpile, Aer
 from qiskit.transpiler import CouplingMap
-from commons import calibration_type_enum, sql_query
+from qiskit_ibm_runtime import Sampler
+from commons import calibration_type_enum, sql_query, normalize_counts, Config
 from qiskit.providers.models import BackendProperties
 import json
 from .fake_ibm_perth import NewFakePerthRealAdjust, NewFakePerthRecent15, NewFakePerthRecent15Adjust, \
                         NewFakePerthMix, NewFakePerthMixAdjust, NewFakePerthAverage, NewFakePerthAverageAdjust
 from .fake_ibm_brisbane import NewFakeBrisbaneRealAdjust, NewFakeBrisbaneRecent15, NewFakeBrisbaneRecent15Adjust, \
                         NewFakeBrisbaneMix, NewFakeBrisbaneMixAdjust, NewFakeBrisbaneAverage, NewFakeBrisbaneAverageAdjust
+
+conf = Config()
 
 class QiskitCircuit:
     def __init__(self, qasm, name = None, metadata = {}):
@@ -33,12 +36,29 @@ class QiskitCircuit:
                 
         if not (isinstance(qasm, str) or isinstance(qc, QuantumCircuit)):
             raise ValueError("Input must be a string or a QuantumCircuit object")
-        
-        
+
+        if conf.simulator_hardware != "ibmq_qasm_simulator":
+            backend_sim = self.service.get_backend(conf.simulator_hardware)
+            sampler = Sampler(backend_sim) 
+            job_sim = sampler.run(transpile(qc, backend_sim, basis_gates=["u3", "cx"]), shots=conf.shots)
+            result_sim = job_sim.result()  
+            self.correct_output = dict(result_sim.quasi_dists[0])  
+        else:
+            backend_sim = Aer.get_backend('qasm_simulator')
+            job_sim = backend_sim.run(transpile(qc, backend_sim), shots=conf.shots)
+            result_sim = job_sim.result()  
+            self.correct_output = normalize_counts(dict(result_sim.get_counts(qc)))
+
         self.circuit = qc
         self.qasm = qc.qasm()
         self.circuit.name = name
         self.circuit.metadata = metadata
+
+        self.total_gate = sum(qc.count_ops().values())
+        self.gates = dict(qc.count_ops())
+        self.depth = qc.depth()
+        
+
 
     def get_native_gates_circuit(self, backend, simulator = False):
         if simulator:
@@ -52,7 +72,7 @@ class QiskitCircuit:
 
 # Function to import and optimize a QASM circuit
 def optimize_qasm(input_qasm, backend, optimization, enable_noise_adaptive = False, enable_mirage = False,
-                  calibration_type = calibration_type_enum.realtime, initial_layout = None):
+                  calibration_type = calibration_type_enum.lcd, initial_layout = None, generate_props = False):
     # Load the input QASM circuit
     circuit = QuantumCircuit.from_qasm_str(input_qasm)
 
@@ -65,26 +85,26 @@ def optimize_qasm(input_qasm, backend, optimization, enable_noise_adaptive = Fal
     if enable_noise_adaptive:
         layout_method = 'noise_adaptive'
         routing_method = 'sabre'
-        if calibration_type == calibration_type_enum.realtime_adjust.value:
-            generate_new_props(backend, calibration_type)
+        if calibration_type == calibration_type_enum.lcd_adjust.value:
+            if generate_props: generate_new_props(backend, calibration_type)
             tmp_backend = NewFakeBrisbaneRealAdjust()
         elif calibration_type == calibration_type_enum.recent_15.value:
-            generate_new_props(backend, calibration_type)
+            if generate_props: generate_new_props(backend, calibration_type)
             tmp_backend = NewFakeBrisbaneRecent15()
         elif calibration_type == calibration_type_enum.recent_15_adjust.value:
-            generate_new_props(backend, calibration_type)
+            if generate_props: generate_new_props(backend, calibration_type)
             tmp_backend = NewFakeBrisbaneRecent15Adjust()
         elif calibration_type == calibration_type_enum.mix.value:
-            generate_new_props(backend, calibration_type)
+            if generate_props: generate_new_props(backend, calibration_type)
             tmp_backend = NewFakeBrisbaneMix()
         elif calibration_type == calibration_type_enum.mix_adjust.value:
-            generate_new_props(backend, calibration_type)
+            if generate_props: generate_new_props(backend, calibration_type)
             tmp_backend = NewFakeBrisbaneMixAdjust()
         elif calibration_type == calibration_type_enum.average.value:
-            generate_new_props(backend, calibration_type)
+            if generate_props: generate_new_props(backend, calibration_type)
             tmp_backend = NewFakeBrisbaneAverage()
         elif calibration_type == calibration_type_enum.average_adjust.value:
-            generate_new_props(backend, calibration_type)
+            if generate_props: generate_new_props(backend, calibration_type)
             tmp_backend = NewFakeBrisbaneAverageAdjust()
 
     elif enable_mirage:
@@ -173,7 +193,7 @@ def _get_readout_error_sql(hw_name, calibration_type):
     sql = ""
     parms = ()
 
-    if calibration_type == calibration_type_enum.realtime_adjust.value:
+    if calibration_type == calibration_type_enum.lcd_adjust.value:
         last_cal_id, last_cal_date = _get_last_calibration_id(hw_name)
 
         sql = """
@@ -278,7 +298,7 @@ def _get_two_qubit_error_sql(hw_name, calibration_type, native_gates_2q):
     sql = ""
     parms = ()
 
-    if calibration_type == calibration_type_enum.realtime_adjust.value:
+    if calibration_type == calibration_type_enum.lcd_adjust.value:
         last_cal_id, last_cal_date = _get_last_calibration_id(hw_name)
 
         sql = '''

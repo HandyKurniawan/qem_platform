@@ -12,17 +12,11 @@ from qiskit_ibm_runtime import QiskitRuntimeService
 from qiskit.providers import JobStatus
 from qiskit.primitives import SamplerResult
 from qiskit_ibm_runtime.utils.runner_result import RunnerResult
-from commons import get_mysql_config
+from commons import Config, convert_utc_to_local, calculate_time_diff, get_count_1q, get_count_2q, \
+    calculate_circuit_cost, get_correct_output_dict, calculate_success_rate_nassc, calculate_success_rate_tvd, \
+    calculate_hellinger_distance, convert_to_json, is_mitigated, get_initial_mapping_json
 
-# MySQL connection parameters
-mysql_config = get_mysql_config()
-
-user_id = "%"
-
-#'host': 'ec2-51-20-5-90.eu-north-1.compute.amazonaws.com',
-
-# bit_format = '{0:07b}'
-bit_format = '{0:0127b}'
+conf = Config()
 
 def get_pending_jobs():
     '''
@@ -30,14 +24,14 @@ def get_pending_jobs():
     '''
     
     try:
-        conn = mysql.connector.connect(**mysql_config)
+        conn = mysql.connector.connect(**conf.mysql_config)
         cursor = conn.cursor()
         
-        cursor.execute('''SELECT distinct h.id, d.job_id, qiskit_token FROM calibration_data.result_header h 
-                    INNER JOIN calibration_data.result_detail d ON h.id = d.header_id
-                    WHERE status = "pending" AND h.user_id LIKE %s ;''', (user_id,))
+        cursor.execute('''SELECT distinct h.id, h.job_id, qiskit_token 
+                       FROM framework.result_header h 
+                        INNER JOIN framework.result_detail d ON h.id = d.header_id 
+                        WHERE h.status = %s;''', ("pending",))
         
-        # and h.user_id NOT IN (98, 99)
         results = cursor.fetchall()
         
         cursor.close()
@@ -48,31 +42,34 @@ def get_pending_jobs():
         
     return results
 
-def update_result_detail_status(conn, detail_id, new_status):
-    '''
-    Updates calibration_data.result_detail entries that contained prev_status to new_status
-    '''
-    cursor = conn.cursor()
-    cursor.execute('UPDATE calibration_data.result_detail SET status= %s WHERE id = %s', (new_status, detail_id))
-    conn.commit()
-    cursor.close()
 
-def update_result_detail_status_by_header_id(conn, header_id, new_status):
+def update_result_header_status_by_header_id(cursor, header_id, new_status):
     '''
-    Updates calibration_data.result_detail entries that contained prev_status to new_status by header_id
+    Updates result_header entries that contained prev_status to new_status by header_id
     '''
-    cursor = conn.cursor()
-    cursor.execute('UPDATE calibration_data.result_detail SET status= %s WHERE header_id = %s', (new_status, header_id))
-    conn.commit()
-    cursor.close()
-        
+    cursor.execute('UPDATE result_header SET status= %s WHERE id = %s', (new_status, header_id))
+
+def update_result_header(cursor, job):
+    execution_time = job.metrics()["usage"]["quantum_seconds"]
+    job_time = job.metrics()["timestamps"]
+    created_datetime = convert_utc_to_local(job_time["created"])
+    running_datetime = convert_utc_to_local(job_time["running"])
+    completed_datetime = convert_utc_to_local(job_time["finished"])
+    in_queue_second = calculate_time_diff(job_time["created"], job_time["running"])
+
+
+    cursor.execute("""UPDATE result_header SET status = %s, execution_time = %s, job_created_datetime = %s, 
+    job_in_queue_second = %s, job_running_datetime = %s, job_completed_datetime = %s, updated_datetime = NOW()  
+    WHERE job_id = %s""", ("executed", execution_time, created_datetime, 
+                            in_queue_second, running_datetime, completed_datetime, job_id))
+
+    
 
 def check_result_availability(service, header_id, job_id):
-    print('')
-    print("Checking results for: ", job_id)
+    print("Checking results for: ", job_id, "with header id :", header_id)
     try:
 
-        conn = mysql.connector.connect(**mysql_config)
+        conn = mysql.connector.connect(**conf.mysql_config)
         cursor = conn.cursor()
 
         # service = QiskitRuntimeService()
@@ -81,7 +78,8 @@ def check_result_availability(service, header_id, job_id):
         # print(job.status())
 
         if(job.status() == JobStatus.ERROR):
-            update_result_detail_status_by_header_id(conn, header_id, "error")
+            update_result_header_status_by_header_id(conn, header_id, "error")
+            conn.commit()
             cursor.close()
             conn.close()
             return
@@ -91,27 +89,33 @@ def check_result_availability(service, header_id, job_id):
             conn.close()
             return 10
 
-        finished_datetime = job.metrics()["timestamps"]["finished"]
-        cursor.execute('UPDATE calibration_data.result_header SET created_datetime= %s WHERE id = %s', (finished_datetime[:-1], header_id))
-
         # get list of detail_id here
-        cursor.execute('SELECT id FROM calibration_data.result_detail WHERE status = %s AND header_id = %s LIMIT 0, 100 ', ('pending', header_id, ))
-        results = cursor.fetchall()
+        cursor.execute('''SELECT d.id FROM framework.result_header h 
+INNER JOIN framework.result_detail d ON h.id = d.header_id
+WHERE h.status = %s AND h.job_id = %s;''', ('pending', job_id, ))
+        results_details = cursor.fetchall()
 
         if (type(job.result()) is SamplerResult):
             quasi_dists = job.result().quasi_dists
 
             avg_result = {}
-            no_of_optimization = len(results)
+            std_json = {}
+            qasm_dict = {}
+            mitigation_overhead_dict = {}
+            mitigation_time_dict = {}
+            no_of_optimization = len(results_details)
             no_of_result = len(quasi_dists)
-
-            idx_1, idx_2 = 0, 0
-
             runs = int(no_of_result / no_of_optimization)
+            idx_1, idx_2 = 0, 0
+            shots = conf.shots
 
-            for res in results:
-                detail_id = res[0]
+            for idx, res in enumerate(results_details):
+                detail_id = res[0]    
                 avg_result[detail_id] = []
+                std_json[detail_id] = []
+                qasm_dict[detail_id] = []
+                mitigation_overhead_dict[detail_id] = None
+                mitigation_time_dict[detail_id] = None
                 sum_result = {}
                 std_dev = {}
                 std_dict = {}
@@ -120,18 +124,20 @@ def check_result_availability(service, header_id, job_id):
                     res_dict = quasi_dists[idx_1]
                     
                     for key, value in res_dict.items():
-                        key_bin = bit_format.format(key)
+                        key_bin = conf.bit_format.format(key)
+                        key_bin = key
                         sum_result[key_bin] = 0
                         std_dict[key_bin] = 0
                         std_dev[key_bin] = []
                         
                     idx_1 += 1
-                    
+
                 for j in range(runs):
                     res_dict = quasi_dists[idx_2]
                     
                     for key, value in res_dict.items():
-                        key_bin = bit_format.format(key)
+                        key_bin = conf.bit_format.format(key)
+                        key_bin = key
                         sum_result[key_bin] += value
                         std_dev[key_bin].append(value)
                         
@@ -140,90 +146,43 @@ def check_result_availability(service, header_id, job_id):
                 for key, value in sum_result.items():
                     sum_result[key] /= runs
                     std_dict[key] = np.std(std_dev[key])
-    
-                avg_result[detail_id] = json.dumps(sum_result, default=str)
-                std_json = json.dumps(std_dict, default=str)
-                shots = 8192
 
-                compiled_qasm = job.inputs["circuits"][idx_2-1].qasm()
+                avg_result[detail_id] = convert_to_json(sum_result)
+                std_json[detail_id] = convert_to_json(std_dict)
+                qasm_dict[detail_id] = job.inputs["circuits"][idx_2-1].qasm()
+
+                if is_mitigated(job):
+                    mitigation_overhead_dict[detail_id] = job.result().metadata[idx_2-1]["readout_mitigation_overhead"]
+                    mitigation_time_dict[detail_id] = job.result().metadata[idx_2-1]["readout_mitigation_time"]
+
+            for idx, res in enumerate(results_details):
+                detail_id = res[0] 
+                quasi_dists = avg_result[detail_id]
+                quasi_dists_std = std_json[detail_id]
+                qasm = qasm_dict[detail_id]
+                mapping_json = get_initial_mapping_json(qasm)
+                mitigation_overhead = mitigation_overhead_dict[detail_id]
+                mitigation_time = mitigation_time_dict[detail_id]
+
+                # check if the result_backend_json is already there, just update
+                cursor.execute('SELECT detail_id FROM result_backend_json WHERE detail_id = %s', (detail_id,))
+                existing_row = cursor.fetchone()
+
+                if existing_row:
+                    cursor.execute('''UPDATE result_backend_json SET quasi_dists = %s, quasi_dists_std = %s, qasm = %s, 
+                    shots = %s, mapping_json = %s, mitigation_overhead = %s, mitigation_time = %s  WHERE detail_id = %s;''',
+                    (quasi_dists, quasi_dists_std, qasm, shots, mapping_json, mitigation_overhead, mitigation_time, detail_id))
+                else:
+                    cursor.execute('''INSERT INTO result_backend_json 
+                                    (detail_id, quasi_dists, quasi_dists_std, qasm, shots, mapping_json, mitigation_overhead, mitigation_time) 
+                                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)''',
+                    (detail_id, quasi_dists, quasi_dists_std, qasm, shots, mapping_json, mitigation_overhead, mitigation_time))
                 
-                #tmp_total = 0
-                #for j in job.result().quasi_dists[0].keys():
-                #    tmp_total += sum_result[j]
-                cursor.execute('''INSERT INTO calibration_data.result_backend_json 
-                               (detail_id, result, execution_time, counts, shots, quasi_dists, result_type, quasi_dists_std) 
-                               VALUES (%s, %s, %s, %s, %s, %s, %s, %s)''',
-                                            (detail_id, None, 0, 0, shots, avg_result[detail_id], "sampler", std_json))
-                
-                cursor.execute('UPDATE calibration_data.result_updated_qasm SET updated_qasm= %s WHERE detail_id = %s', (compiled_qasm, detail_id))
 
-                conn.commit()
+                update_result_header(cursor, job)
 
-
-                update_result_detail_status(conn, detail_id, 'executed')
-        elif (type(job.result()) is RunnerResult):  
-
-            avg_result = {}
-            count_list = job.result().get_counts()
-            no_of_optimization = len(results)
-            no_of_result = len(count_list)
-            runs = int(no_of_result / no_of_optimization)
-            
-            idx_1, idx_2 = 0, 0
-            runs = int(no_of_result / no_of_optimization)
-            for res in results:
-                detail_id = res[0]
-                avg_result[detail_id] = []
-
-                sum_result = {}
-                std_dev = {}
-                std_dict = {}
-                for j in range(runs):
-                    res_dict = count_list[idx_1]
-                    
-                    for key, value in res_dict.items():
-                        key_bin = bit_format.format(int(key, base=2))
-                        sum_result[key_bin] = 0
-                        std_dict[key_bin] = 0
-                        std_dev[key_bin] = []
-                        
-                    idx_1 += 1
-                    
-                for j in range(runs):
-                    res_dict = count_list[idx_2]
-                    
-                    for key, value in res_dict.items():
-                        key_bin = bit_format.format(int(key, base=2))
-                        sum_result[key_bin] += value
-                        std_dev[key_bin].append(value)
-                        
-                    idx_2 += 1
-                    
-                for key, value in sum_result.items():
-                    sum_result[key] /= runs
-                    std_dict[key] = np.std(std_dev[key])
-                        
-                avg_result[detail_id] = (json.dumps(sum_result, default=str))
-                std_json = json.dumps(std_dict, default=str)
-                
-                # result_dict = job.result().to_dict()
-                # result_json = json.dumps(result_dict, default=str)
-                execution_time = job.result().time_taken
-                #print("Execution time: ", execution_time)
-                counts = avg_result[detail_id]
-                shots = job.result().results[0].shots
-
-                compiled_qasm = job.inputs["circuits"][idx_2-1].qasm()
-                
-                cursor.execute('''INSERT INTO calibration_data.result_backend_json 
-                               (detail_id, result, execution_time, counts, shots, result_type, counts_std) 
-                               VALUES (%s, %s, %s, %s, %s, %s, %s)''',
-                                        (detail_id, None, execution_time, counts, shots, "circuit-runner", std_json))
-                
-                cursor.execute('UPDATE calibration_data.result_updated_qasm SET updated_qasm= %s WHERE detail_id = %s', (compiled_qasm, detail_id))
-
-                conn.commit()
-                update_result_detail_status(conn, detail_id, 'executed')
+            conn.commit()
+        
         else:
             pass
 
@@ -235,14 +194,15 @@ def check_result_availability(service, header_id, job_id):
 
 def get_executed_jobs():
     '''
-    Returns job_id if the status in the calibration_data.result_detail table is executed (job has been executed in the backend and we have to compute metrics)
+    Returns job_id if the status in the result_detail table is executed (job has been executed in the backend and we have to compute metrics)
     '''
     
     try:
-        conn = mysql.connector.connect(**mysql_config)
+        conn = mysql.connector.connect(**conf.mysql_config)
         cursor = conn.cursor()
 
-        cursor.execute('SELECT id, job_id FROM calibration_data.result_detail WHERE status = %s AND user_id LIKE %s ;', ("executed", user_id,))
+        cursor.execute('SELECT id, job_id FROM result_header WHERE status = %s;', ("executed", ))
+
         results = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -252,263 +212,61 @@ def get_executed_jobs():
         
     return results
 
-def get_circuit(qc=None):
-    if isinstance(qc, str):
-        try:
-            qc = QuantumCircuit.from_qasm_file(qc)
-        except Exception as e:
-            try: 
-                qc = QuantumCircuit.from_qasm_str(qc)
-            except Exception as ex:
-                raise ValueError("Input circuit must be a string path to QASM file, QASM string or a QuantumCircuit object")
-    if not (isinstance(qc, str) or isinstance(qc, QuantumCircuit)):
-        raise ValueError("Input must be a string or a QuantumCircuit object")
-    return qc
-
-def normalize_counts(result_counts, shots=8192):
-    result_counts = json.loads(result_counts)
-    new_keys = []
-    for key, value in result_counts.items():
-        new_keys.append(bit_format.format(int(key, base=2)))
-   
-    result_counts = dict(zip(new_keys, list(result_counts.values())))
-
-    return {key: value / shots for key, value in result_counts.items()}
-
-def get_count_1q(qc):
-    count_1q = 0
-    for key, value in dict(qc.count_ops()).items():
-        if key != 'cx' and key != "cy" and key != "cz" and key != "ch" and key != "crz" and key != "cp" and key != "cu" and key != "swap" and key != "ecr":
-            count_1q += value
-
-    return count_1q
-
-def get_count_2q(qc):
-    count_2q = 0
-    for key, value in dict(qc.count_ops()).items():
-        if key == 'cx' or key == "cy" or key == "cz" or key == "ch" or key == "crz" or key == "cp" or key == "cu" or key == "swap" or key == "ecr":
-            count_2q += value
-
-    return count_2q
-
-def get_metrics(detail_id, job_id):
+def get_metrics(header_id, job_id):
     print("")
-    print("Getting qasm for ", detail_id)
-    conn = mysql.connector.connect(**mysql_config)
+    print("Getting qasm for :", header_id)
+    conn = mysql.connector.connect(**conf.mysql_config)
     cursor = conn.cursor()
 
     try:
-        cursor.execute('SELECT updated_qasm FROM calibration_data.result_updated_qasm WHERE detail_id = %s', (detail_id, ))
-        results = cursor.fetchall()
-        
-        for result in results:
-            updated_qasm = result
-            updated_qasm = updated_qasm[0]
-    
-        qc = get_circuit(updated_qasm)
-        #print(qc)
-        total_gate_count= sum(qc.count_ops().values())
-        #print("total_gate_count: ", total_gate_count)
-        total_gate_count_by_type = qc.count_ops()
-        #print('total_gate_count_by_type: ', total_gate_count_by_type)
-        
-        count_1q = get_count_1q(qc)
-        #print('1q gates: ', count_1q)
+        cursor.execute('''SELECT j.detail_id, j.qasm, j.quasi_dists, j.quasi_dists_std FROM framework.result_backend_json j
+        INNER JOIN framework.result_detail d ON j.detail_id = d.id
+        INNER JOIN framework.result_header h ON d.header_id = h.id
+        WHERE h.status = %s AND h.job_id = %s AND h.id = %s;''', ("executed", job_id, header_id))
+        results_details_json = cursor.fetchall()
 
-        count_2q = get_count_2q(qc)
-        #print('2q gates: ', count_2q)
-        
-        qc_depth = qc.depth()
-        #print('Depth: ', qc_depth)
-        
-        cursor.execute('''SELECT d.id, d.header_id, d.job_id, d.status, c.gates, c.correct_output, c.qasm
-                        FROM calibration_data.result_detail d
-                        INNER JOIN calibration_data.result_header h ON d.header_id = h.id
-                        INNER JOIN calibration_data.circuit c ON h.circuit_id = c.circuit_id
-                        WHERE d.job_id = %s
-                    ''', (job_id, ))
-        
-        results = cursor.fetchall()
-        cursor.execute('''SELECT shots, counts, execution_time, quasi_dists, result_type, counts_std, quasi_dists_std 
-                       FROM calibration_data.result_backend_json WHERE detail_id = %s''', (detail_id, ))
-        backend_result = cursor.fetchall()
-        
-        id, header_id, job_id, status, gates, correct_output, qasm = None, None, None, None, None, None, None
-        for result in results:
-            id, header_id, job_id, status, gates, correct_output, qasm = result
-            #print(job_id, ': ', correct_output)
-
-        shots, counts, ex_time, quasi_dists, result_type, counts_std, quasti_dists_std = None, None, None, None, None, None, None
-        for result in backend_result:
-            shots, counts, ex_time, quasi_dists, result_type, counts_std, quasti_dists_std = result
-
-        sr_nassc = 0
-        sr_aux = 0
-        hd_aux = 0
-        tvd = 0
-        hd = 0
-        sr_quasi = 0
-        ex_time = 0
-        sr_quasi_std = 0
-        sr_aux_std = 0
-        sr_nassc_std = 0
-        
-        if (result_type == "sampler"):
-            hd = 1
-            tvd = 1
-
-            # binary_correct_output = {}
-            # print(type(correct_output))
-            # for key, value in correct_output.items():
-            #     print(key)
-
-            # correct_output = normalize_counts(correct_output)
-            
-
-            correct_output = json.loads(correct_output)
-
-            tmp_correct_output = {}
-            for key, value in correct_output.items():
-                new_key = "{}".format(int(key, 2))
-                tmp_correct_output[new_key] = value
-            correct_output = tmp_correct_output
-
+        for idx, res in enumerate(results_details_json):
+            detail_id, qasm, quasi_dists, quasi_dists_std = res
 
             quasi_dists_dict = json.loads(quasi_dists) 
-            for key, value in quasi_dists_dict.items():
-                key = "{}".format(int(key, 2))
-                if key in correct_output:
-                    sr_quasi = sr_quasi + value
+            quasi_dists_std_dict = json.loads(quasi_dists_std) 
+            
+            qc = QuantumCircuit.from_qasm_str(qasm)
+            total_gate = sum(qc.count_ops().values())
+            total_one_qubit_gate = get_count_1q(qc)
+            total_two_qubit_gate = get_count_2q(qc)
+            circuit_depth = qc.depth()
+            circuit_cost = calculate_circuit_cost(qc)
+
+            correct_output = get_correct_output_dict(cursor, detail_id)
+            success_rate_quasi = calculate_success_rate_nassc(correct_output, quasi_dists_dict)
+            success_rate_nassc = success_rate_quasi
+            success_rate_quasi_std = calculate_success_rate_nassc(correct_output, quasi_dists_std_dict)
+            success_rate_tvd = calculate_success_rate_tvd(correct_output, quasi_dists_dict)
+            hellinger_distance = calculate_hellinger_distance(correct_output, quasi_dists_dict)
+
+            # check if the metric is already there, just update
+            cursor.execute('SELECT detail_id FROM metric WHERE detail_id = %s', (detail_id,))
+            existing_row = cursor.fetchone()
+
+            if existing_row:
+                cursor.execute("""UPDATE metric SET total_gate = %s, total_one_qubit_gate = %s, total_two_qubit_gate = %s, circuit_depth = %s, 
+                circuit_cost = %s, success_rate_tvd = %s, success_rate_nassc = %s, success_rate_quasi = %s, hellinger_distance = %s
+                WHERE detail_id = %s; """, 
+                (total_gate, total_one_qubit_gate, total_two_qubit_gate, circuit_depth, 
+                circuit_cost, success_rate_tvd, success_rate_nassc, success_rate_quasi, hellinger_distance, detail_id))
+            else:
+                cursor.execute("""INSERT INTO metric(detail_id, total_gate, total_one_qubit_gate, total_two_qubit_gate, circuit_depth, 
+                circuit_cost, success_rate_tvd, success_rate_nassc, success_rate_quasi, hellinger_distance)
+                VALUES (%s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s); """, 
+                (detail_id, total_gate, total_one_qubit_gate, total_two_qubit_gate, circuit_depth, 
+                circuit_cost, success_rate_tvd, success_rate_nassc, success_rate_quasi, hellinger_distance))
                 
-            # get standard deviation value
-            quasi_dists_std_dict = json.loads(quasti_dists_std) 
-            for key, value in quasi_dists_std_dict.items():
-                key = "{}".format(int(key, 2))
-                if key in correct_output:
-                    sr_quasi_std = sr_quasi_std + value
+            update_result_header_status_by_header_id(cursor, header_id, 'done')
 
-            qc_counts = quasi_dists_dict
-            qc_counts_std = quasi_dists_std_dict
-            # for key, value in qc_counts.items():
-            #     if key in correct_output:
-            #         sr_nassc = sr_nassc + value
-
-            # print('sr_nassc: ',sr_nassc)    
-            
-            for key, value in qc_counts.items():
-                key = "{}".format(int(key, 2))
-                if key in correct_output:
-                    sr_aux = sr_aux + abs(correct_output[key] - value)
-                else: 
-                    sr_aux = sr_aux + value
-
-            tvd=sr_aux/2
-            # print('sr_tvd: ', 1-tvd)
-
-            for key, value in qc_counts.items():
-                key = "{}".format(int(key, 2))
-                if key in correct_output:
-                    hd_aux = hd_aux + (math.sqrt(correct_output[key]) - math.sqrt(value))**2
-                else: 
-                    hd_aux = hd_aux + value
-
-            if hd_aux < 0:
-                hd_aux = 0
-
-            hd = math.sqrt(hd_aux)/math.sqrt(2)
-            # print(correct_output)
-            # print("---")
-            # print(quasi_dists_dict)
-            # print("---")
-            # print(sr_quasi)
-
-            sr_nassc = sr_quasi
-            sr_nassc_std = sr_quasi_std
-
-        else:
-            new_keys = []
-            for key, value in json.loads(counts).items():
-                new_keys.append(bit_format.format(int(key,base=2))) 
-        
-            correct_output = normalize_counts(correct_output)
-            qc_counts = normalize_counts(counts)
-            qc_counts_std = normalize_counts(counts_std)
-
-            # print(correct_output)
-            # print("--------")
-            # print(qc_counts)
-
-            for key, value in qc_counts.items():
-                if key in correct_output:
-                    sr_nassc = sr_nassc + value
-
-            # print('sr_nassc: ',sr_nassc)    
-
-            for key, value in qc_counts_std.items():
-                if key in correct_output:
-                    sr_nassc_std = sr_nassc_std + value
-
-            # print('sr_nassc_std: ',sr_nassc_std)    
-            
-            for key, value in qc_counts.items():
-                if key in correct_output:
-                    sr_aux = sr_aux + abs(correct_output[key] - value)
-                else: 
-                    sr_aux = sr_aux + value
-
-            tvd=sr_aux/2
-            # print('sr_tvd: ', 1-tvd)
-
-
-
-            for key, value in qc_counts.items():
-                if key in correct_output:
-                    hd_aux = hd_aux + (math.sqrt(correct_output[key]) - math.sqrt(value))**2
-                else: 
-                    hd_aux = hd_aux + value
-            hd = math.sqrt(hd_aux)/math.sqrt(2)
-            # print(hd)
-
-            # print('ex_time: ', ex_time)
-
-        f_1q_gate = 0.8
-        f_2q_gate = 0.8
-        k = 0.995
-        qc_cost = -np.log(k) * qc_depth - np.log(f_1q_gate) * count_1q - np.log(f_2q_gate) * count_2q
-
-        # print(qc_cost)
-
-        metrics_info = {
-                        "total_gate_count": total_gate_count,
-                        "total_gate_count_by_type": total_gate_count_by_type,
-                        "1-qubit_gate_count": count_1q,
-                        "2-qubit_gate_count": count_2q,
-                        "circuit_depth": qc_depth,
-                        "circuit_cost": qc_cost,
-                        "success_rate(1-tvd)": 1 - tvd,
-                        "success_rate(nassc)": sr_nassc,
-                        "success_rate(quasi)": sr_quasi,
-                        "hellinger_distance": hd,
-                        "execution_time": ex_time,
-                        "quasi_std": sr_quasi_std,
-                        "sr_nassc_std": sr_nassc_std   
-                        }
-        metrics_info = json.dumps(metrics_info)
-        
-        # check if the metric is already there, just update
-        cursor.execute('SELECT detail_id FROM calibration_data.metric WHERE detail_id = %s', (detail_id,))
-        existing_row = cursor.fetchone()
-
-        if existing_row:
-            cursor.execute('UPDATE calibration_data.metric SET metric_json = %s WHERE detail_id = %s ',
-                                    (metrics_info, detail_id, ))
             conn.commit()
-        else:
-            cursor.execute('INSERT INTO calibration_data.metric (detail_id, metric_json) VALUES (%s, %s)',
-                                    (detail_id, metrics_info))
-            conn.commit()
-        
-        update_result_detail_status(conn, detail_id, 'done')
+            
     except Exception as e:
         print("Error in getting the metrics : ", e)
 
@@ -516,7 +274,7 @@ def get_metrics(detail_id, job_id):
     conn.close()
 
 if __name__ == "__main__":
-    conn = mysql.connector.connect(**mysql_config)
+    conn = mysql.connector.connect(**conf.mysql_config)
     cursor = conn.cursor()
 
     pending_jobs = get_pending_jobs()
@@ -525,21 +283,17 @@ if __name__ == "__main__":
     header_id, job_id, qiskit_token = None, None, None
     provider, backend, service = None, None, None
     
+    print('Pending jobs: ', len(pending_jobs))
     for result in pending_jobs:
         header_id, job_id, qiskit_token = result
 
         if tmp_qiskit_token == "" or tmp_qiskit_token != qiskit_token:
-            #IBMProvider.save_account(token=qiskit_token, overwrite=True)
-            #provider = IBMProvider(token = qiskit_token)
-
             # QiskitRuntimeService.save_account(channel="ibm_cloud", token=qiskit_token, instance="Qiskit Runtime-ucm", overwrite=True)
             # service = QiskitRuntimeService(channel="ibm_cloud", token=qiskit_token, instance="Qiskit Runtime-ucm")
 
             QiskitRuntimeService.save_account(channel="ibm_quantum", token=qiskit_token, overwrite=True)
             service = QiskitRuntimeService(channel="ibm_quantum", token=qiskit_token)
-
-        # pending_jobs = get_pending_jobs()
-        print('Pending jobs: ', len(pending_jobs))
+        
         status = check_result_availability(service, header_id, job_id)
 
         if (status == 10):
@@ -551,10 +305,10 @@ if __name__ == "__main__":
     conn.close()
 
     executed_jobs = get_executed_jobs()
-    print('Executed jobs', len(executed_jobs))
+    print('Executed jobs :', len(executed_jobs))
     for result in executed_jobs:
-        detail_id, job_id = result
+        header_id, job_id = result
         try:
-             get_metrics(detail_id, job_id)
+             get_metrics(header_id, job_id)
         except Exception as e:
              print("Error metric:", str(e))

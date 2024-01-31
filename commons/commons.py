@@ -3,6 +3,9 @@ from enum import Enum
 import mysql.connector
 import time
 import configparser
+import re
+from dateutil import tz
+from datetime import datetime
 
 class Config:
     def __init__(self):
@@ -20,13 +23,15 @@ class Config:
 
         self.bit_format = self.config_parser['MathConfig']['bit_format']
 
-        self.activate_debugging_time = self.config_parser['GeneralConfig']['activate_debugging_time']
+        self.activate_debugging_time = True if self.config_parser['GeneralConfig']['activate_debugging_time'] == "1" else False
 
         self.hardware_name = self.config_parser['QuantumConfig']['hardware_name']
         self.base_folder = self.config_parser['QuantumConfig']['base_folder']
-        self.shots = self.config_parser['QuantumConfig']['shots']
+        self.shots = int(self.config_parser['QuantumConfig']['shots'])
         self.ibm_cloud_instance = self.config_parser['QuantumConfig']['ibm_cloud_instance']
         self.qiskit_token = self.config_parser['QuantumConfig']['token']
+        self.optimization_level = int(self.config_parser['QuantumConfig']['optimization_level'])
+        self.resilience_level = int(self.config_parser['QuantumConfig']['resilience_level'])
         
 
 
@@ -41,10 +46,15 @@ class qiskit_optimization(Enum):
 class apply_qiskit_optimization(Enum):
     no_apply, before, after = None, "before", "after"
 
+class qiskit_compilation_enum(Enum):
+    qiskit_3, qiskit_NA_avg, qiskit_NA_lcd, qiskit_NA_mix, qiskit_NA_w15, \
+    qiskit_NA_avg_adj, qiskit_NA_lcd_adj, qiskit_NA_mix_adj, qiskit_NA_w15_adj \
+        = "qiskit_3", "qiskit_NA_avg", "qiskit_NA_lcd", "qiskit_NA_mix", "qiskit_NA_w15", \
+        "qiskit_NA_avg_adj", "qiskit_NA_lcd_adj", "qiskit_NA_mix_adj", "qiskit_NA_w15_adj"
 class calibration_type_enum(Enum):
-    realtime, average, recent_15, recent_45, mix, \
+    lcd, average, recent_15, recent_45, mix, \
         decay_r, decay_15, decay_mix, \
-    realtime_adjust, average_adjust, recent_15_adjust, mix_adjust \
+    lcd_adjust, average_adjust, recent_15_adjust, mix_adjust \
      = "real", "avg", "recent_15", "recent_45", "mix", \
         "decay_r", "decay_15", "decay_mix", \
         "real_adjust", "avg_adjust", "recent_15_adjust", "mix_adjust" 
@@ -92,7 +102,149 @@ def normalize_counts(result_counts, is_json=False, shots=8192):
     if is_json:
         result_counts = json.loads(result_counts)
 
-    new_keys = [conf.bit_format.format(int(key, base=2)) for key in result_counts.keys()]
-    result_counts = dict(zip(new_keys, result_counts.values()))
-
+    result_counts = convert_dict_binary_to_int(result_counts)
+    
     return {key: value / shots for key, value in result_counts.items()}
+
+def num_sort(test_string):
+    return list(map(int, re.findall(r'\d+', test_string)))[0]
+
+def is_decimal_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
+def is_binary_number(s):
+    return all(char in '01' for char in s)
+
+def convert_dict_binary_to_int(bin_dict):
+    tmp = {}
+    for key, value in bin_dict.items():
+        if is_binary_number(key):
+            new_key = "{}".format(int(key, 2))
+            tmp[new_key] = value
+    int_dict = tmp
+
+    return int_dict
+
+def is_mitigated(job):
+    try:
+        mitigation_overhead = job.result().metadata[0]["readout_mitigation_overhead"]
+        return True
+    except (IndexError, KeyError):
+        return False
+    
+
+def convert_utc_to_local(datetime_utc):
+    to_zone = tz.tzlocal()
+
+    datetime_local = datetime.fromisoformat(datetime_utc.replace('Z', '+00:00')).astimezone(to_zone)
+    datetime_local = datetime_local.strftime("%Y%m%d%H%M%S")
+
+    return datetime_local
+
+def calculate_time_diff(time_start, time_end):
+    start_datetime = datetime.fromisoformat(time_start.replace('Z', '+00:00'))
+    end_datetime = datetime.fromisoformat(time_end.replace('Z', '+00:00'))
+    time_difference = end_datetime - start_datetime
+
+    return time_difference.total_seconds()    
+
+def get_measure_lines(updated_qasm):
+    lines = updated_qasm.split('\n')
+    measure_lines = [line for line in lines if re.match(r'^\s*measure', line)]
+    return measure_lines
+
+def get_initial_mapping_json(updated_qasm):
+    initial_mappings = []
+    measure_lines = get_measure_lines(updated_qasm)
+    for line in measure_lines:
+        qubits = re.findall(r'q\[(\d+)\] -> c\[(\d+)\]', line)
+        if len(qubits) == 1:
+            initial_mappings.append((int(qubits[0][0]), int(qubits[0][1])))
+
+    mapping = {}
+    for i, j in initial_mappings:
+        mapping[j] = i
+
+    mapping_json = json.dumps(mapping, default=str)
+
+    return mapping_json
+
+def get_count_1q(qc):
+    count_1q = 0
+    for key, value in dict(qc.count_ops()).items():
+        if key != 'cx' and key != "cy" and key != "cz" and key != "ch" and key != "crz" and key != "cp" and key != "cu" and key != "swap" and key != "ecr":
+            count_1q += value
+
+    return count_1q
+
+def get_count_2q(qc):
+    count_2q = 0
+    for key, value in dict(qc.count_ops()).items():
+        if key == 'cx' or key == "cy" or key == "cz" or key == "ch" or key == "crz" or key == "cp" or key == "cu" or key == "swap" or key == "ecr":
+            count_2q += value
+
+    return count_2q
+
+def calculate_circuit_cost(qc):
+    f_1q_gate = 0.8
+    f_2q_gate = 0.8
+    k = 0.995
+    
+    circuit_depth = qc.depth()
+    count_1q = get_count_1q(qc)
+    count_2q = get_count_2q(qc)
+    
+    cost = -np.log(k) * circuit_depth - np.log(f_1q_gate) * count_1q - np.log(f_2q_gate) * count_2q
+
+    return cost
+
+def get_correct_output_dict(cursor, detail_id):
+    cursor.execute('''SELECT c.correct_output FROM framework.result_detail d
+    INNER JOIN framework.circuit c ON d.circuit_name = c.name
+    WHERE d.id = %s;''', (detail_id, ))
+    
+    result_correct = cursor.fetchall()
+
+    correct_output = json.loads(result_correct[0][0])
+
+    return correct_output
+
+def calculate_success_rate_nassc(correct_output, dists):
+    success_rate = 0
+    for key, value in dists.items():
+        if key in correct_output:
+            success_rate = success_rate + value
+
+    return success_rate
+
+def calculate_success_rate_tvd(correct_output, dists):
+    sr_aux = 0
+    for key, value in dists.items():
+        if key in correct_output:
+            sr_aux = sr_aux + abs(correct_output[key] - value)
+        else: 
+            sr_aux = sr_aux + value
+    tvd = sr_aux / 2
+
+    return 1 - tvd
+
+def calculate_hellinger_distance(correct_output, dists):
+    hd_aux = 0
+    for key, value in dists.items():
+        if key in correct_output:
+            if value < 0:
+                value = 0
+            hd_aux = hd_aux + (math.sqrt(correct_output[key]) - math.sqrt(value))**2
+        else: 
+            hd_aux = hd_aux + value
+
+    if hd_aux < 0:
+        hd_aux = 0
+
+    hellinger_distance = math.sqrt(hd_aux)/math.sqrt(2)
+
+    return hellinger_distance
