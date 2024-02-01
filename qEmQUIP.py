@@ -289,7 +289,7 @@ class QEM:
         self.cursor.execute('SELECT id, qiskit_token FROM result_header WHERE job_id IS NULL;')
         results_1 = self.cursor.fetchall()
 
-        print(len(results_1))
+        print("Total send to backend :", len(results_1))
 
         for res_1 in results_1:
             header_id, qiskit_token = res_1
@@ -316,19 +316,19 @@ WHERE h.job_id IS NULL AND d.header_id = %s  ''', (header_id,))
                 for i in range(self.runs):
                     list_circuits.append(circuit)
                 
+            print("Total no of circuits :",len(list_circuits))
 
             while not success:
                 try:
 
                     print("Sending to {} with batch id: {} ... ".format(conf.hardware_name, header_id))
-
-                    job, job_id = None, None
-                    job = self.sampler.run(list_circuits, shots=conf.shots)
+                    job = self.sampler.run(list_circuits)
                     job_id = job.job_id()
 
                     success = True
 
                     # update to result detail
+                    print("Sent!")
                     self.cursor.execute('UPDATE result_header SET job_id = %s, status = "pending", updated_datetime = NOW() WHERE id = %s', (job_id, header_id))
 
                     self.conn.commit()
@@ -398,12 +398,7 @@ if __name__ == "__main__":
 
     # initial class QEM
     if debug: tmp_start_time  = time.perf_counter()
-    # q = QEM(qasm_source, runs=4, 
-    #         fixed_initial_layout = False, run_in_simulator=False, 
-    #         calibration_type = calibration_type_enum.lcd, 
-    #         circuit_name=circuit_name, user_id=11)
-    q = QEM(runs=2, fixed_initial_layout = False, run_in_simulator=False, 
-            user_id=99)
+    q = QEM(runs=2, fixed_initial_layout = False, run_in_simulator=False, user_id=3)
     if debug: tmp_end_time = time.perf_counter()
     if debug: print("Time for initialization: {} seconds".format(tmp_end_time - tmp_start_time))
 
@@ -413,8 +408,8 @@ if __name__ == "__main__":
     if debug: tmp_end_time = time.perf_counter()
     if debug: print("Time for running the init header: {} seconds".format(tmp_end_time - tmp_start_time))
 
-    # generate_props = True
-    generate_props = False
+    generate_props = True
+    # generate_props = False
 
     for i in qasm_files:
         qasm_source = i
@@ -434,6 +429,9 @@ if __name__ == "__main__":
         
         generate_props = False
 
+    q.close_database_connection()
+
+    q.open_database_connection()
     
     # Send to backend
     if debug: tmp_start_time  = time.perf_counter()

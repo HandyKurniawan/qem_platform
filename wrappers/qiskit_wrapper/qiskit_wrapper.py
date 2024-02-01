@@ -23,7 +23,7 @@ from .fake_ibm_brisbane import NewFakeBrisbaneRealAdjust, NewFakeBrisbaneRecent1
 conf = Config()
 
 class QiskitCircuit:
-    def __init__(self, qasm, name = None, skip_simulation = False, metadata = {}):
+    def __init__(self, qasm, name = "", skip_simulation = False, metadata = {}):
         qc = None
         if isinstance(qasm, str):
             try:
