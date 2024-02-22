@@ -19,6 +19,7 @@ from .fake_ibm_perth import NewFakePerthRealAdjust, NewFakePerthRecent15, NewFak
                         NewFakePerthMix, NewFakePerthMixAdjust, NewFakePerthAverage, NewFakePerthAverageAdjust
 from .fake_ibm_brisbane import NewFakeBrisbaneRealAdjust, NewFakeBrisbaneRecent15, NewFakeBrisbaneRecent15Adjust, \
                         NewFakeBrisbaneMix, NewFakeBrisbaneMixAdjust, NewFakeBrisbaneAverage, NewFakeBrisbaneAverageAdjust
+import time
 
 conf = Config()
 
@@ -37,21 +38,26 @@ class QiskitCircuit:
         if not (isinstance(qasm, str) or isinstance(qc, QuantumCircuit)):
             raise ValueError("Input must be a string or a QuantumCircuit object")
 
+        qc = transpile_to_basis_gate(qc)
         self.circuit = qc
         self.qasm = qc.qasm()
         self.circuit.name = name
         self.circuit.metadata = metadata
-        self.total_gate = sum(qc.count_ops().values())
         self.gates = dict(qc.count_ops())
+        self.total_gate = sum(qc.count_ops().values()) - self.gates["measure"]
         self.depth = qc.depth()
 
         if not skip_simulation:
             if conf.simulator_hardware != "ibmq_qasm_simulator":
-                backend_sim = self.service.get_backend(conf.simulator_hardware)
-                sampler = Sampler(backend_sim) 
-                job_sim = sampler.run(transpile(qc, backend_sim, basis_gates=["u3", "cx"]), shots=conf.shots)
+                # backend_sim = self.service.get_backend(conf.simulator_hardware)
+                # sampler = Sampler(backend_sim) 
+                # job_sim = sampler.run(transpile(qc, backend_sim, basis_gates=["u3", "cx"]), shots=conf.shots)
+                # result_sim = job_sim.result()  
+                # self.correct_output = dict(result_sim.quasi_dists[0])  
+                backend_sim = Aer.get_backend('qasm_simulator')
+                job_sim = backend_sim.run(transpile(qc, backend_sim), shots=conf.shots)
                 result_sim = job_sim.result()  
-                self.correct_output = dict(result_sim.quasi_dists[0])  
+                self.correct_output = normalize_counts(dict(result_sim.get_counts(qc)))
             else:
                 backend_sim = Aer.get_backend('qasm_simulator')
                 job_sim = backend_sim.run(transpile(qc, backend_sim), shots=conf.shots)
@@ -116,6 +122,7 @@ def optimize_qasm(input_qasm, backend, optimization, enable_noise_adaptive = Fal
 
     # print(layout_method, initial_layout)
 
+    tmp_start_time  = time.perf_counter()
     # Transpile and optimize the circuit
     transpiled_circuit = transpile(circuit, 
                                 tmp_backend,
@@ -125,23 +132,22 @@ def optimize_qasm(input_qasm, backend, optimization, enable_noise_adaptive = Fal
                                 basis_gates=basis_gates,
                                 initial_layout=initial_layout
                                 )
-
+    tmp_end_time = time.perf_counter()
+    compilation_time = tmp_end_time - tmp_start_time
 
     # Convert the optimized circuit back to QASM
     optimized_qasm = transpiled_circuit.qasm()
 
     # print(optimized_qasm)
 
-    return optimized_qasm
+    return optimized_qasm, compilation_time
 
-def transpile_to_basis_gate(input_qasm, backend, ):
-    # Load the input QASM circuit
-    circuit = QuantumCircuit.from_qasm_str(input_qasm)
+def transpile_to_basis_gate(circuit, backend = None ):
+    
+    # transpiled_circuit = transpile(circuit, optimization_level=0, basis_gates=backend.basis_gates)
+    transpiled_circuit = transpile(circuit, optimization_level=0, basis_gates=["u3", "cx"])
 
-    transpiled_circuit = transpile(circuit, optimization_level=0, basis_gates=backend.basis_gates)
-    transpiled_qasm = transpiled_circuit.qasm()
-
-    return transpiled_qasm
+    return transpiled_circuit
 
 def _get_last_calibration_id(hw_name):
         

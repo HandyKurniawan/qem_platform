@@ -133,6 +133,8 @@ class QEM:
 
         # insert to the table
         if not existing_row:
+            # qc.qasm = qiskit_wrapper.transpile_to_basis_gate(qc.qasm)
+
             self.cursor.execute("""INSERT INTO circuit (name, qasm, depth, total_gates, gates, correct_output)
             VALUES (%s, %s, %s, %s, %s, %s)""",
             (circuit_name, qc.qasm, qc.depth, qc.total_gate, gates_json, correct_output_json))
@@ -141,6 +143,13 @@ class QEM:
 
             print(circuit_name, "has been registered to the database.")
         else:
+            # qc.qasm = qiskit_wrapper.transpile_to_basis_gate(qc.qasm)
+
+            self.cursor.execute("""UPDATE circuit SET qasm = %s, depth  = %s, total_gates  = %s, gates = %s, correct_output = %s 
+                                WHERE name = %s""",
+            (qc.qasm, qc.depth, qc.total_gate, gates_json, correct_output_json, circuit_name))
+
+            self.conn.commit()
             print(circuit_name, "already exist.")
 
         return qc
@@ -219,15 +228,20 @@ class QEM:
             enable_noise_adaptive = True
             calibration_type = calibration_type_enum.recent_15_adjust.value
 
+        
+        
+        
         if qiskit_optimization_level == 99:
             updated_qasm = self.qasm
         else:
-            updated_qasm = qiskit_wrapper.optimize_qasm(
+            updated_qasm, compilation_time = qiskit_wrapper.optimize_qasm(
                 self.qasm, self.backend, qiskit_optimization_level,
                 enable_noise_adaptive=enable_noise_adaptive, enable_mirage=enable_mirage, 
                 calibration_type=calibration_type, generate_props=generate_props)
+        
+         
 
-        self.insert_to_result_detail(compilation_name, updated_qasm)
+        self.insert_to_result_detail(compilation_name, compilation_time, updated_qasm)
         return updated_qasm
 
     
@@ -242,7 +256,7 @@ class QEM:
         """
         """    
         updated_qasm = self.qasm
-        updated_qasm = qiskit_wrapper.transpile_to_basis_gate(updated_qasm, self.backend)
+        # updated_qasm = qiskit_wrapper.transpile_to_basis_gate(updated_qasm, self.backend)
         updated_qasm = triq_wrapper.run(updated_qasm, 
                                         conf.hardware_name + "_" + calibration_type, 
                                         triq_optimization)
@@ -256,21 +270,21 @@ class QEM:
             "after"  : after laura's version of triq
         """    
         updated_qasm = self.qasm
-        updated_qasm = qiskit_wrapper.transpile_to_basis_gate(updated_qasm, self.backend)
+        # updated_qasm = qiskit_wrapper.transpile_to_basis_gate(updated_qasm, self.backend)
         updated_qasm = laura_wrapper.run(updated_qasm, conf.hardware_name + "_" + calibration_type, laura_optimization)
 
         return updated_qasm
     
-    def insert_to_result_detail(self, compilation_name, updated_qasm):
+    def insert_to_result_detail(self, compilation_name, compilation_time, updated_qasm):
         now_time = datetime.now().strftime("%Y%m%d%H%M%S")
         
         sql = """
         INSERT INTO result_detail
-        (header_id, circuit_name, compilation_name, created_datetime)
-        VALUES (%s, %s, %s, %s);
+        (header_id, circuit_name, compilation_name, compilation_time, created_datetime)
+        VALUES (%s, %s, %s, %s, %s);
         """
 
-        self.cursor.execute(sql, (self.header_id, self.circuit_name, compilation_name, now_time))
+        self.cursor.execute(sql, (self.header_id, self.circuit_name, compilation_name, compilation_time, now_time))
         detail_id = self.cursor.lastrowid
 
         sql = """
@@ -398,7 +412,8 @@ if __name__ == "__main__":
 
     # initial class QEM
     if debug: tmp_start_time  = time.perf_counter()
-    q = QEM(runs=2, fixed_initial_layout = False, run_in_simulator=False, user_id=3)
+    q = QEM(runs=1, fixed_initial_layout = False, run_in_simulator=False, user_id=5)
+    # q = QEM(runs=1, fixed_initial_layout = False, run_in_simulator=True, user_id=98)
     if debug: tmp_end_time = time.perf_counter()
     if debug: print("Time for initialization: {} seconds".format(tmp_end_time - tmp_start_time))
 

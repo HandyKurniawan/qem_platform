@@ -12,6 +12,7 @@ from qiskit_ibm_runtime.utils.runner_result import RunnerResult
 from commons import Config, convert_utc_to_local, calculate_time_diff, get_count_1q, get_count_2q, \
     calculate_circuit_cost, get_correct_output_dict, calculate_success_rate_nassc, calculate_success_rate_tvd, \
     calculate_hellinger_distance, convert_to_json, is_mitigated, get_initial_mapping_json
+import wrappers.qiskit_wrapper as qiskit_wrapper
 
 conf = Config()
 
@@ -228,6 +229,7 @@ def get_metrics(header_id, job_id):
             quasi_dists_std_dict = json.loads(quasi_dists_std) 
             
             qc = QuantumCircuit.from_qasm_str(qasm)
+            qc = qiskit_wrapper.transpile_to_basis_gate(qc)
             total_gate = sum(qc.count_ops().values())
             total_one_qubit_gate = get_count_1q(qc)
             total_two_qubit_gate = get_count_2q(qc)

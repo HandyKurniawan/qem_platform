@@ -178,7 +178,7 @@ def get_initial_mapping_json(updated_qasm):
 def get_count_1q(qc):
     count_1q = 0
     for key, value in dict(qc.count_ops()).items():
-        if key != 'cx' and key != "cy" and key != "cz" and key != "ch" and key != "crz" and key != "cp" and key != "cu" and key != "swap" and key != "ecr":
+        if key != 'cx' and key != "cy" and key != "cz" and key != "ch" and key != "crz" and key != "cp" and key != "cu" and key != "swap" and key != "ecr" and key != "measure":
             count_1q += value
 
     return count_1q
@@ -225,14 +225,23 @@ def calculate_success_rate_nassc(correct_output, dists):
 
 def calculate_success_rate_tvd(correct_output, dists):
     sr_aux = 0
+    success_rate = 0
     for key, value in dists.items():
         if key in correct_output:
             sr_aux = sr_aux + abs(correct_output[key] - value)
         else: 
             sr_aux = sr_aux + value
-    tvd = sr_aux / 2
 
-    return 1 - tvd
+    if sr_aux == 1:
+        success_rate = 0
+    else:
+        tvd = sr_aux / 2
+        success_rate = 1 - tvd
+
+        if tvd == 0.5:
+            success_rate = 0
+
+    return success_rate
 
 def calculate_hellinger_distance(correct_output, dists):
     hd_aux = 0
