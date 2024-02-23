@@ -93,7 +93,10 @@ class QEM:
         else:
             self.service = QiskitRuntimeService(channel="ibm_quantum", token=token)
 
-        self.backend = self.service.get_backend(conf.hardware_name)
+        if conf.hardware_name != "ibm_perth":
+            self.backend = self.service.get_backend(conf.hardware_name)
+        else:
+            self.backend = self.get_fake_perth()
 
         backend_sim = self.service.get_backend(conf.simulator_hardware)
         noise_model = NoiseModel.from_backend(self.backend)
@@ -118,7 +121,11 @@ class QEM:
             options.execution.shots = conf.shots
             options.optimization_level = conf.optimization_level
             options.resilience_level = conf.resilience_level
-            self.sampler = Sampler(self.backend, options=options) 
+            
+            if conf.hardware_name != "ibm_perth":
+                self.sampler = Sampler(self.backend, options=options) 
+            else:
+                self.sampler = Sampler(backend_sim, options=options) 
 
     def get_circuit_properties(self, qasm_source):
         circuit_name = qasm_source.split("/")[-1].split(".")[0]
@@ -133,8 +140,6 @@ class QEM:
 
         # insert to the table
         if not existing_row:
-            # qc.qasm = qiskit_wrapper.transpile_to_basis_gate(qc.qasm)
-
             self.cursor.execute("""INSERT INTO circuit (name, qasm, depth, total_gates, gates, correct_output)
             VALUES (%s, %s, %s, %s, %s, %s)""",
             (circuit_name, qc.qasm, qc.depth, qc.total_gate, gates_json, correct_output_json))
@@ -143,13 +148,11 @@ class QEM:
 
             print(circuit_name, "has been registered to the database.")
         else:
-            # qc.qasm = qiskit_wrapper.transpile_to_basis_gate(qc.qasm)
+            # self.cursor.execute("""UPDATE circuit SET qasm = %s, depth  = %s, total_gates  = %s, gates = %s, correct_output = %s 
+            #                     WHERE name = %s""",
+            # (qc.qasm, qc.depth, qc.total_gate, gates_json, correct_output_json, circuit_name))
 
-            self.cursor.execute("""UPDATE circuit SET qasm = %s, depth  = %s, total_gates  = %s, gates = %s, correct_output = %s 
-                                WHERE name = %s""",
-            (qc.qasm, qc.depth, qc.total_gate, gates_json, correct_output_json, circuit_name))
-
-            self.conn.commit()
+            # self.conn.commit()
             print(circuit_name, "already exist.")
 
         return qc
@@ -227,9 +230,6 @@ class QEM:
         elif compilation_name == qiskit_compilation_enum.qiskit_NA_w15_adj.value:    
             enable_noise_adaptive = True
             calibration_type = calibration_type_enum.recent_15_adjust.value
-
-        
-        
         
         if qiskit_optimization_level == 99:
             updated_qasm = self.qasm
@@ -239,8 +239,6 @@ class QEM:
                 enable_noise_adaptive=enable_noise_adaptive, enable_mirage=enable_mirage, 
                 calibration_type=calibration_type, generate_props=generate_props)
         
-         
-
         self.insert_to_result_detail(compilation_name, compilation_time, updated_qasm)
         return updated_qasm
 
@@ -252,26 +250,39 @@ class QEM:
         return updated_qasm
 
 
-    def apply_triq(self, triq_optimization, calibration_type = calibration_type_enum.lcd.value):
+    def apply_triq(self, compilation_name):
         """
         """    
         updated_qasm = self.qasm
-        # updated_qasm = qiskit_wrapper.transpile_to_basis_gate(updated_qasm, self.backend)
-        updated_qasm = triq_wrapper.run(updated_qasm, 
-                                        conf.hardware_name + "_" + calibration_type, 
-                                        triq_optimization)
+
+        tmp_start_time  = time.perf_counter()
+        if compilation_name == "triq_lcd":
+            updated_qasm = triq_wrapper.run(updated_qasm, 
+                                                conf.hardware_name + "_" + "real", 
+                                                triq_optimization)
+        tmp_end_time = time.perf_counter()
+        compilation_time = tmp_end_time - tmp_start_time
+        
+        
+        self.insert_to_result_detail(compilation_name, compilation_time, updated_qasm)
 
         return updated_qasm
 
-    def apply_laura(self, laura_optimization = 0, calibration_type = calibration_type_enum.lcd.value):
+    def apply_laura(self, compilation_name):
         """
-        apply_qiskit:
+        apply_laura:
             "before" : before laura's version of triq
             "after"  : after laura's version of triq
         """    
         updated_qasm = self.qasm
-        # updated_qasm = qiskit_wrapper.transpile_to_basis_gate(updated_qasm, self.backend)
-        updated_qasm = laura_wrapper.run(updated_qasm, conf.hardware_name + "_" + calibration_type, laura_optimization)
+        tmp_start_time  = time.perf_counter()
+        if compilation_name == "triq+_lcd":
+            updated_qasm = laura_wrapper.run(updated_qasm, conf.hardware_name + "_" + "real", 2)
+        tmp_end_time = time.perf_counter()
+        compilation_time = tmp_end_time - tmp_start_time
+        
+        
+        self.insert_to_result_detail(compilation_name, compilation_time, updated_qasm)
 
         return updated_qasm
     
@@ -361,30 +372,28 @@ WHERE h.job_id IS NULL AND d.header_id = %s  ''', (header_id,))
         """
         self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
         self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_lcd.value, generate_props=generate_props)
-        self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_avg.value, generate_props=generate_props)
-        self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_mix.value, generate_props=generate_props)
-        self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_w15.value, generate_props=generate_props)
-        self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_lcd_adj.value, generate_props=generate_props)
-        self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_avg_adj.value, generate_props=generate_props)
-        self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_mix_adj.value, generate_props=generate_props)
-        self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_w15_adj.value, generate_props=generate_props)
+
+        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
+        # self.apply_triq(compilation_name="triq_lcd")
+        # self.apply_laura(compilation_name="triq+_lcd")
+        
+
+        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
+        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_lcd.value, generate_props=generate_props)
+        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_avg.value, generate_props=generate_props)
+        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_mix.value, generate_props=generate_props)
+        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_w15.value, generate_props=generate_props)
+        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_lcd_adj.value, generate_props=generate_props)
+        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_avg_adj.value, generate_props=generate_props)
+        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_mix_adj.value, generate_props=generate_props)
+        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_w15_adj.value, generate_props=generate_props)
 
 
+    def get_fake_perth(self):
+        fake_perth = qiskit_wrapper.NewFakePerthAverage()
+        print(fake_perth.name)
 
-
-    # def get_fake_perth(self):
-    #     fake_perth = qiskit_wrapper.NewFakePerth()
-    #     print(fake_perth.name)
-
-    #     fake_perth = qiskit_wrapper.NewFakePerthRecent15()
-    #     print(fake_perth.name)
-
-    #     transpile(self.initial_circuit.circuit, 
-    #                 fake_perth,
-    #                 optimization_level=3,
-    #                 routing_method="sabre",
-    #                 layout_method="noise_adaptive",
-    #                 )
+        return fake_perth
 
 if __name__ == "__main__":
 
@@ -413,9 +422,12 @@ if __name__ == "__main__":
     # initial class QEM
     if debug: tmp_start_time  = time.perf_counter()
     q = QEM(runs=1, fixed_initial_layout = False, run_in_simulator=False, user_id=5)
+
+    # q = QEM(runs=1, fixed_initial_layout = True, run_in_simulator=False, user_id=99)
     # q = QEM(runs=1, fixed_initial_layout = False, run_in_simulator=True, user_id=98)
     if debug: tmp_end_time = time.perf_counter()
     if debug: print("Time for initialization: {} seconds".format(tmp_end_time - tmp_start_time))
+
 
     # init header
     if debug: tmp_start_time  = time.perf_counter()
@@ -423,8 +435,8 @@ if __name__ == "__main__":
     if debug: tmp_end_time = time.perf_counter()
     if debug: print("Time for running the init header: {} seconds".format(tmp_end_time - tmp_start_time))
 
-    generate_props = True
-    # generate_props = False
+    # generate_props = True
+    generate_props = False
 
     for i in qasm_files:
         qasm_source = i
@@ -434,7 +446,7 @@ if __name__ == "__main__":
         qc = q.get_circuit_properties(qasm_source=qasm_source)
         q.qasm = qc.qasm
     
-        # q.get_fake_perth()
+        
 
         # Run Optimization
         if debug: tmp_start_time  = time.perf_counter()
