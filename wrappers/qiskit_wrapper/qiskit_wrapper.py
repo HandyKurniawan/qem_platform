@@ -18,7 +18,20 @@ import json
 from .fake_ibm_perth import NewFakePerthRealAdjust, NewFakePerthRecent15, NewFakePerthRecent15Adjust, \
                         NewFakePerthMix, NewFakePerthMixAdjust, NewFakePerthAverage, NewFakePerthAverageAdjust
 from .fake_ibm_brisbane import NewFakeBrisbaneRealAdjust, NewFakeBrisbaneRecent15, NewFakeBrisbaneRecent15Adjust, \
-                        NewFakeBrisbaneMix, NewFakeBrisbaneMixAdjust, NewFakeBrisbaneAverage, NewFakeBrisbaneAverageAdjust
+                        NewFakeBrisbaneMix, NewFakeBrisbaneMixAdjust, NewFakeBrisbaneAverage, NewFakeBrisbaneAverageAdjust, \
+                        NewFakeBrisbaneRecentNAdjust
+from .fake_ibm_brisbane import NewFakeBrisbaneRecent1, NewFakeBrisbaneRecent2, NewFakeBrisbaneRecent3, NewFakeBrisbaneRecent4, \
+                        NewFakeBrisbaneRecent5, NewFakeBrisbaneRecent6, NewFakeBrisbaneRecent7, NewFakeBrisbaneRecent8, \
+                        NewFakeBrisbaneRecent9, NewFakeBrisbaneRecent10, NewFakeBrisbaneRecent11, NewFakeBrisbaneRecent12, \
+                        NewFakeBrisbaneRecent13, NewFakeBrisbaneRecent14, NewFakeBrisbaneRecent15, NewFakeBrisbaneRecent16, \
+                        NewFakeBrisbaneRecent17, NewFakeBrisbaneRecent18, NewFakeBrisbaneRecent19, NewFakeBrisbaneRecent20, \
+                        NewFakeBrisbaneRecent21, NewFakeBrisbaneRecent22, NewFakeBrisbaneRecent23, NewFakeBrisbaneRecent24, \
+                        NewFakeBrisbaneRecent25, NewFakeBrisbaneRecent26, NewFakeBrisbaneRecent27, NewFakeBrisbaneRecent28, \
+                        NewFakeBrisbaneRecent29, NewFakeBrisbaneRecent30, NewFakeBrisbaneRecent31, NewFakeBrisbaneRecent32, \
+                        NewFakeBrisbaneRecent33, NewFakeBrisbaneRecent34, NewFakeBrisbaneRecent35, NewFakeBrisbaneRecent36, \
+                        NewFakeBrisbaneRecent37, NewFakeBrisbaneRecent38, NewFakeBrisbaneRecent39, NewFakeBrisbaneRecent40, \
+                        NewFakeBrisbaneRecent41, NewFakeBrisbaneRecent42, NewFakeBrisbaneRecent43, NewFakeBrisbaneRecent44, \
+                        NewFakeBrisbaneRecent45 
 import time
 
 conf = Config()
@@ -76,11 +89,88 @@ class QiskitCircuit:
     
     def get_qasm(self):
         return self.qasm
-    
+
+def get_fake_backend(calibration_type, backend, recent_n, generate_props):
+    tmp_backend = backend
+    if calibration_type == calibration_type_enum.lcd_adjust.value:
+        if generate_props: generate_new_props(backend, calibration_type)
+        tmp_backend = NewFakeBrisbaneRealAdjust()
+    elif calibration_type == calibration_type_enum.recent_15.value:
+        if generate_props: generate_new_props(backend, calibration_type)
+        tmp_backend = NewFakeBrisbaneRecent15()
+    elif calibration_type == calibration_type_enum.recent_15_adjust.value:
+        if generate_props: generate_new_props(backend, calibration_type)
+        tmp_backend = NewFakeBrisbaneRecent15Adjust()
+    elif calibration_type == calibration_type_enum.mix.value:
+        if generate_props: generate_new_props(backend, calibration_type)
+        tmp_backend = NewFakeBrisbaneMix()
+    elif calibration_type == calibration_type_enum.mix_adjust.value:
+        if generate_props: generate_new_props(backend, calibration_type)
+        tmp_backend = NewFakeBrisbaneMixAdjust()
+    elif calibration_type == calibration_type_enum.average.value:
+        if generate_props: generate_new_props(backend, calibration_type)
+        tmp_backend = NewFakeBrisbaneAverage()
+    elif calibration_type == calibration_type_enum.average_adjust.value:
+        if generate_props: generate_new_props(backend, calibration_type)
+        tmp_backend = NewFakeBrisbaneAverageAdjust()
+    elif calibration_type == calibration_type_enum.recent_n.value:
+        if generate_props: generate_new_props(backend, calibration_type, recent_n)
+
+        if   recent_n == 1 : tmp_backend = NewFakeBrisbaneRecent1()
+        elif recent_n == 2 : tmp_backend = NewFakeBrisbaneRecent2()
+        elif recent_n == 3 : tmp_backend = NewFakeBrisbaneRecent3()
+        elif recent_n == 4 : tmp_backend = NewFakeBrisbaneRecent4()
+        elif recent_n == 5 : tmp_backend = NewFakeBrisbaneRecent5()
+        elif recent_n == 6 : tmp_backend = NewFakeBrisbaneRecent6()
+        elif recent_n == 7 : tmp_backend = NewFakeBrisbaneRecent7()
+        elif recent_n == 8 : tmp_backend = NewFakeBrisbaneRecent8()
+        elif recent_n == 9 : tmp_backend = NewFakeBrisbaneRecent9()
+        elif recent_n == 10 : tmp_backend = NewFakeBrisbaneRecent10()
+        elif recent_n == 11 : tmp_backend = NewFakeBrisbaneRecent11()
+        elif recent_n == 12 : tmp_backend = NewFakeBrisbaneRecent12()
+        elif recent_n == 13 : tmp_backend = NewFakeBrisbaneRecent13()
+        elif recent_n == 14 : tmp_backend = NewFakeBrisbaneRecent14()
+        elif recent_n == 15 : tmp_backend = NewFakeBrisbaneRecent15()
+        elif recent_n == 16 : tmp_backend = NewFakeBrisbaneRecent16()
+        elif recent_n == 17 : tmp_backend = NewFakeBrisbaneRecent17()
+        elif recent_n == 18 : tmp_backend = NewFakeBrisbaneRecent18()
+        elif recent_n == 19 : tmp_backend = NewFakeBrisbaneRecent19()
+        elif recent_n == 20 : tmp_backend = NewFakeBrisbaneRecent20()
+        elif recent_n == 21 : tmp_backend = NewFakeBrisbaneRecent21()
+        elif recent_n == 22 : tmp_backend = NewFakeBrisbaneRecent22()
+        elif recent_n == 23 : tmp_backend = NewFakeBrisbaneRecent23()
+        elif recent_n == 24 : tmp_backend = NewFakeBrisbaneRecent24()
+        elif recent_n == 25 : tmp_backend = NewFakeBrisbaneRecent25()
+        elif recent_n == 26 : tmp_backend = NewFakeBrisbaneRecent26()
+        elif recent_n == 27 : tmp_backend = NewFakeBrisbaneRecent27()
+        elif recent_n == 28 : tmp_backend = NewFakeBrisbaneRecent28()
+        elif recent_n == 29 : tmp_backend = NewFakeBrisbaneRecent29()
+        elif recent_n == 30 : tmp_backend = NewFakeBrisbaneRecent30()
+        elif recent_n == 31 : tmp_backend = NewFakeBrisbaneRecent31()
+        elif recent_n == 32 : tmp_backend = NewFakeBrisbaneRecent32()
+        elif recent_n == 33 : tmp_backend = NewFakeBrisbaneRecent33()
+        elif recent_n == 34 : tmp_backend = NewFakeBrisbaneRecent34()
+        elif recent_n == 35 : tmp_backend = NewFakeBrisbaneRecent35()
+        elif recent_n == 36 : tmp_backend = NewFakeBrisbaneRecent36()
+        elif recent_n == 37 : tmp_backend = NewFakeBrisbaneRecent37()
+        elif recent_n == 38 : tmp_backend = NewFakeBrisbaneRecent38()
+        elif recent_n == 39 : tmp_backend = NewFakeBrisbaneRecent39()
+        elif recent_n == 40 : tmp_backend = NewFakeBrisbaneRecent40()
+        elif recent_n == 41 : tmp_backend = NewFakeBrisbaneRecent41()
+        elif recent_n == 42 : tmp_backend = NewFakeBrisbaneRecent42()
+        elif recent_n == 43 : tmp_backend = NewFakeBrisbaneRecent43()
+        elif recent_n == 44 : tmp_backend = NewFakeBrisbaneRecent44()
+        elif recent_n == 45 : tmp_backend = NewFakeBrisbaneRecent45()  
+
+    elif calibration_type == calibration_type_enum.recent_n_adjust.value:
+        if generate_props: generate_new_props(backend, calibration_type, recent_n)
+        tmp_backend = NewFakeBrisbaneRecentNAdjust(n=recent_n)
+
+    return tmp_backend
 
 # Function to import and optimize a QASM circuit
 def optimize_qasm(input_qasm, backend, optimization, enable_noise_adaptive = False, enable_mirage = False,
-                  calibration_type = calibration_type_enum.lcd, initial_layout = None, generate_props = False):
+                  calibration_type = calibration_type_enum.lcd, recent_n = None, initial_layout = None, generate_props = False):
     # Load the input QASM circuit
     circuit = QuantumCircuit.from_qasm_str(input_qasm)
 
@@ -93,28 +183,9 @@ def optimize_qasm(input_qasm, backend, optimization, enable_noise_adaptive = Fal
     if enable_noise_adaptive:
         layout_method = 'noise_adaptive'
         routing_method = 'sabre'
-        if calibration_type == calibration_type_enum.lcd_adjust.value:
-            if generate_props: generate_new_props(backend, calibration_type)
-            tmp_backend = NewFakeBrisbaneRealAdjust()
-        elif calibration_type == calibration_type_enum.recent_15.value:
-            if generate_props: generate_new_props(backend, calibration_type)
-            tmp_backend = NewFakeBrisbaneRecent15()
-        elif calibration_type == calibration_type_enum.recent_15_adjust.value:
-            if generate_props: generate_new_props(backend, calibration_type)
-            tmp_backend = NewFakeBrisbaneRecent15Adjust()
-        elif calibration_type == calibration_type_enum.mix.value:
-            if generate_props: generate_new_props(backend, calibration_type)
-            tmp_backend = NewFakeBrisbaneMix()
-        elif calibration_type == calibration_type_enum.mix_adjust.value:
-            if generate_props: generate_new_props(backend, calibration_type)
-            tmp_backend = NewFakeBrisbaneMixAdjust()
-        elif calibration_type == calibration_type_enum.average.value:
-            if generate_props: generate_new_props(backend, calibration_type)
-            tmp_backend = NewFakeBrisbaneAverage()
-        elif calibration_type == calibration_type_enum.average_adjust.value:
-            if generate_props: generate_new_props(backend, calibration_type)
-            tmp_backend = NewFakeBrisbaneAverageAdjust()
-
+        tmp_backend = get_fake_backend(calibration_type, backend, recent_n, generate_props)
+        print(tmp_backend.name)
+        
     elif enable_mirage:
         layout_method = 'sabre'
         routing_method = 'mirage'
@@ -197,7 +268,7 @@ def _get_std_readout_error(prop_dict, hw_name):
                 if i["value"] >= 1:
                     i["value"] = 1
 
-def _get_readout_error_sql(hw_name, calibration_type):
+def _get_readout_error_sql(hw_name, calibration_type, recent_n = None):
     sql = ""
     parms = ()
 
@@ -211,6 +282,17 @@ def _get_readout_error_sql(hw_name, calibration_type):
         """
 
         parms = (last_cal_id, )
+
+    elif calibration_type == calibration_type_enum.recent_n.value or calibration_type == calibration_type_enum.recent_n_adjust.value:
+        sql = """
+        SELECT qubit, AVG(readout_error) FROM (
+        SELECT DISTINCT qubit, readout_error, readout_error_date FROM calibration_data.ibm_qubit_spec q
+        INNER JOIN calibration_data.ibm i ON q.calibration_id = i.calibration_id 
+        WHERE i.hw_name = %s AND readout_error_date BETWEEN date_add(now(), INTERVAL %s DAY) AND now()
+        ) X GROUP BY qubit;
+        """
+
+        parms = (hw_name, -1 * recent_n)
 
     elif calibration_type == calibration_type_enum.recent_15.value or calibration_type == calibration_type_enum.recent_15_adjust.value:
         sql = """
@@ -253,9 +335,9 @@ def _get_readout_error_sql(hw_name, calibration_type):
 
     return sql, parms
 
-def _update_readout_error(prop_dict, hw_name, calibration_type):
+def _update_readout_error(prop_dict, hw_name, calibration_type, recent_n = None):
 
-    sql, parms = _get_readout_error_sql(hw_name, calibration_type)
+    sql, parms = _get_readout_error_sql(hw_name, calibration_type, recent_n)
     readout_results = sql_query(sql, parms)
 
     # update readout error
@@ -302,7 +384,7 @@ def _get_std_two_qubit_error(prop_dict, hw_name, native_gates_2q):
                             if par["value"] >= 1:
                                 par["value"] = 1
 
-def _get_two_qubit_error_sql(hw_name, calibration_type, native_gates_2q):
+def _get_two_qubit_error_sql(hw_name, calibration_type, native_gates_2q, recent_n = None):
     sql = ""
     parms = ()
 
@@ -316,6 +398,20 @@ def _get_two_qubit_error_sql(hw_name, calibration_type, native_gates_2q):
         '''
 
         parms = (last_cal_id, )
+
+    elif calibration_type == calibration_type_enum.recent_n.value or calibration_type == calibration_type_enum.recent_n_adjust.value:
+        sql = '''
+        SELECT qubit_control, qubit_target, AVG(''' + native_gates_2q + '''_error) FROM (
+        SELECT DISTINCT qubit_control, qubit_target, ''' + native_gates_2q + '''_error, 
+        ''' + native_gates_2q + '''_date 
+        FROM calibration_data.ibm_two_qubit_gate_spec q
+        WHERE q.hw_name = %s AND ''' + native_gates_2q + '''_error != 1
+        AND ''' + native_gates_2q + '''_date BETWEEN date_add(now(), INTERVAL %s DAY) AND now()
+        ) X GROUP BY qubit_control, qubit_target;
+        '''
+
+        parms = (hw_name, -1 * recent_n)
+
     elif calibration_type == calibration_type_enum.recent_15.value or calibration_type == calibration_type_enum.recent_15_adjust.value:
         sql = '''
         SELECT qubit_control, qubit_target, AVG(''' + native_gates_2q + '''_error) FROM (
@@ -358,10 +454,10 @@ def _get_two_qubit_error_sql(hw_name, calibration_type, native_gates_2q):
 
     return sql, parms
 
-def _update_two_qubit_error(prop_dict, hw_name, calibration_type):
+def _update_two_qubit_error(prop_dict, hw_name, calibration_type, recent_n = None):
     native_gates_2q = _get_native_gates_2q(hw_name)
 
-    sql, parms = _get_two_qubit_error_sql(hw_name, calibration_type, native_gates_2q)
+    sql, parms = _get_two_qubit_error_sql(hw_name, calibration_type, native_gates_2q, recent_n)
     two_q_results = sql_query(sql, parms)
 
     for res in two_q_results:
@@ -412,15 +508,20 @@ def _update_one_qubit_error(prop_dict, hw_name, calibration_type):
                             if par["value"] >= 1:
                                 par["value"] = 1
 
-def generate_new_props(backend, calibration_type):
+def generate_new_props(backend, calibration_type, recent_n = None):
     hw_name = backend.name
     properties = backend.properties()
     prop_dict = properties.to_dict()
 
     print(calibration_type)
-    _update_readout_error(prop_dict, hw_name, calibration_type)
+    
+    _update_readout_error(prop_dict, hw_name, calibration_type, recent_n)
     _update_one_qubit_error(prop_dict, hw_name, calibration_type)
-    _update_two_qubit_error(prop_dict, hw_name, calibration_type)
+    _update_two_qubit_error(prop_dict, hw_name, calibration_type, recent_n)
+
+    if calibration_type == "recent_n" or calibration_type == "recent_n_adjust":
+        calibration_type = calibration_type.replace("_n", "_{}".format(recent_n))
+        print(calibration_type)
 
     new_properties = BackendProperties.from_dict(prop_dict)
     new_prop_dict = new_properties.to_dict()

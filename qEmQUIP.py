@@ -193,7 +193,7 @@ class QEM:
     def apply_qiskit(self, 
                      updated_qasm = None,
                      compilation_name = qiskit_compilation_enum.qiskit_3,
-                     generate_props = False
+                     generate_props = False, recent_n = None
                      ):
         """
         hmmm
@@ -230,6 +230,16 @@ class QEM:
         elif compilation_name == qiskit_compilation_enum.qiskit_NA_w15_adj.value:    
             enable_noise_adaptive = True
             calibration_type = calibration_type_enum.recent_15_adjust.value
+        elif compilation_name == qiskit_compilation_enum.qiskit_NA_wn.value:    
+            enable_noise_adaptive = True
+            calibration_type = calibration_type_enum.recent_n.value
+
+            compilation_name = compilation_name.replace("_wn", "_w{}".format(recent_n))
+        elif compilation_name == qiskit_compilation_enum.qiskit_NA_wn_adj.value:    
+            enable_noise_adaptive = True
+            calibration_type = calibration_type_enum.recent_n_adjust.value
+
+            compilation_name = compilation_name.replace("_wn", "_w{}".format(recent_n))
         
         if qiskit_optimization_level == 99:
             updated_qasm = self.qasm
@@ -237,7 +247,7 @@ class QEM:
             updated_qasm, compilation_time = qiskit_wrapper.optimize_qasm(
                 self.qasm, self.backend, qiskit_optimization_level,
                 enable_noise_adaptive=enable_noise_adaptive, enable_mirage=enable_mirage, 
-                calibration_type=calibration_type, generate_props=generate_props)
+                calibration_type=calibration_type, generate_props=generate_props, recent_n=recent_n)
         
         self.insert_to_result_detail(compilation_name, compilation_time, updated_qasm)
         return updated_qasm
@@ -370,8 +380,8 @@ WHERE h.job_id IS NULL AND d.header_id = %s  ''', (header_id,))
         """
         
         """
-        self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
-        self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_lcd.value, generate_props=generate_props)
+        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
+        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_lcd.value, generate_props=generate_props)
 
         # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
         # self.apply_triq(compilation_name="triq_lcd")
@@ -387,6 +397,10 @@ WHERE h.job_id IS NULL AND d.header_id = %s  ''', (header_id,))
         # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_avg_adj.value, generate_props=generate_props)
         # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_mix_adj.value, generate_props=generate_props)
         # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_w15_adj.value, generate_props=generate_props)
+
+        for i in range(1, 46):
+            self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_wn.value, generate_props=generate_props, recent_n=i)
+        
 
 
     def get_fake_perth(self):
@@ -421,10 +435,10 @@ if __name__ == "__main__":
 
     # initial class QEM
     if debug: tmp_start_time  = time.perf_counter()
-    q = QEM(runs=1, fixed_initial_layout = False, run_in_simulator=False, user_id=5)
+    q = QEM(runs=1, fixed_initial_layout = False, run_in_simulator=False, user_id=6)
 
     # q = QEM(runs=1, fixed_initial_layout = True, run_in_simulator=False, user_id=99)
-    # q = QEM(runs=1, fixed_initial_layout = False, run_in_simulator=True, user_id=98)
+    # q = QEM(runs=1, fixed_initial_layout = False, run_in_simulator=False, user_id=99)
     if debug: tmp_end_time = time.perf_counter()
     if debug: print("Time for initialization: {} seconds".format(tmp_end_time - tmp_start_time))
 
@@ -445,8 +459,6 @@ if __name__ == "__main__":
         
         qc = q.get_circuit_properties(qasm_source=qasm_source)
         q.qasm = qc.qasm
-    
-        
 
         # Run Optimization
         if debug: tmp_start_time  = time.perf_counter()

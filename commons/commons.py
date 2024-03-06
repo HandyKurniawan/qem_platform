@@ -50,16 +50,21 @@ class apply_qiskit_optimization(Enum):
 
 class qiskit_compilation_enum(Enum):
     qiskit_3, qiskit_NA_avg, qiskit_NA_lcd, qiskit_NA_mix, qiskit_NA_w15, \
-    qiskit_NA_avg_adj, qiskit_NA_lcd_adj, qiskit_NA_mix_adj, qiskit_NA_w15_adj \
+    qiskit_NA_avg_adj, qiskit_NA_lcd_adj, qiskit_NA_mix_adj, qiskit_NA_w15_adj, \
+    qiskit_NA_wn, qiskit_NA_wn_adj \
         = "qiskit_3", "qiskit_NA_avg", "qiskit_NA_lcd", "qiskit_NA_mix", "qiskit_NA_w15", \
-        "qiskit_NA_avg_adj", "qiskit_NA_lcd_adj", "qiskit_NA_mix_adj", "qiskit_NA_w15_adj"
+        "qiskit_NA_avg_adj", "qiskit_NA_lcd_adj", "qiskit_NA_mix_adj", "qiskit_NA_w15_adj", \
+        "qiskit_NA_wn", "qiskit_NA_wn_adj"
+
 class calibration_type_enum(Enum):
     lcd, average, recent_15, recent_45, mix, \
         decay_r, decay_15, decay_mix, \
-    lcd_adjust, average_adjust, recent_15_adjust, mix_adjust \
+    lcd_adjust, average_adjust, recent_15_adjust, mix_adjust, \
+    recent_n, recent_n_adjust \
      = "real", "avg", "recent_15", "recent_45", "mix", \
         "decay_r", "decay_15", "decay_mix", \
-        "real_adjust", "avg_adjust", "recent_15_adjust", "mix_adjust" 
+        "real_adjust", "avg_adjust", "recent_15_adjust", "mix_adjust", \
+        "recent_n", "recent_n_adjust" 
 
 # class calibration_type_enum(Enum):
 #     average, mix, realtime = "avg", "mix", "real"
