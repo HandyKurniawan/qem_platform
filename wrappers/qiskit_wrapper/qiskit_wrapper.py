@@ -85,7 +85,7 @@ class QiskitCircuit:
         if simulator:
             return transpile(self.circuit.decompose(), backend, basis_gates=["u3", "cx"], optimization_level=0, layout_method="trivial")
         else:
-            return transpile(self.circuit.decompose(), backend, basis_gates=backend.basis_gates, optimization_level=0, layout_method="trivial")
+            return transpile(self.circuit.decompose(), basis_gates=backend.basis_gates, optimization_level=0, layout_method="trivial")
     
     def get_qasm(self):
         return self.qasm
@@ -184,7 +184,7 @@ def optimize_qasm(input_qasm, backend, optimization, enable_noise_adaptive = Fal
         layout_method = 'noise_adaptive'
         routing_method = 'sabre'
         tmp_backend = get_fake_backend(calibration_type, backend, recent_n, generate_props)
-        print(tmp_backend.name)
+        # print(tmp_backend.name)
         
     elif enable_mirage:
         layout_method = 'sabre'

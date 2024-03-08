@@ -92,6 +92,7 @@ class QEM:
             self.service = QiskitRuntimeService(channel="ibm_cloud", token=token, instance=conf.ibm_cloud_instance)
         else:
             self.service = QiskitRuntimeService(channel="ibm_quantum", token=token)
+            # self.service = QiskitRuntimeService()
 
         if conf.hardware_name != "ibm_perth":
             self.backend = self.service.get_backend(conf.hardware_name)
@@ -345,8 +346,8 @@ WHERE h.job_id IS NULL AND d.header_id = %s  ''', (header_id,))
                 detail_id, updated_qasm = res
 
                 qc = QiskitCircuit(updated_qasm, skip_simulation=True)
-                # circuit = qc.get_native_gates_circuit(self.backend, self.run_in_simulator)
-                circuit = qc.circuit
+                circuit = qc.get_native_gates_circuit(self.backend, self.run_in_simulator)
+                # circuit = qc.circuit
 
                 for i in range(self.runs):
                     list_circuits.append(circuit)
@@ -398,8 +399,9 @@ WHERE h.job_id IS NULL AND d.header_id = %s  ''', (header_id,))
         # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_mix_adj.value, generate_props=generate_props)
         # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_w15_adj.value, generate_props=generate_props)
 
-        for i in range(1, 46):
-            self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_wn.value, generate_props=generate_props, recent_n=i)
+        # for i in range(1, 3):
+        # for i in range(1, 46):
+        #     self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_wn.value, generate_props=generate_props, recent_n=i)
         
 
 
@@ -436,6 +438,7 @@ if __name__ == "__main__":
     # initial class QEM
     if debug: tmp_start_time  = time.perf_counter()
     q = QEM(runs=1, fixed_initial_layout = False, run_in_simulator=False, user_id=6)
+    # q = QEM(runs=4, fixed_initial_layout = False, run_in_simulator=False, user_id=7)
 
     # q = QEM(runs=1, fixed_initial_layout = True, run_in_simulator=False, user_id=99)
     # q = QEM(runs=1, fixed_initial_layout = False, run_in_simulator=False, user_id=99)
@@ -449,8 +452,8 @@ if __name__ == "__main__":
     if debug: tmp_end_time = time.perf_counter()
     if debug: print("Time for running the init header: {} seconds".format(tmp_end_time - tmp_start_time))
 
-    # generate_props = True
-    generate_props = False
+    generate_props = True
+    # generate_props = False
 
     for i in qasm_files:
         qasm_source = i
