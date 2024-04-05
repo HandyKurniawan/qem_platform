@@ -17,6 +17,9 @@ from datetime import datetime
 from .ir2dag import parse_ir
 import time, json
 import mysql.connector
+from commons import calibration_type_enum, sql_query, normalize_counts, Config
+
+conf = Config()
 
 triq_path = os.path.expanduser("~/qem_platform/wrappers/triq_wrapper/")
 out_path = os.path.expanduser("./")
@@ -69,6 +72,7 @@ def generate_qasm(qasm_str, hardware_name, triq_optimization):
     p.wait()
     p.kill()
 
+    print(out_file_path)
     result_qasm = read_file(out_file_path)
 
     return result_qasm
@@ -114,14 +118,14 @@ def get_mapping(qasm_str, hardware_name, triq_optimization):
 
 def generate_realtime_calibration_data(qem):
     # Connect to the MySQL database
-    conn = mysql.connector.connect(**qem.mysql_config)
+    conn = mysql.connector.connect(**conf.mysql_config)
     cursor = conn.cursor()
 
     # get last calibration id
     cursor.execute('''SELECT calibration_id, 2q_native_gates FROM calibration_data.ibm i
 INNER JOIN calibration_data.hardware h ON i.hw_name = h.hw_name
 WHERE i.hw_name = %s ORDER BY calibration_datetime DESC LIMIT 0, 1;
-                    ''', (qem.hardware_name, ))
+                    ''', (conf.hardware_name, ))
     results = cursor.fetchall()
     calibration_id, native_gates_2q = results[0]
 
@@ -133,7 +137,7 @@ WHERE i.hw_name = %s ORDER BY calibration_datetime DESC LIMIT 0, 1;
     results = cursor.fetchall()
     count = len(results)
     if count > 0:
-        f = open("./config/" + qem.hardware_name + "_real_S.rlb", "w+")
+        f = open("./config/" + conf.hardware_name + "_real_S.rlb", "w+")
         f.write("{}\n".format(count))
         for res in results:
             calibration_id, qubit, fidelity_1q = res
@@ -142,14 +146,15 @@ WHERE i.hw_name = %s ORDER BY calibration_datetime DESC LIMIT 0, 1;
         f.close()
 
     # get 2 qubit gate error
-    cursor.execute('''SELECT calibration_id, qubit_control, qubit_target, 1 - ''' + native_gates_2q + '''_error as fidelity_2q
+    cursor.execute('''SELECT calibration_id, qubit_control, qubit_target, ROUND(1 - ''' + native_gates_2q + '''_error, 6) as fidelity_2q
                    FROM calibration_data.ibm_two_qubit_gate_spec 
-                   WHERE calibration_id = %s AND ''' + native_gates_2q + '''_error != 1;
+                   WHERE calibration_id = %s ;
                     ''', (calibration_id, ))
+    # AND ''' + native_gates_2q + '''_error != 1
     results = cursor.fetchall()
     count = len(results)
     if count > 0:
-        f = open("./config/" + qem.hardware_name + "_real_T.rlb", "w+")
+        f = open("./config/" + conf.hardware_name + "_real_T.rlb", "w+")
         f.write("{}\n".format(count))
         for res in results:
             calibration_id, qubit_control, qubit_target, fidelity_2q = res
@@ -165,7 +170,7 @@ WHERE i.hw_name = %s ORDER BY calibration_datetime DESC LIMIT 0, 1;
     results = cursor.fetchall()
     count = len(results)
     if count > 0:
-        f = open("./config/" + qem.hardware_name + "_real_M.rlb", "w+")
+        f = open("./config/" + conf.hardware_name + "_real_M.rlb", "w+")
         f.write("{}\n".format(count))
         for res in results:
             calibration_id, qubit, readout_fidelity = res

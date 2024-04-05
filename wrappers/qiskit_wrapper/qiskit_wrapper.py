@@ -51,6 +51,8 @@ class QiskitCircuit:
         if not (isinstance(qasm, str) or isinstance(qc, QuantumCircuit)):
             raise ValueError("Input must be a string or a QuantumCircuit object")
 
+        self.qasm_original = qc.qasm()
+
         qc = transpile_to_basis_gate(qc)
         self.circuit = qc
         self.qasm = qc.qasm()
@@ -77,15 +79,18 @@ class QiskitCircuit:
                 result_sim = job_sim.result()  
                 self.correct_output = normalize_counts(dict(result_sim.get_counts(qc)))
 
-        
-        
-
-
     def get_native_gates_circuit(self, backend, simulator = False):
         if simulator:
             return transpile(self.circuit.decompose(), backend, basis_gates=["u3", "cx"], optimization_level=0, layout_method="trivial")
         else:
-            return transpile(self.circuit.decompose(), basis_gates=backend.basis_gates, optimization_level=0, layout_method="trivial")
+            return transpile(self.circuit.decompose(), backend, basis_gates=backend.basis_gates, optimization_level=0, layout_method="trivial")
+            # return transpile(self.circuit.decompose(), backend=backend, optimization_level=0)
+        
+    def transpile_to_target_backend(self, backend, simulator = False):
+        if simulator:
+            return transpile(self.circuit.decompose(), backend, basis_gates=["u3", "cx"], optimization_level=0, layout_method="trivial")
+        else:
+            return transpile(self.circuit, backend=backend, optimization_level=0)
     
     def get_qasm(self):
         return self.qasm
