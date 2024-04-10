@@ -36,7 +36,8 @@ class QEM:
     def __init__(self, runs=2, 
                  fixed_initial_layout = False, 
                  run_in_simulator = False, 
-                 user_id = 99):
+                 user_id = 99,
+                 token=conf.qiskit_token):
         self.run_in_simulator = run_in_simulator
 
         self.session = None
@@ -60,7 +61,7 @@ class QEM:
         self.user_id = user_id
 
         self.open_database_connection()
-        self.set_backend()
+        self.set_backend(token=token)
 
         # circuit move to the detail level
         # self.initial_circuit = QiskitCircuit(qasm_source, name="initial circuit")
@@ -125,6 +126,9 @@ class QEM:
             options.execution.shots = conf.shots
             options.optimization_level = conf.optimization_level
             options.resilience_level = conf.resilience_level
+
+            if conf.rep_delay != 0:
+                options.execution.rep_delay = conf.rep_delay
             
             if conf.hardware_name != "ibm_perth":
                 self.sampler = Sampler(self.backend, options=options) 
@@ -138,9 +142,18 @@ class QEM:
         self.cursor.execute('SELECT name FROM circuit WHERE name = %s', (circuit_name,))
         existing_row = self.cursor.fetchone()
 
-        qc = QiskitCircuit(qasm_source, name=circuit_name)
+        # Handy Remark, remove later
+        skip = True
+
+        # qc = QiskitCircuit(qasm_source, name=circuit_name)
+        qc = QiskitCircuit(qasm_source, name=circuit_name, skip_simulation=skip)
+        
         gates_json = convert_to_json(qc.gates)
-        correct_output_json = convert_to_json(qc.correct_output)
+
+        if skip:
+            correct_output_json = ""
+        else:
+            correct_output_json = convert_to_json(qc.correct_output)
 
         # insert to the table
         if not existing_row:
@@ -152,9 +165,9 @@ class QEM:
 
             print(circuit_name, "has been registered to the database.")
         else:
-            # self.cursor.execute("""UPDATE circuit SET qasm = %s, depth  = %s, total_gates  = %s, gates = %s, correct_output = %s 
-            #                     WHERE name = %s""",
-            # (qc.qasm, qc.depth, qc.total_gate, gates_json, correct_output_json, circuit_name))
+            self.cursor.execute("""UPDATE circuit SET qasm = %s, depth  = %s, total_gates  = %s, gates = %s, correct_output = %s 
+                                WHERE name = %s""",
+            (qc.qasm, qc.depth, qc.total_gate, gates_json, correct_output_json, circuit_name))
 
             # self.conn.commit()
             print(circuit_name, "already exist.")
@@ -183,12 +196,12 @@ class QEM:
         print("Initial Layout triq: ", self.initial_layout_triq )
 
 
-    def init_result_header(self):
+    def init_result_header(self, token=conf.qiskit_token):
         
         now_time = datetime.now().strftime("%Y%m%d%H%M%S")
         self.cursor.execute("""INSERT INTO result_header (user_id, hw_name, qiskit_token, created_datetime) 
         VALUES (%s, %s, %s, %s)""",
-        (self.user_id, conf.hardware_name, conf.qiskit_token, now_time))
+        (self.user_id, conf.hardware_name, token, now_time))
         self.header_id = self.cursor.lastrowid
 
         # self.conn.commit()
@@ -210,6 +223,8 @@ class QEM:
 
         if compilation_name == qiskit_compilation_enum.qiskit_3.value:    
             qiskit_optimization_level = 3
+        elif compilation_name == qiskit_compilation_enum.qiskit_0.value:    
+            qiskit_optimization_level = 0            
         elif compilation_name == qiskit_compilation_enum.qiskit_NA_avg.value:    
             enable_noise_adaptive = True
             calibration_type = calibration_type_enum.average.value
@@ -371,7 +386,7 @@ WHERE h.job_id IS NULL AND d.header_id = %s  ''', (header_id,))
                 try:
 
                     print("Sending to {} with batch id: {} ... ".format(conf.hardware_name, header_id))
-                    job = self.sampler.run(list_circuits)
+                    job = self.sampler.run(list_circuits, skip_transpilation=True)
                     job_id = job.job_id()
 
                     success = True
@@ -402,10 +417,12 @@ WHERE h.job_id IS NULL AND d.header_id = %s  ''', (header_id,))
         # self.apply_laura(compilation_name="triq+_lcd")
         
 
+        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_0.value, generate_props=generate_props)
+        
         self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
-        self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_lcd.value, generate_props=generate_props)
-        self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_avg.value, generate_props=generate_props)
-        self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_w15_adj.value, generate_props=generate_props)
+        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_lcd.value, generate_props=generate_props)
+        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_avg.value, generate_props=generate_props)
+        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_w15_adj.value, generate_props=generate_props)
 
         # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_mix.value, generate_props=generate_props)
         # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_w15.value, generate_props=generate_props)
@@ -446,64 +463,159 @@ if __name__ == "__main__":
     # # Send to backend
     # q.send_qasm_to_real_backend()
 #endregion
+    token_list = [
+        # first 15
+        # # pepe 4
+        # "055a93864810f2fc66e4de35b13027e8e591f0d019abb91b4895971fa16a991bef0ac573457c707c3d1070e5105d8f0cdd489f842cc06723d29a233c9f483e74",
+        # untuk
+        # "e9dc3b4555eaceaf68dd163b187fe3f2354d0ae5032b50f2e0a01693118c83ccdd2f86f77bb37f0983244358d776defaa18614aafede58d1d8bfaea7b51c5a98",
+        # # okur
+        # "d6c68cd3c7151e9499fcaf54ff7982629e20ff25d38f32aea5b64db369985c82682f63b991dc6fc8424f4ac0349882d90a5399b03194d047b3b9b2eefb4613b3",
+        # # jose
+        # "94882007fb17bcb98ad4c7d13adb024491bd30e72e4be58628dd685ce2c90bcbefb8abc65094cf051de77c8b676b4aa936bba8ad4a0df0e573e3cc01308c5421",
+        # # contact07
+        # "68fb7ac07545c0cc3b63bea6bae1a2e69fe11c4f84be2d4dc335abd5747c602701e9e687876adbf9bb61b11f25fa82ca2c932808fd3f128450cc13670d4822fe",
+        # # cornice
+        # "bfbe3159e00973e14168671f8790ab7d2b85e8cb61160ee0b17225cf312df48e582cad577b02781ddca79d382e9e3aba3ad9c46c9c47d1b1b5ed27c8815cc2ca",
+        # # petrol
+        # "c0151c25a1bcb6e3f9274fb403cacf619f2508b2e70fcf350f1e44aba618f8d379f63f3554f58d2b6b7e04a63f20ba14895857e50b598c2c584c1b6519e6bc61",
+        # # mash
+        # "76eaa6f112f125eae669975b89d1620f8ea96cc9c28c650a2d9bed8e171d1ddf21aa685f46fa5d9377a86f7526ace1477c37f5fd5b0e8c0b0a25813a958958ce",
+        # # bylaw
+        # "30ea7c188f2b6531d2525875b7dab58f0d0091cb4c6e080472cdc76a96009aabbc3367ee1e1ac5f1aa2229941b08a7ef487066df163d47545c9524c4cad1c2ed",
+        # # fasts
+        # "ad1527ea50d2b9fb3f122427c6423c55c036d6e3e6559c96a9d5bf4b2b813909a4aac65cbf23bc6ea8cc55da005be0dc85cfb72fa3cd5f57c3eec8a99ea3f9d8",
+        # # arrival
+        # "5c63e6d0dbc47a7c98741ea6b7de90afb0729f5e036dbea439cec03ee680d5dfa573bdb42920017edb942be678d54d4fb5d83d5e7296749f78dee5449a6f443b",
+        # # frisbee
+        # "68d7a37e272a1a29ab8a3c767c63443fbf78fb82cfc34ac689d92f8f77f8fcdc4fd48dec46aa257a116f3194ba6532334f67d1b0a6f9feb53f1296804cb418b2",
+        # # button
+        # "ec5f9f43cea1eb948b374f22419e8e96307aa8ed59af234cd9133db2564dcc0f1c36eafc99f1565a9c5488d06296d0a291f1fff571fea5e8d01d0eddce7fa14f",
+        # # known
+        # "78b48009dcb68d57e164d1929cf4f0b248a827d18fc739107e127eef34d87bf67ad9b445744f7c7cd2cd1232ea8b92db11d7878be3542a131d17621586cf410c",
+        # # puffs
+        # "266686280de68a1d68433c62d7e154391b905705041b43744a591c19528cefb7335fa425ea81855fd0ca88ae7950b726dd615c23b53bc14a99e579874aa1202f",
 
-    # List all files in the base folder with the .qasm extension
-    qasm_files = glob.glob(os.path.expanduser(os.path.join(conf.base_folder, "*.qasm")))
-    qasm_files = sorted(qasm_files)
-    qasm_files.sort(key=num_sort) 
+        # # shanty
+        # "88fa7b6ee1ba1303c21d4a46cc6db9b44bfc1c4a86ff4d10476d5c6a28b7b2427e23c0cb7430ef103ac38310f74a71791a03aee26e2b9cdad266ef0a120d7c71",
+        # # pipe
+        # "f4376ab6435cab311bd27c6a403617cff71804667f537c72879fd68fc2e80ff8fc3c2c67509fa840f2ac39318604154319858e71434b35db9570568614c51d63",
+        # # lodging
+        # "73e5caa60d526c2122261d8b1d93d451f8e8add930a03d2ab6fe16702673ccfcdce9dd018820f5ca6bed692112c9a5d32e2d2f2b75d367d38dde3ed2a51e3c6b",
+        # # bionic
+        # "dc8be56745da5fe77438ee9a3cfc0b6fa87f219ec3e50db59788cf157ed43ed776a1986b569ad5ec57525aa5f299fdb17c90cb34d3a04be7ca4af1bfbbc85eca",
+        # # ales
+        # "7f531e9960905f9a3142ead5d8c004bf5dc39a59462dd70e5f623918bd539fecc0f7434dcbbf453aecad2cc6545595ce1f9edfbb029fc948e6e22c35ebf5e331",
+        # # anion
+        # "4bcab1e9db485961e3a583b52b04c7fd35f476751e1c0107406e7fa6b2b6ae899c65142ac5547842f02bd6c667b1ce92a790b107acf56c3e748d32dd63830a55",
+        # # lumbar
+        # "6955cf58b16e371d4b788ffd7602b6b1c134701f6a058a8ef02a71d6547b912f0602bc04f5e80a55ad67e4e64b29e0863b568760e7e7baa62159c975fe3df07b",
+        # # wool
+        # "af61c32894083127bf069fff6f0904e41f78c3a0e75cbf3619840b1b9377ac923a9a33893192dc830306e973e52a550d8c0c47fe59aa22177ba7eae45635f85a",
+        # # abalone
+        # "7df4633e575ac0094fd2a538a887002a745d2927c1c29d444c2360fc4572151001905be16ba478c41780212aa7c35593edd38f8b636bd595d8253b01dee89127",
+        # # # lesse
+        # # "266686280de68a1d68433c62d7e154391b905705041b43744a591c19528cefb7335fa425ea81855fd0ca88ae7950b726dd615c23b53bc14a99e579874aa1202f",
+        # # salami
+        # "1fc316667164f5d54c56a31b43d7e9d12fa1d32c395727be69c77c733aee0f0468cc9178f357d6004fc636fd2ebb861dcf8af287493c818a70527dac50e06a25",
+        # # mammals
+        # "f45537aaef3c72fa31ce928a7eaad4b7f44930b48734f73e3276ff76273299b13b2dc8810fa53976c404641bb30926a6724dfe6b7afdfdbd68423389992cf344",
+        # # dopa
+        # "d312f1b28a7e5381dfe0754f5ff3ee055cc9cfab5b944250aaf58d5c822a513bd88b77cb19f7dfd7b7f955e5fbeaa266a552ba45ebbad0262965d35c59803734",
+        # # pepe1
+        # "924828a6b1671411b96c27b10123849b161154290707582dc60d0b900146ccc8fb93adda735a6d0805168b3007a8ad56f626f9f207881d5055c841a58e51a7d9",
+        # # pepe2
+        # "2298ebebdf52aa8ef9258a07154bc62d335af0126f2bed26502a43f32a206309618c34344db22713f54bad3dc1c7569d7d1e3a0075e0421160e83b8c50967b45",
+        # # # pepe3
+        # # "01501f074b8bc9910185d5563408e2838951163e8f55b90a338c94c58116b92a1cd88081474827667b9d907604f2dd27eaa8399a83fbb9505a24e25875819b23",
 
-    if debug: start_time = time.perf_counter()
-
-    # initial class QEM
-    if debug: tmp_start_time  = time.perf_counter()
-    # q = QEM(runs=1, fixed_initial_layout = False, run_in_simulator=False, user_id=6)
-    # q = QEM(runs=4, fixed_initial_layout = False, run_in_simulator=False, user_id=7)
-    # q = QEM(runs=4, fixed_initial_layout = False, run_in_simulator=False, user_id=8)
-    q = QEM(runs=2, fixed_initial_layout = False, run_in_simulator=False, user_id=9)
-
-    # q = QEM(runs=1, fixed_initial_layout = True, run_in_simulator=False, user_id=99)
-    # q = QEM(runs=1, fixed_initial_layout = False, run_in_simulator=False, user_id=99)
-    if debug: tmp_end_time = time.perf_counter()
-    if debug: print("Time for initialization: {} seconds".format(tmp_end_time - tmp_start_time))
 
 
-    # init header
-    if debug: tmp_start_time  = time.perf_counter()
-    q.init_result_header()
-    if debug: tmp_end_time = time.perf_counter()
-    if debug: print("Time for running the init header: {} seconds".format(tmp_end_time - tmp_start_time))
+        # # ropes
+        # "b94c13374ae4f0b04fb2539b727e165ec695373f7fe198dd69c3b11f22a2aa380c8adca06390f201d2aa09247348aeae6f7664e0735698c9d8ad59880e58b8b8",
+        # # rudder
+        # "26f4ebc603700e1d56ac25c2a18c6ef196859f3a5547abe12ced49f3c16ef3c8391008db57e5bc77cd4ec3b3c62d26aeccf9983f311a279b714b5378ff4415cf",
+        # # mercury
+        # "243e229672da5f0a602a816c821b96ded412c2c17041da434aed04e8e225603e40093013bc1a3392566ef090a48b389c80c9c38cb3b7626046a7682f16414e84",
+        # # clashes
+        # "39a9660087b540bce0c4faebfa9fc5e32b7efd79b5c590a685ab4b20b4087a469dfb4e890f4308d62ebdb21be6cc421f27c5be553a42b43738aee05f02e13b48",
+        # # roosts
+        # "2b2c8db93b834b4ef95fc0da7d6fd70f345de16464f8037655f87c96373703e46d0b0f48f8f5dbea70c82fd06c3405d7810f2f9e14b9d4e92d6487f62dbe2269",
+        # # platoon
+        # "c6593b682f0a88379cdfdf83dee4399376885c04ca605d9471367d6313690772c338f4b1683af2ff9f713511f83cdf1357529882a5687fd67f7a37ec85c0e186",
+        # # bobs
+        # "eeaa19292016f1efc96f7dc11676fe47cbfc12a85869374e6b8ce3c225c5e8ef029d1fa912bb5def86a7b3c62ea55cf16b386d1ea0051fa26676efa2a7df1db2",
+        # # bygone
+        # "e62477a6e14315c89eb74f224f4aa6d44ae4fe4739bac484ab485ceedc97d4df9962b81286ead7ffe27a4b5443e8c03dd9ee516f09213a49fd3fa88976eba103",
+        # # chores
+        # "83fae468c72cb0e06e66c77c7520a24058a4ec4629b7e45236f7cf336237abc4cc5ce6ef9d2192ab652da68c7667143d09454687d76e42f9919f1e91ffb043a3",
+    ]
 
-    generate_props = True
-    # generate_props = False
+    for token in token_list:
+        conf.qiskit_token = token
+        print(conf.qiskit_token)
+        print("============================")
 
-    for i in qasm_files:
-        qasm_source = i
-        q.circuit_name = i.split("/")[-1].split(".")[0]
-        print("=========== {} ===========".format(q.circuit_name))
-        
-        qc = q.get_circuit_properties(qasm_source=qasm_source)
-        q.qasm = qc.qasm
-        q.qasm_original = qc.qasm_original
+        for repetition in range(3):
+            print("Repetition:", repetition)
+            print("============================")
+            # List all files in the base folder with the .qasm extension
+            qasm_files = glob.glob(os.path.expanduser(os.path.join(conf.base_folder, "*.qasm")))
+            qasm_files = sorted(qasm_files)
+            qasm_files.sort(key=num_sort) 
 
-        # Run Optimization
-        if debug: tmp_start_time  = time.perf_counter()
-        q.run(generate_props)
-        if debug: tmp_end_time = time.perf_counter()
-        if debug: print("Time for running the optimization: {} seconds".format(tmp_end_time - tmp_start_time))
-        
-        generate_props = False
+            if debug: start_time = time.perf_counter()
 
-    q.close_database_connection()
+            # initial class QEM
+            if debug: tmp_start_time  = time.perf_counter()
+            # q = QEM(runs=1, fixed_initial_layout = False, run_in_simulator=False, user_id=6)
+            # q = QEM(runs=4, fixed_initial_layout = False, run_in_simulator=False, user_id=7)
+            # q = QEM(runs=4, fixed_initial_layout = False, run_in_simulator=False, user_id=8)
+            q = QEM(runs=conf.runs, fixed_initial_layout = False, run_in_simulator=False, user_id=9, token=token)
 
-    q.open_database_connection()
-    
-    # Send to backend
-    if debug: tmp_start_time  = time.perf_counter()
-    q.send_qasm_to_real_backend()
-    if debug: tmp_end_time = time.perf_counter()
-    if debug: print("Time for sending to backend: {} seconds".format(tmp_end_time - tmp_start_time))
-    
-    q.close_database_connection()
+            # q = QEM(runs=1, fixed_initial_layout = True, run_in_simulator=False, user_id=99)
+            # q = QEM(runs=1, fixed_initial_layout = False, run_in_simulator=False, user_id=99)
+            if debug: tmp_end_time = time.perf_counter()
+            if debug: print("Time for initialization: {} seconds".format(tmp_end_time - tmp_start_time))
 
-    if debug: end_time = time.perf_counter()
-    if debug: print("Total time executed: {} seconds".format(end_time - start_time))
+
+            # init header
+            if debug: tmp_start_time  = time.perf_counter()
+            q.init_result_header(token)
+            if debug: tmp_end_time = time.perf_counter()
+            if debug: print("Time for running the init header: {} seconds".format(tmp_end_time - tmp_start_time))
+
+            generate_props = True
+            # generate_props = False
+
+            for i in qasm_files:
+                qasm_source = i
+                q.circuit_name = i.split("/")[-1].split(".")[0]
+                print("=========== {} ===========".format(q.circuit_name))
+                
+                qc = q.get_circuit_properties(qasm_source=qasm_source)
+                q.qasm = qc.qasm
+                q.qasm_original = qc.qasm_original
+
+                # Run Optimization
+                if debug: tmp_start_time  = time.perf_counter()
+                q.run(generate_props)
+                if debug: tmp_end_time = time.perf_counter()
+                if debug: print("Time for running the optimization: {} seconds".format(tmp_end_time - tmp_start_time))
+                
+                generate_props = False
+
+            q.close_database_connection()
+
+            q.open_database_connection()
+            
+            # Send to backend
+            if debug: tmp_start_time  = time.perf_counter()
+            q.send_qasm_to_real_backend()
+            if debug: tmp_end_time = time.perf_counter()
+            if debug: print("Time for sending to backend: {} seconds".format(tmp_end_time - tmp_start_time))
+            
+            q.close_database_connection()
+
+            if debug: end_time = time.perf_counter()
+            if debug: print("Total time executed: {} seconds".format(end_time - start_time))

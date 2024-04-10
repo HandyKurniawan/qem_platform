@@ -199,8 +199,15 @@ def optimize_qasm(input_qasm, backend, optimization, enable_noise_adaptive = Fal
     # print(layout_method, initial_layout)
 
     tmp_start_time  = time.perf_counter()
+
     # Transpile and optimize the circuit
-    transpiled_circuit = transpile(circuit, 
+    if optimization == 0:
+        transpiled_circuit = transpile(circuit, 
+                                tmp_backend,
+                                optimization_level=optimization
+                                )
+    else:
+        transpiled_circuit = transpile(circuit, 
                                 tmp_backend,
                                 optimization_level=optimization,
                                 routing_method=routing_method,
@@ -208,6 +215,7 @@ def optimize_qasm(input_qasm, backend, optimization, enable_noise_adaptive = Fal
                                 basis_gates=basis_gates,
                                 initial_layout=initial_layout
                                 )
+        
     tmp_end_time = time.perf_counter()
     compilation_time = tmp_end_time - tmp_start_time
 

@@ -11,7 +11,8 @@ from qiskit.primitives import SamplerResult
 from qiskit_ibm_runtime.utils.runner_result import RunnerResult
 from commons import Config, convert_utc_to_local, calculate_time_diff, get_count_1q, get_count_2q, \
     calculate_circuit_cost, get_correct_output_dict, calculate_success_rate_nassc, calculate_success_rate_tvd, \
-    calculate_hellinger_distance, convert_to_json, is_mitigated, get_initial_mapping_json
+    calculate_success_rate_polar, calculate_hellinger_distance, calculate_success_rate_tvd_new, \
+    convert_to_json, is_mitigated, get_initial_mapping_json
 import wrappers.qiskit_wrapper as qiskit_wrapper
 
 conf = Config()
@@ -28,7 +29,7 @@ def get_pending_jobs():
         cursor.execute('''SELECT distinct h.id, h.job_id, qiskit_token 
                        FROM framework.result_header h 
                         INNER JOIN framework.result_detail d ON h.id = d.header_id 
-                        WHERE h.status = %s;''', ("pending",))
+                        WHERE h.status = %s ''', ("pending",))
         
         results = cursor.fetchall()
         
@@ -45,6 +46,7 @@ def update_result_header_status_by_header_id(cursor, header_id, new_status):
     '''
     Updates result_header entries that contained prev_status to new_status by header_id
     '''
+
     cursor.execute('UPDATE result_header SET status = %s, updated_datetime = NOW() WHERE id = %s', (new_status, header_id))
 
 def update_result_header(cursor, job):
@@ -72,10 +74,10 @@ def check_result_availability(service, header_id, job_id):
 
         job = service.job(job_id)
 
-        # print(job.status())
+        print(job.status())
 
-        if(job.status() == JobStatus.ERROR):
-            update_result_header_status_by_header_id(conn, header_id, "error")
+        if(job.status() == JobStatus.ERROR or job.status() == JobStatus.CANCELLED):
+            update_result_header_status_by_header_id(cursor, header_id, "error")
             conn.commit()
             cursor.close()
             conn.close()
@@ -241,6 +243,8 @@ def get_metrics(header_id, job_id):
             success_rate_nassc = success_rate_quasi
             success_rate_quasi_std = calculate_success_rate_nassc(correct_output, quasi_dists_std_dict)
             success_rate_tvd = calculate_success_rate_tvd(correct_output, quasi_dists_dict)
+            success_rate_tvd_new = calculate_success_rate_tvd_new(correct_output, quasi_dists_dict)
+            success_rate_polar = calculate_success_rate_polar(correct_output, quasi_dists_dict)
             hellinger_distance = calculate_hellinger_distance(correct_output, quasi_dists_dict)
 
             # check if the metric is already there, just update
@@ -249,17 +253,22 @@ def get_metrics(header_id, job_id):
 
             if existing_row:
                 cursor.execute("""UPDATE metric SET total_gate = %s, total_one_qubit_gate = %s, total_two_qubit_gate = %s, circuit_depth = %s, 
-                circuit_cost = %s, success_rate_tvd = %s, success_rate_nassc = %s, success_rate_quasi = %s, hellinger_distance = %s
+                circuit_cost = %s, success_rate_tvd = %s, success_rate_nassc = %s, success_rate_quasi = %s, 
+                success_rate_polar = %s, hellinger_distance = %s, success_rate_tvd_new = %s
                 WHERE detail_id = %s; """, 
                 (total_gate, total_one_qubit_gate, total_two_qubit_gate, circuit_depth, 
-                circuit_cost, success_rate_tvd, success_rate_nassc, success_rate_quasi, hellinger_distance, detail_id))
+                circuit_cost, success_rate_tvd, success_rate_nassc, success_rate_quasi, 
+                success_rate_polar, hellinger_distance, success_rate_tvd_new, detail_id))
             else:
                 cursor.execute("""INSERT INTO metric(detail_id, total_gate, total_one_qubit_gate, total_two_qubit_gate, circuit_depth, 
-                circuit_cost, success_rate_tvd, success_rate_nassc, success_rate_quasi, hellinger_distance)
+                circuit_cost, success_rate_tvd, success_rate_nassc, success_rate_quasi, 
+                success_rate_polar, hellinger_distance, success_rate_tvd_new)
                 VALUES (%s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s); """, 
+                %s, %s, %s, %s, 
+                %s, %s, %s); """, 
                 (detail_id, total_gate, total_one_qubit_gate, total_two_qubit_gate, circuit_depth, 
-                circuit_cost, success_rate_tvd, success_rate_nassc, success_rate_quasi, hellinger_distance))
+                circuit_cost, success_rate_tvd, success_rate_nassc, success_rate_quasi, 
+                success_rate_polar, hellinger_distance, success_rate_tvd_new))
                 
             update_result_header_status_by_header_id(cursor, header_id, 'done')
 

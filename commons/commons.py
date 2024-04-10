@@ -34,6 +34,8 @@ class Config:
         self.qiskit_token = self.config_parser['QuantumConfig']['token']
         self.optimization_level = int(self.config_parser['QuantumConfig']['optimization_level'])
         self.resilience_level = int(self.config_parser['QuantumConfig']['resilience_level'])
+        self.rep_delay = float(self.config_parser['QuantumConfig']['rep_delay'])
+        self.runs = int(self.config_parser['QuantumConfig']['runs'])
         
 
 
@@ -49,10 +51,10 @@ class apply_qiskit_optimization(Enum):
     no_apply, before, after = None, "before", "after"
 
 class qiskit_compilation_enum(Enum):
-    qiskit_3, qiskit_NA_avg, qiskit_NA_lcd, qiskit_NA_mix, qiskit_NA_w15, \
+    qiskit_0, qiskit_3, qiskit_NA_avg, qiskit_NA_lcd, qiskit_NA_mix, qiskit_NA_w15, \
     qiskit_NA_avg_adj, qiskit_NA_lcd_adj, qiskit_NA_mix_adj, qiskit_NA_w15_adj, \
     qiskit_NA_wn, qiskit_NA_wn_adj \
-        = "qiskit_3", "qiskit_NA_avg", "qiskit_NA_lcd", "qiskit_NA_mix", "qiskit_NA_w15", \
+        = "qiskit_0", "qiskit_3", "qiskit_NA_avg", "qiskit_NA_lcd", "qiskit_NA_mix", "qiskit_NA_w15", \
         "qiskit_NA_avg_adj", "qiskit_NA_lcd_adj", "qiskit_NA_mix_adj", "qiskit_NA_w15_adj", \
         "qiskit_NA_wn", "qiskit_NA_wn_adj"
 
@@ -245,6 +247,31 @@ def calculate_success_rate_tvd(correct_output, dists):
 
         if tvd == 0.5:
             success_rate = 0
+
+    return success_rate
+
+def calculate_success_rate_tvd_new(correct_output, dists):
+    sr_aux = 0
+    success_rate = 0
+    for key, value in dists.items():
+        if key in correct_output:
+            sr_aux = sr_aux + abs(correct_output[key] - value)
+
+    tvd = sr_aux
+    success_rate = 1 - tvd
+
+    return success_rate
+
+def calculate_success_rate_polar(correct_output, dists):
+    sr_aux = 0
+    success_rate = 0
+    count = 0
+    for key, value in dists.items():
+        if key in correct_output.keys():
+            sr_aux = sr_aux + value
+            count = count + 1 
+
+    success_rate = sr_aux
 
     return success_rate
 
