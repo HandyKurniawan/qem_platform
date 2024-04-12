@@ -419,8 +419,8 @@ WHERE h.job_id IS NULL AND d.header_id = %s  ''', (header_id,))
 
         # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_0.value, generate_props=generate_props)
         
-        self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
-        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_lcd.value, generate_props=generate_props)
+        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
+        self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_lcd.value, generate_props=generate_props)
         # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_avg.value, generate_props=generate_props)
         # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_w15_adj.value, generate_props=generate_props)
 
@@ -467,7 +467,7 @@ if __name__ == "__main__":
         # first 15
         # # pepe 4
         # "055a93864810f2fc66e4de35b13027e8e591f0d019abb91b4895971fa16a991bef0ac573457c707c3d1070e5105d8f0cdd489f842cc06723d29a233c9f483e74",
-        # untuk
+        # # untuk
         # "e9dc3b4555eaceaf68dd163b187fe3f2354d0ae5032b50f2e0a01693118c83ccdd2f86f77bb37f0983244358d776defaa18614aafede58d1d8bfaea7b51c5a98",
         # # okur
         # "d6c68cd3c7151e9499fcaf54ff7982629e20ff25d38f32aea5b64db369985c82682f63b991dc6fc8424f4ac0349882d90a5399b03194d047b3b9b2eefb4613b3",
@@ -487,8 +487,8 @@ if __name__ == "__main__":
         # "ad1527ea50d2b9fb3f122427c6423c55c036d6e3e6559c96a9d5bf4b2b813909a4aac65cbf23bc6ea8cc55da005be0dc85cfb72fa3cd5f57c3eec8a99ea3f9d8",
         # # arrival
         # "5c63e6d0dbc47a7c98741ea6b7de90afb0729f5e036dbea439cec03ee680d5dfa573bdb42920017edb942be678d54d4fb5d83d5e7296749f78dee5449a6f443b",
-        # # frisbee
-        # "68d7a37e272a1a29ab8a3c767c63443fbf78fb82cfc34ac689d92f8f77f8fcdc4fd48dec46aa257a116f3194ba6532334f67d1b0a6f9feb53f1296804cb418b2",
+        # frisbee
+        "68d7a37e272a1a29ab8a3c767c63443fbf78fb82cfc34ac689d92f8f77f8fcdc4fd48dec46aa257a116f3194ba6532334f67d1b0a6f9feb53f1296804cb418b2",
         # # button
         # "ec5f9f43cea1eb948b374f22419e8e96307aa8ed59af234cd9133db2564dcc0f1c36eafc99f1565a9c5488d06296d0a291f1fff571fea5e8d01d0eddce7fa14f",
         # # known
@@ -528,8 +528,12 @@ if __name__ == "__main__":
         # "2298ebebdf52aa8ef9258a07154bc62d335af0126f2bed26502a43f32a206309618c34344db22713f54bad3dc1c7569d7d1e3a0075e0421160e83b8c50967b45",
         # # # pepe3
         # # "01501f074b8bc9910185d5563408e2838951163e8f55b90a338c94c58116b92a1cd88081474827667b9d907604f2dd27eaa8399a83fbb9505a24e25875819b23",
-
-
+        # # lintel-monody-0i@icloud.com
+        # "69d3c6f3f7241ff44a20ed8e4bcc445917394ebc7bc12442983aed7c9b52f55daa09e0bfa8572b1cd364f06b96b07686b0d39970eba8249c31c8b9ef62e281d7",
+        
+        # # # new
+        # # patter-slosh-0f@icloud.com
+        # "54a2dcecfe2b2efe441c23c9e1637ec2a9159b37d9938128c45c4a9a81ff1f6c3a947b5359b2bdf761158f6240d4b7369b162c108d900556c96fdd01847bcd55",
 
         # # ropes
         # "b94c13374ae4f0b04fb2539b727e165ec695373f7fe198dd69c3b11f22a2aa380c8adca06390f201d2aa09247348aeae6f7664e0735698c9d8ad59880e58b8b8",
@@ -549,6 +553,9 @@ if __name__ == "__main__":
         # "e62477a6e14315c89eb74f224f4aa6d44ae4fe4739bac484ab485ceedc97d4df9962b81286ead7ffe27a4b5443e8c03dd9ee516f09213a49fd3fa88976eba103",
         # # chores
         # "83fae468c72cb0e06e66c77c7520a24058a4ec4629b7e45236f7cf336237abc4cc5ce6ef9d2192ab652da68c7667143d09454687d76e42f9919f1e91ffb043a3",
+
+        # # frisbee
+        # "68d7a37e272a1a29ab8a3c767c63443fbf78fb82cfc34ac689d92f8f77f8fcdc4fd48dec46aa257a116f3194ba6532334f67d1b0a6f9feb53f1296804cb418b2"        
     ]
 
     for token in token_list:
@@ -556,7 +563,7 @@ if __name__ == "__main__":
         print(conf.qiskit_token)
         print("============================")
 
-        for repetition in range(3):
+        for repetition in range(2):
             print("Repetition:", repetition)
             print("============================")
             # List all files in the base folder with the .qasm extension
@@ -571,7 +578,7 @@ if __name__ == "__main__":
             # q = QEM(runs=1, fixed_initial_layout = False, run_in_simulator=False, user_id=6)
             # q = QEM(runs=4, fixed_initial_layout = False, run_in_simulator=False, user_id=7)
             # q = QEM(runs=4, fixed_initial_layout = False, run_in_simulator=False, user_id=8)
-            q = QEM(runs=conf.runs, fixed_initial_layout = False, run_in_simulator=False, user_id=9, token=token)
+            q = QEM(runs=conf.runs, fixed_initial_layout = False, run_in_simulator=False, user_id=10, token=token)
 
             # q = QEM(runs=1, fixed_initial_layout = True, run_in_simulator=False, user_id=99)
             # q = QEM(runs=1, fixed_initial_layout = False, run_in_simulator=False, user_id=99)

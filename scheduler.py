@@ -106,7 +106,7 @@ WHERE h.status = %s AND h.job_id = %s;''', ('pending', job_id, ))
             no_of_result = len(quasi_dists)
             runs = int(no_of_result / no_of_optimization)
             idx_1, idx_2 = 0, 0
-            shots = conf.shots
+            shots = job.result().metadata[0]["shots"]
 
             for idx, res in enumerate(results_details):
                 detail_id = res[0]    
@@ -311,11 +311,11 @@ if __name__ == "__main__":
     cursor.close()
     conn.close()
 
-    executed_jobs = get_executed_jobs()
-    print('Executed jobs :', len(executed_jobs))
-    for result in executed_jobs:
-        header_id, job_id = result
-        try:
-             get_metrics(header_id, job_id)
-        except Exception as e:
-             print("Error metric:", str(e))
+    # executed_jobs = get_executed_jobs()
+    # print('Executed jobs :', len(executed_jobs))
+    # for result in executed_jobs:
+    #     header_id, job_id = result
+    #     try:
+    #          get_metrics(header_id, job_id)
+    #     except Exception as e:
+    #          print("Error metric:", str(e))
