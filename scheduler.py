@@ -29,7 +29,7 @@ def get_pending_jobs():
         cursor.execute('''SELECT distinct h.id, h.job_id, qiskit_token 
                        FROM framework.result_header h 
                         INNER JOIN framework.result_detail d ON h.id = d.header_id 
-                        WHERE h.status = %s ''', ("pending",))
+                        WHERE h.status = %s and h.user_id = 10''', ("pending",))
         
         results = cursor.fetchall()
         
@@ -200,7 +200,7 @@ def get_executed_jobs():
         conn = mysql.connector.connect(**conf.mysql_config)
         cursor = conn.cursor()
 
-        cursor.execute('SELECT id, job_id FROM result_header WHERE status = %s;', ("executed", ))
+        cursor.execute('SELECT id, job_id FROM result_header WHERE status = %s and user_id=99 and id >= 697;', ("executed", ))
 
         results = cursor.fetchall()
         cursor.close()

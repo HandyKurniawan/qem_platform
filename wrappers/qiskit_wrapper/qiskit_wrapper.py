@@ -33,6 +33,8 @@ from .fake_ibm_brisbane import NewFakeBrisbaneRecent1, NewFakeBrisbaneRecent2, N
                         NewFakeBrisbaneRecent41, NewFakeBrisbaneRecent42, NewFakeBrisbaneRecent43, NewFakeBrisbaneRecent44, \
                         NewFakeBrisbaneRecent45 
 import time
+import numpy as np
+import mapomatic as mm
 
 conf = Config()
 
@@ -70,14 +72,16 @@ class QiskitCircuit:
                 # result_sim = job_sim.result()  
                 # self.correct_output = dict(result_sim.quasi_dists[0])  
                 backend_sim = Aer.get_backend('qasm_simulator')
-                job_sim = backend_sim.run(transpile(qc, backend_sim), shots=conf.shots)
+                job_sim = backend_sim.run(transpile(qc, backend_sim), shots=50000)
                 result_sim = job_sim.result()  
                 self.correct_output = normalize_counts(dict(result_sim.get_counts(qc)))
             else:
                 backend_sim = Aer.get_backend('qasm_simulator')
-                job_sim = backend_sim.run(transpile(qc, backend_sim), shots=conf.shots)
+                job_sim = backend_sim.run(transpile(qc, backend_sim), shots=50000)
                 result_sim = job_sim.result()  
-                self.correct_output = normalize_counts(dict(result_sim.get_counts(qc)))
+                # self.correct_output = normalize_counts(dict(result_sim.get_counts(qc)))
+                self.correct_output = normalize_counts((result_sim.get_counts(qc)))
+                # print(self.correct_output)
 
     def get_native_gates_circuit(self, backend, simulator = False):
         if simulator:
@@ -90,7 +94,7 @@ class QiskitCircuit:
         if simulator:
             return transpile(self.circuit.decompose(), backend, basis_gates=["u3", "cx"], optimization_level=0, layout_method="trivial")
         else:
-            return transpile(self.circuit, backend=backend, optimization_level=0)
+            return transpile(self.circuit, backend=backend, optimization_level=0, layout_method="trivial")
     
     def get_qasm(self):
         return self.qasm
@@ -174,7 +178,7 @@ def get_fake_backend(calibration_type, backend, recent_n, generate_props):
     return tmp_backend
 
 # Function to import and optimize a QASM circuit
-def optimize_qasm(input_qasm, backend, optimization, enable_noise_adaptive = False, enable_mirage = False,
+def optimize_qasm(input_qasm, backend, optimization, enable_noise_adaptive = False, enable_mirage = False, enable_mapomatic = False,
                   calibration_type = calibration_type_enum.lcd, recent_n = None, initial_layout = None, generate_props = False):
     # Load the input QASM circuit
     circuit = QuantumCircuit.from_qasm_str(input_qasm)
@@ -206,6 +210,15 @@ def optimize_qasm(input_qasm, backend, optimization, enable_noise_adaptive = Fal
                                 tmp_backend,
                                 optimization_level=optimization
                                 )
+    elif enable_mapomatic:
+        routing_method = 'sabre'
+        tmp_backend = get_fake_backend(calibration_type, backend, recent_n, generate_props)
+
+        initial_layout, new_circuit = get_best_mapomatic_layout(circuit, tmp_backend)
+        
+        transpiled_circuit = transpile(new_circuit, tmp_backend, initial_layout = initial_layout)
+
+        print("masuk mapomatic: ", initial_layout)
     else:
         transpiled_circuit = transpile(circuit, 
                                 tmp_backend,
@@ -225,6 +238,21 @@ def optimize_qasm(input_qasm, backend, optimization, enable_noise_adaptive = Fal
     # print(optimized_qasm)
 
     return optimized_qasm, compilation_time
+
+def get_best_circuit_sabre(circ, backend):
+    trans_qc_list = transpile([circ]*10, backend, optimization_level=3)
+    best_cx_count = [circ.count_ops()['ecr'] for circ in trans_qc_list]
+    best_idx = np.argmin(best_cx_count)
+    best_qc = trans_qc_list[best_idx]
+    best_small_qc = mm.deflate_circuit(best_qc)
+
+    return best_small_qc
+
+def get_best_mapomatic_layout(circ, backend):
+    best_small_qc = get_best_circuit_sabre(circ, backend)
+    layouts = mm.matching_layouts(best_small_qc, backend)
+    
+    return layouts[0], best_small_qc
 
 def transpile_to_basis_gate(circuit, backend = None ):
     

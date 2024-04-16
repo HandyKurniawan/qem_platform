@@ -53,10 +53,12 @@ class apply_qiskit_optimization(Enum):
 class qiskit_compilation_enum(Enum):
     qiskit_0, qiskit_3, qiskit_NA_avg, qiskit_NA_lcd, qiskit_NA_mix, qiskit_NA_w15, \
     qiskit_NA_avg_adj, qiskit_NA_lcd_adj, qiskit_NA_mix_adj, qiskit_NA_w15_adj, \
-    qiskit_NA_wn, qiskit_NA_wn_adj \
+    qiskit_NA_wn, qiskit_NA_wn_adj, mapomatic_lcd, mapomatic_avg, mapomatic_mix, \
+    mapomatic_avg_adj, mapomatic_w15_adj, \
         = "qiskit_0", "qiskit_3", "qiskit_NA_avg", "qiskit_NA_lcd", "qiskit_NA_mix", "qiskit_NA_w15", \
         "qiskit_NA_avg_adj", "qiskit_NA_lcd_adj", "qiskit_NA_mix_adj", "qiskit_NA_w15_adj", \
-        "qiskit_NA_wn", "qiskit_NA_wn_adj"
+        "qiskit_NA_wn", "qiskit_NA_wn_adj", "mapomatic_lcd", "mapomatic_avg", "mapomatic_mix", \
+        "mapomatic_avg_adj", "mapomatic_w15_adj"
 
 class calibration_type_enum(Enum):
     lcd, average, recent_15, recent_45, mix, \
