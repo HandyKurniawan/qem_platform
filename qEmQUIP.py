@@ -168,11 +168,11 @@ class QEM:
 
             print(circuit_name, "has been registered to the database.")
         else:
-            self.cursor.execute("""UPDATE circuit SET qasm = %s, depth  = %s, total_gates  = %s, gates = %s, correct_output = %s 
-                                WHERE name = %s""",
-            (qc.qasm, qc.depth, qc.total_gate, gates_json, correct_output_json, circuit_name))
+            # self.cursor.execute("""UPDATE circuit SET qasm = %s, depth  = %s, total_gates  = %s, gates = %s, correct_output = %s 
+            #                     WHERE name = %s""",
+            # (qc.qasm, qc.depth, qc.total_gate, gates_json, correct_output_json, circuit_name))
 
-            self.conn.commit()
+            # self.conn.commit()
             print(circuit_name, "already exist.")
 
         return qc
@@ -453,9 +453,7 @@ WHERE h.job_id IS NULL AND d.header_id = %s  ''', (header_id,))
         # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_lcd.value, generate_props=generate_props)
 
         # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
-        # self.apply_triq(compilation_name="triq_lcd")
-        # self.apply_triq(compilation_name="triq_mix")
-        # self.apply_triq(compilation_name="triq_avg")
+        
         # self.apply_laura(compilation_name="triq+_lcd")
         
 
@@ -463,9 +461,17 @@ WHERE h.job_id IS NULL AND d.header_id = %s  ''', (header_id,))
         self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
         # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_lcd.value, generate_props=generate_props)
         # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_avg.value, generate_props=generate_props)
-        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_w15_adj.value, generate_props=generate_props)
         # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_mix.value, generate_props=generate_props)
+        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_lcd.value, generate_props=generate_props)
+        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_avg.value, generate_props=generate_props)
+        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_mix.value, generate_props=generate_props)
+        # self.apply_triq(compilation_name="triq_lcd")
+        # self.apply_triq(compilation_name="triq_avg")
+        # self.apply_triq(compilation_name="triq_mix")
+        
+
         # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_w15.value, generate_props=generate_props)
+        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_w15_adj.value, generate_props=generate_props)
         # self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_lcd.value, generate_props=generate_props)
         # self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_avg.value, generate_props=generate_props)
         # self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_mix.value, generate_props=generate_props)
@@ -524,49 +530,50 @@ if __name__ == "__main__":
         # # pepe3
         # "01501f074b8bc9910185d5563408e2838951163e8f55b90a338c94c58116b92a1cd88081474827667b9d907604f2dd27eaa8399a83fbb9505a24e25875819b23",
 
+        # # contact.07-glint@icloud.com
+        # "68fb7ac07545c0cc3b63bea6bae1a2e69fe11c4f84be2d4dc335abd5747c602701e9e687876adbf9bb61b11f25fa82ca2c932808fd3f128450cc13670d4822fe",
         # still working
-        # contact.07-glint@icloud.com
-        "68fb7ac07545c0cc3b63bea6bae1a2e69fe11c4f84be2d4dc335abd5747c602701e9e687876adbf9bb61b11f25fa82ca2c932808fd3f128450cc13670d4822fe",
-        # cornice.poker_0g@icloud.com
-        "bfbe3159e00973e14168671f8790ab7d2b85e8cb61160ee0b17225cf312df48e582cad577b02781ddca79d382e9e3aba3ad9c46c9c47d1b1b5ed27c8815cc2ca",
-        # petrol
-        "c0151c25a1bcb6e3f9274fb403cacf619f2508b2e70fcf350f1e44aba618f8d379f63f3554f58d2b6b7e04a63f20ba14895857e50b598c2c584c1b6519e6bc61",
-        # mash
-        "76eaa6f112f125eae669975b89d1620f8ea96cc9c28c650a2d9bed8e171d1ddf21aa685f46fa5d9377a86f7526ace1477c37f5fd5b0e8c0b0a25813a958958ce",
-        # bylaw
-        "30ea7c188f2b6531d2525875b7dab58f0d0091cb4c6e080472cdc76a96009aabbc3367ee1e1ac5f1aa2229941b08a7ef487066df163d47545c9524c4cad1c2ed",
-        # fasts
-        "ad1527ea50d2b9fb3f122427c6423c55c036d6e3e6559c96a9d5bf4b2b813909a4aac65cbf23bc6ea8cc55da005be0dc85cfb72fa3cd5f57c3eec8a99ea3f9d8",
-        # arrival
-        "5c63e6d0dbc47a7c98741ea6b7de90afb0729f5e036dbea439cec03ee680d5dfa573bdb42920017edb942be678d54d4fb5d83d5e7296749f78dee5449a6f443b",
-        # frisbee
-        "68d7a37e272a1a29ab8a3c767c63443fbf78fb82cfc34ac689d92f8f77f8fcdc4fd48dec46aa257a116f3194ba6532334f67d1b0a6f9feb53f1296804cb418b2",
-        # button
-        "ec5f9f43cea1eb948b374f22419e8e96307aa8ed59af234cd9133db2564dcc0f1c36eafc99f1565a9c5488d06296d0a291f1fff571fea5e8d01d0eddce7fa14f",
-        # known
-        "78b48009dcb68d57e164d1929cf4f0b248a827d18fc739107e127eef34d87bf67ad9b445744f7c7cd2cd1232ea8b92db11d7878be3542a131d17621586cf410c",
-        # puffs-undoing.02@icloud.com
-        "266686280de68a1d68433c62d7e154391b905705041b43744a591c19528cefb7335fa425ea81855fd0ca88ae7950b726dd615c23b53bc14a99e579874aa1202f",
-        # shanty
-        "88fa7b6ee1ba1303c21d4a46cc6db9b44bfc1c4a86ff4d10476d5c6a28b7b2427e23c0cb7430ef103ac38310f74a71791a03aee26e2b9cdad266ef0a120d7c71",
-        # pipe
-        "f4376ab6435cab311bd27c6a403617cff71804667f537c72879fd68fc2e80ff8fc3c2c67509fa840f2ac39318604154319858e71434b35db9570568614c51d63",
-        # lodging
-        "73e5caa60d526c2122261d8b1d93d451f8e8add930a03d2ab6fe16702673ccfcdce9dd018820f5ca6bed692112c9a5d32e2d2f2b75d367d38dde3ed2a51e3c6b",
-        # bionic
-        "dc8be56745da5fe77438ee9a3cfc0b6fa87f219ec3e50db59788cf157ed43ed776a1986b569ad5ec57525aa5f299fdb17c90cb34d3a04be7ca4af1bfbbc85eca",
-        # ales
-        "7f531e9960905f9a3142ead5d8c004bf5dc39a59462dd70e5f623918bd539fecc0f7434dcbbf453aecad2cc6545595ce1f9edfbb029fc948e6e22c35ebf5e331",
-        # anion
-        "4bcab1e9db485961e3a583b52b04c7fd35f476751e1c0107406e7fa6b2b6ae899c65142ac5547842f02bd6c667b1ce92a790b107acf56c3e748d32dd63830a55",
-        # lumbar
-        "6955cf58b16e371d4b788ffd7602b6b1c134701f6a058a8ef02a71d6547b912f0602bc04f5e80a55ad67e4e64b29e0863b568760e7e7baa62159c975fe3df07b",
-        # wool
-        "af61c32894083127bf069fff6f0904e41f78c3a0e75cbf3619840b1b9377ac923a9a33893192dc830306e973e52a550d8c0c47fe59aa22177ba7eae45635f85a",
-        # abalone
-        "7df4633e575ac0094fd2a538a887002a745d2927c1c29d444c2360fc4572151001905be16ba478c41780212aa7c35593edd38f8b636bd595d8253b01dee89127",
+        
+        # # cornice.poker_0g@icloud.com
+        # "bfbe3159e00973e14168671f8790ab7d2b85e8cb61160ee0b17225cf312df48e582cad577b02781ddca79d382e9e3aba3ad9c46c9c47d1b1b5ed27c8815cc2ca",
+        # # petrol
+        # "c0151c25a1bcb6e3f9274fb403cacf619f2508b2e70fcf350f1e44aba618f8d379f63f3554f58d2b6b7e04a63f20ba14895857e50b598c2c584c1b6519e6bc61",
+        # # mash
+        # "76eaa6f112f125eae669975b89d1620f8ea96cc9c28c650a2d9bed8e171d1ddf21aa685f46fa5d9377a86f7526ace1477c37f5fd5b0e8c0b0a25813a958958ce",
+        # # bylaw
+        # "30ea7c188f2b6531d2525875b7dab58f0d0091cb4c6e080472cdc76a96009aabbc3367ee1e1ac5f1aa2229941b08a7ef487066df163d47545c9524c4cad1c2ed",
+        # # fasts
+        # "ad1527ea50d2b9fb3f122427c6423c55c036d6e3e6559c96a9d5bf4b2b813909a4aac65cbf23bc6ea8cc55da005be0dc85cfb72fa3cd5f57c3eec8a99ea3f9d8",
+        # # arrival
+        # "5c63e6d0dbc47a7c98741ea6b7de90afb0729f5e036dbea439cec03ee680d5dfa573bdb42920017edb942be678d54d4fb5d83d5e7296749f78dee5449a6f443b",
+        # # frisbee
+        # "68d7a37e272a1a29ab8a3c767c63443fbf78fb82cfc34ac689d92f8f77f8fcdc4fd48dec46aa257a116f3194ba6532334f67d1b0a6f9feb53f1296804cb418b2",
+        # # button
+        # "ec5f9f43cea1eb948b374f22419e8e96307aa8ed59af234cd9133db2564dcc0f1c36eafc99f1565a9c5488d06296d0a291f1fff571fea5e8d01d0eddce7fa14f",
+        # # known
+        # "78b48009dcb68d57e164d1929cf4f0b248a827d18fc739107e127eef34d87bf67ad9b445744f7c7cd2cd1232ea8b92db11d7878be3542a131d17621586cf410c",
+        # # puffs-undoing.02@icloud.com
+        # "266686280de68a1d68433c62d7e154391b905705041b43744a591c19528cefb7335fa425ea81855fd0ca88ae7950b726dd615c23b53bc14a99e579874aa1202f",
+        # # shanty
+        # "88fa7b6ee1ba1303c21d4a46cc6db9b44bfc1c4a86ff4d10476d5c6a28b7b2427e23c0cb7430ef103ac38310f74a71791a03aee26e2b9cdad266ef0a120d7c71",
+        # # pipe
+        # "f4376ab6435cab311bd27c6a403617cff71804667f537c72879fd68fc2e80ff8fc3c2c67509fa840f2ac39318604154319858e71434b35db9570568614c51d63",
+        # # lodging
+        # "73e5caa60d526c2122261d8b1d93d451f8e8add930a03d2ab6fe16702673ccfcdce9dd018820f5ca6bed692112c9a5d32e2d2f2b75d367d38dde3ed2a51e3c6b",
+        # # bionic
+        # "dc8be56745da5fe77438ee9a3cfc0b6fa87f219ec3e50db59788cf157ed43ed776a1986b569ad5ec57525aa5f299fdb17c90cb34d3a04be7ca4af1bfbbc85eca",
+        # # ales
+        # "7f531e9960905f9a3142ead5d8c004bf5dc39a59462dd70e5f623918bd539fecc0f7434dcbbf453aecad2cc6545595ce1f9edfbb029fc948e6e22c35ebf5e331",
+        # # anion
+        # "4bcab1e9db485961e3a583b52b04c7fd35f476751e1c0107406e7fa6b2b6ae899c65142ac5547842f02bd6c667b1ce92a790b107acf56c3e748d32dd63830a55",
+        # # lumbar
+        # "6955cf58b16e371d4b788ffd7602b6b1c134701f6a058a8ef02a71d6547b912f0602bc04f5e80a55ad67e4e64b29e0863b568760e7e7baa62159c975fe3df07b",
+        # # wool
+        # "af61c32894083127bf069fff6f0904e41f78c3a0e75cbf3619840b1b9377ac923a9a33893192dc830306e973e52a550d8c0c47fe59aa22177ba7eae45635f85a",
+        # # abalone
+        # "7df4633e575ac0094fd2a538a887002a745d2927c1c29d444c2360fc4572151001905be16ba478c41780212aa7c35593edd38f8b636bd595d8253b01dee89127",
         # 08.lessee.acts@icloud.com
-        "266686280de68a1d68433c62d7e154391b905705041b43744a591c19528cefb7335fa425ea81855fd0ca88ae7950b726dd615c23b53bc14a99e579874aa1202f",
+        "887108cd60c926a48d330d614c31d496e5e191ef226b742a006869c5f56150c6fa8dc9e305301d6a7d85785319b484b1782bf98df106c4a899e69c7abafcdaa1",
         # salami
         "1fc316667164f5d54c56a31b43d7e9d12fa1d32c395727be69c77c733aee0f0468cc9178f357d6004fc636fd2ebb861dcf8af287493c818a70527dac50e06a25",
         # mammals
@@ -577,7 +584,6 @@ if __name__ == "__main__":
         "924828a6b1671411b96c27b10123849b161154290707582dc60d0b900146ccc8fb93adda735a6d0805168b3007a8ad56f626f9f207881d5055c841a58e51a7d9",
         # pepedelft1
         "2298ebebdf52aa8ef9258a07154bc62d335af0126f2bed26502a43f32a206309618c34344db22713f54bad3dc1c7569d7d1e3a0075e0421160e83b8c50967b45",
-        
         # # new
         # lintel-monody-0i@icloud.com
         "69d3c6f3f7241ff44a20ed8e4bcc445917394ebc7bc12442983aed7c9b52f55daa09e0bfa8572b1cd364f06b96b07686b0d39970eba8249c31c8b9ef62e281d7",
@@ -622,7 +628,7 @@ if __name__ == "__main__":
         print(conf.qiskit_token)
         print("============================")
 
-        for repetition in range(2):
+        for repetition in range(3):
             print("Repetition:", repetition)
             print("============================")
             # List all files in the base folder with the .qasm extension
@@ -637,9 +643,13 @@ if __name__ == "__main__":
             # q = QEM(runs=1, fixed_initial_layout = False, run_in_simulator=False, user_id=6)
             # q = QEM(runs=4, fixed_initial_layout = False, run_in_simulator=False, user_id=7)
             # q = QEM(runs=4, fixed_initial_layout = False, run_in_simulator=False, user_id=8)
+            
             q = QEM(runs=conf.runs, fixed_initial_layout = False, run_in_simulator=False, user_id=10, token=token)
-
             # q = QEM(runs=conf.runs, fixed_initial_layout = False, run_in_simulator=True, user_id=97, token=token)
+            
+            # q = QEM(runs=conf.runs, fixed_initial_layout = False, run_in_simulator=False, user_id=11, token=token)
+
+            
             # q = QEM(runs=1, fixed_initial_layout = True, run_in_simulator=False, user_id=99)
             # q = QEM(runs=1, fixed_initial_layout = False, run_in_simulator=False, user_id=99)
             if debug: tmp_end_time = time.perf_counter()
