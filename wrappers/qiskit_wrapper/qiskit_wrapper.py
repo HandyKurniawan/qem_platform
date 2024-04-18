@@ -254,6 +254,14 @@ def get_best_mapomatic_layout(circ, backend):
     
     return layouts[0], best_small_qc
 
+def get_initial_mapping_mapomatic(input_qasm, backend, calibration_type = calibration_type_enum.lcd, 
+                                  recent_n = None, generate_props = False):
+    
+    circuit = QuantumCircuit.from_qasm_str(input_qasm)
+    tmp_backend = get_fake_backend(calibration_type, backend, recent_n, generate_props)
+    initial_layout, new_circuit = get_best_mapomatic_layout(circuit, tmp_backend)
+    return initial_layout
+
 def transpile_to_basis_gate(circuit, backend = None ):
     
     # transpiled_circuit = transpile(circuit, optimization_level=0, basis_gates=backend.basis_gates)
