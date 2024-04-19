@@ -13,7 +13,6 @@ from commons import Config, convert_utc_to_local, calculate_time_diff, get_count
     calculate_circuit_cost, get_correct_output_dict, calculate_success_rate_nassc, calculate_success_rate_tvd, \
     calculate_success_rate_polar, calculate_hellinger_distance, calculate_success_rate_tvd_new, \
     convert_to_json, is_mitigated, get_initial_mapping_json
-import wrappers.qiskit_wrapper as qiskit_wrapper
 
 conf = Config()
 
@@ -29,7 +28,7 @@ def get_pending_jobs():
         cursor.execute('''SELECT distinct h.id, h.job_id, qiskit_token 
                        FROM framework.result_header h 
                         INNER JOIN framework.result_detail d ON h.id = d.header_id 
-                        WHERE h.status = %s and h.user_id = 11 ''', ("pending",))
+                        WHERE h.status = %s ''', ("pending",))
         
         results = cursor.fetchall()
         
@@ -200,7 +199,7 @@ def get_executed_jobs():
         conn = mysql.connector.connect(**conf.mysql_config)
         cursor = conn.cursor()
 
-        cursor.execute('SELECT id, job_id FROM result_header WHERE status = %s and user_id=11 and id >= 697;', ("executed", ))
+        cursor.execute('SELECT id, job_id FROM result_header WHERE status = %s and user_id=99 and id >= 697;', ("executed", ))
 
         results = cursor.fetchall()
         cursor.close()
@@ -231,7 +230,7 @@ def get_metrics(header_id, job_id):
             quasi_dists_std_dict = json.loads(quasi_dists_std) 
             
             qc = QuantumCircuit.from_qasm_str(qasm)
-            qc = qiskit_wrapper.transpile_to_basis_gate(qc)
+            # qc = qiskit_wrapper.transpile_to_basis_gate(qc)
             total_gate = sum(qc.count_ops().values())
             total_one_qubit_gate = get_count_1q(qc)
             total_two_qubit_gate = get_count_2q(qc)
@@ -311,11 +310,11 @@ if __name__ == "__main__":
     cursor.close()
     conn.close()
 
-    executed_jobs = get_executed_jobs()
-    print('Executed jobs :', len(executed_jobs))
-    for result in executed_jobs:
-        header_id, job_id = result
-        try:
-             get_metrics(header_id, job_id)
-        except Exception as e:
-             print("Error metric:", str(e))
+    # executed_jobs = get_executed_jobs()
+    # print('Executed jobs :', len(executed_jobs))
+    # for result in executed_jobs:
+    #     header_id, job_id = result
+    #     try:
+    #          get_metrics(header_id, job_id)
+    #     except Exception as e:
+    #          print("Error metric:", str(e))

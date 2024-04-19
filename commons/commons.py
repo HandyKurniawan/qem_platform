@@ -109,7 +109,7 @@ def sql_query(sql, params):
 def sql_execute(cursor, sql, parms):
     cursor.execute(sql, parms)
     
-def normalize_counts(result_counts, is_json=False, shots=8192):
+def normalize_counts(result_counts, is_json=False, shots=50000):
     if is_json:
         result_counts = json.loads(result_counts)
 

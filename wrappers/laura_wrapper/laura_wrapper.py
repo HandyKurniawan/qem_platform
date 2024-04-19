@@ -16,16 +16,23 @@ import os
 from datetime import datetime
 from .ir2dag import parse_ir
 import time, json
+import mysql.connector
+from commons import calibration_type_enum, sql_query, normalize_counts, Config
+
+conf = Config()
 
 laura_path = os.path.expanduser("~/qem_platform/wrappers/laura_wrapper/")
 out_path = os.path.expanduser("./")
 dag_path = os.path.expanduser("./")
+map_path = os.path.expanduser("./")
 base_name = "output"
+map_name = "init_mapo.map"
 dag_name = base_name + ".in"
 out_name = base_name + ".qasm"
 dag_file_path = os.path.join(dag_path, dag_name)
 out_file_path = os.path.join(out_path, out_name)
-out_file=open("log/output.log",'w+')
+map_file_path = os.path.join(map_path, map_name)
+# out_file=open("log/output.log",'w+')
 
 def read_file(file_path):
     success = False
@@ -55,10 +62,14 @@ def generate_qasm(qasm_str, hardware_name, laura_optimization):
     # parse qasm into .in
     parse_ir(qasm_str, os.path.join(dag_path, dag_name))
 
+    print("map file :", map_file_path)
+
     # call triq
     call_triq = [os.path.join(laura_path, "laura"), 
                 dag_file_path, 
-                out_file_path, tmp_hw_name, str(laura_optimization)]
+                out_file_path, tmp_hw_name, str(laura_optimization), map_file_path]
+    
+    out_file=open("log/output.log",'w+')
 
     p = sp.Popen(call_triq, stdout=out_file, text=True, shell=False)    
     p.communicate()
@@ -89,20 +100,28 @@ def run(qasm_str, hardware_name, laura_optimization):
 
     return result_qasm
 
-def get_mapping(qasm_str, hardware_name, laura_optimization):
+def get_mapping(qasm_str, hardware_name, triq_optimization):
     """
     Parameters:
         qasm_path:
         hardware_name:
         triq_optimization:
     """
-    result_qasm = generate_qasm(qasm_str, hardware_name, laura_optimization)
+    result_qasm = generate_qasm(qasm_str, hardware_name, triq_optimization)
+
+    log_path = os.path.expanduser("./log/output.log")
 
     mapping_dict = None
-    with open(out_file, "r") as file:
+    with open(log_path, "r") as file:
         mapping_dict = json.load(file)
 
-    if (os.path.isfile(out_file_path)):
-        os.remove(out_file_path)
+    if (os.path.isfile(log_path)):
+        os.remove(log_path)
 
     return mapping_dict
+
+def generate_initial_mapping_file(init_maps):
+    string_maps = ', '.join(map(str, init_maps))
+    f = open(map_file_path, "w+")
+    f.write(string_maps)
+    f.close()

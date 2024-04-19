@@ -72,15 +72,15 @@ class QiskitCircuit:
                 # result_sim = job_sim.result()  
                 # self.correct_output = dict(result_sim.quasi_dists[0])  
                 backend_sim = Aer.get_backend('qasm_simulator')
-                job_sim = backend_sim.run(transpile(qc, backend_sim), shots=20000)
+                job_sim = backend_sim.run(transpile(qc, backend_sim), shots=50000)
                 result_sim = job_sim.result()  
-                self.correct_output = normalize_counts(dict(result_sim.get_counts(qc)))
+                self.correct_output = normalize_counts(dict(result_sim.get_counts(qc)), shots=50000)
             else:
                 backend_sim = Aer.get_backend('qasm_simulator')
-                job_sim = backend_sim.run(transpile(qc, backend_sim), shots=20000)
+                job_sim = backend_sim.run(transpile(qc, backend_sim), shots=50000)
                 result_sim = job_sim.result()  
                 # self.correct_output = normalize_counts(dict(result_sim.get_counts(qc)))
-                self.correct_output = normalize_counts((result_sim.get_counts(qc)))
+                self.correct_output = normalize_counts((result_sim.get_counts(qc)), shots=50000)
                 # print(self.correct_output)
 
     def get_native_gates_circuit(self, backend, simulator = False):
@@ -254,12 +254,45 @@ def get_best_mapomatic_layout(circ, backend):
     
     return layouts[0], best_small_qc
 
+def get_initial_layout_from_circuit(qc):
+    virtual_bits = qc.layout.initial_layout.get_virtual_bits()
+    initial_layout_dict = {}
+    initial_layout = []
+    
+    for key, value in virtual_bits.items():
+        if "'q'" in "{}".format(key):
+            initial_layout_dict[key.index] = value 
+    
+    for i in range(len(initial_layout_dict.keys())):
+        initial_layout.append(initial_layout_dict[i])
+    
+    return initial_layout
+
 def get_initial_mapping_mapomatic(input_qasm, backend, calibration_type = calibration_type_enum.lcd, 
                                   recent_n = None, generate_props = False):
     
     circuit = QuantumCircuit.from_qasm_str(input_qasm)
     tmp_backend = get_fake_backend(calibration_type, backend, recent_n, generate_props)
     initial_layout, new_circuit = get_best_mapomatic_layout(circuit, tmp_backend)
+    return initial_layout
+
+def get_initial_mapping_sabre(input_qasm, backend, calibration_type = calibration_type_enum.lcd, 
+                                  recent_n = None, generate_props = False):
+    
+    circuit = QuantumCircuit.from_qasm_str(input_qasm)
+    best_small_qc = get_best_circuit_sabre(circuit, backend)
+    initial_layout = get_initial_layout_from_circuit(best_small_qc)
+
+    return initial_layout
+
+def get_initial_mapping_na(input_qasm, backend, calibration_type = calibration_type_enum.lcd, 
+                                  recent_n = None, generate_props = False):
+    
+    circuit = QuantumCircuit.from_qasm_str(input_qasm)
+    tmp_backend = get_fake_backend(calibration_type, backend, recent_n, generate_props)
+    na_qc = transpile(circuit, tmp_backend, layout_method = "noise_adaptive", routing_method = "sabre", optimization_level = 3)
+    initial_layout = get_initial_layout_from_circuit(na_qc)
+
     return initial_layout
 
 def transpile_to_basis_gate(circuit, backend = None ):

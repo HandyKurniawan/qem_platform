@@ -75,9 +75,9 @@ class QEM:
             # triq_wrapper.generate_recent_average_calibration_data(self, 45)
             # triq_wrapper.generate_recent_average_calibration_data(self, 15)
         
-        # triq_wrapper.generate_realtime_calibration_data(self)
-        # triq_wrapper.generate_mix_calibration_data(self)
-        # triq_wrapper.generate_average_calibration_data(self)
+        triq_wrapper.generate_realtime_calibration_data(self)
+        triq_wrapper.generate_mix_calibration_data(self)
+        triq_wrapper.generate_average_calibration_data(self)
 
         # if fixed_initial_layout:
         #     self.set_initial_layout()
@@ -298,7 +298,7 @@ class QEM:
         return updated_qasm
 
 
-    def apply_triq(self, compilation_name):
+    def apply_triq(self, compilation_name, layout="mapo"):
         """
         """    
         updated_qasm = self.qasm_original
@@ -311,10 +311,21 @@ class QEM:
         elif compilation_name == "triq_mix":
             calibration_type = calibration_type_enum.mix.value
 
-        # Generate Initial Mapping from Mapomatic to a File
-        initial_mapping = qiskit_wrapper.get_initial_mapping_mapomatic(
-                self.qasm, self.backend, calibration_type=calibration_type, 
-                generate_props=generate_props, recent_n=0)
+        initial_mapping = ""
+
+        if layout == "mapo":
+            # Generate Initial Mapping from Mapomatic to a File
+            initial_mapping = qiskit_wrapper.get_initial_mapping_mapomatic(
+                    self.qasm, self.backend, calibration_type=calibration_type, 
+                    generate_props=generate_props, recent_n=0)
+        elif layout == "na":
+            initial_mapping = qiskit_wrapper.get_initial_mapping_na(
+                    self.qasm, self.backend, calibration_type=calibration_type, 
+                    generate_props=generate_props, recent_n=0)
+        elif layout == "sabre":
+            initial_mapping = qiskit_wrapper.get_initial_mapping_sabre(
+                    self.qasm, self.backend, calibration_type=calibration_type, 
+                    generate_props=generate_props, recent_n=0)
         
         triq_wrapper.generate_initial_mapping_file(initial_mapping)
 
@@ -322,37 +333,73 @@ class QEM:
         if compilation_name == "triq_lcd":
             updated_qasm = triq_wrapper.run(updated_qasm, 
                                                 conf.hardware_name + "_" + "real", 
-                                                triq_optimization)
+                                                0)
         elif compilation_name == "triq_avg":
             updated_qasm = triq_wrapper.run(updated_qasm, 
                                                 conf.hardware_name + "_" + "avg", 
-                                                triq_optimization)
+                                                0)
         elif compilation_name == "triq_mix":
             updated_qasm = triq_wrapper.run(updated_qasm, 
                                                 conf.hardware_name + "_" + "mix", 
-                                                triq_optimization)
+                                                0)
         tmp_end_time = time.perf_counter()
         compilation_time = tmp_end_time - tmp_start_time
         
-        
+        compilation_name = layout + "_" + compilation_name
         self.insert_to_result_detail(compilation_name, compilation_time, updated_qasm)
 
         return updated_qasm
 
-    def apply_laura(self, compilation_name):
+    def apply_laura(self, compilation_name, layout="mapo"):
         """
         apply_laura:
             "before" : before laura's version of triq
             "after"  : after laura's version of triq
         """    
         updated_qasm = self.qasm_original
+
+        calibration_type = calibration_type_enum.lcd.value
+        if compilation_name == "triq+_lcd":
+            calibration_type = calibration_type_enum.lcd.value
+        elif compilation_name == "triq+_avg":
+            calibration_type = calibration_type_enum.average.value
+        elif compilation_name == "triq+_mix":
+            calibration_type = calibration_type_enum.mix.value
+
+        if layout == "mapo":
+            # Generate Initial Mapping from Mapomatic to a File
+            initial_mapping = qiskit_wrapper.get_initial_mapping_mapomatic(
+                    self.qasm, self.backend, calibration_type=calibration_type, 
+                    generate_props=generate_props, recent_n=0)
+        elif layout == "na":
+            initial_mapping = qiskit_wrapper.get_initial_mapping_na(
+                    self.qasm, self.backend, calibration_type=calibration_type, 
+                    generate_props=generate_props, recent_n=0)
+        elif layout == "sabre":
+            initial_mapping = qiskit_wrapper.get_initial_mapping_sabre(
+                    self.qasm, self.backend, calibration_type=calibration_type, 
+                    generate_props=generate_props, recent_n=0)
+            
+        print(initial_mapping)
+        triq_wrapper.generate_initial_mapping_file(initial_mapping)
+
         tmp_start_time  = time.perf_counter()
         if compilation_name == "triq+_lcd":
-            updated_qasm = laura_wrapper.run(updated_qasm, conf.hardware_name + "_" + "real", 2)
+            updated_qasm = laura_wrapper.run(updated_qasm, 
+                                                conf.hardware_name + "_" + "real", 
+                                                2)
+        elif compilation_name == "triq+_avg":
+            updated_qasm = laura_wrapper.run(updated_qasm, 
+                                                conf.hardware_name + "_" + "avg", 
+                                                2)
+        elif compilation_name == "triq+_mix":
+            updated_qasm = laura_wrapper.run(updated_qasm, 
+                                                conf.hardware_name + "_" + "mix", 
+                                                2)
         tmp_end_time = time.perf_counter()
         compilation_time = tmp_end_time - tmp_start_time
         
-        
+        compilation_name = layout + "_" + compilation_name
         self.insert_to_result_detail(compilation_name, compilation_time, updated_qasm)
 
         return updated_qasm
@@ -454,20 +501,37 @@ WHERE h.job_id IS NULL AND d.header_id = %s  ''', (header_id,))
 
         # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
         
-        # self.apply_laura(compilation_name="triq+_lcd")
-        
-
-        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_0.value, generate_props=generate_props)
-        self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
-        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_lcd.value, generate_props=generate_props)
-        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_avg.value, generate_props=generate_props)
-        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_mix.value, generate_props=generate_props)
-        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_lcd.value, generate_props=generate_props)
-        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_avg.value, generate_props=generate_props)
-        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_mix.value, generate_props=generate_props)
         # self.apply_triq(compilation_name="triq_lcd")
-        # self.apply_triq(compilation_name="triq_avg")
-        # self.apply_triq(compilation_name="triq_mix")
+        
+        
+        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
+
+        self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_0.value, generate_props=generate_props)
+        self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
+        self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_lcd.value, generate_props=generate_props)
+        self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_avg.value, generate_props=generate_props)
+        self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_mix.value, generate_props=generate_props)
+        self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_lcd.value, generate_props=generate_props)
+        self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_avg.value, generate_props=generate_props)
+        self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_mix.value, generate_props=generate_props)
+        self.apply_triq(compilation_name="triq_lcd", layout="mapo")
+        self.apply_triq(compilation_name="triq_lcd", layout="na")
+        self.apply_triq(compilation_name="triq_lcd", layout="sabre")
+        self.apply_triq(compilation_name="triq_avg", layout="mapo")
+        self.apply_triq(compilation_name="triq_avg", layout="na")
+        self.apply_triq(compilation_name="triq_avg", layout="sabre")
+        self.apply_triq(compilation_name="triq_mix", layout="mapo")
+        self.apply_triq(compilation_name="triq_mix", layout="na")
+        self.apply_triq(compilation_name="triq_mix", layout="sabre")
+        self.apply_laura(compilation_name="triq+_lcd", layout="mapo")
+        self.apply_laura(compilation_name="triq+_lcd", layout="na")
+        self.apply_laura(compilation_name="triq+_lcd", layout="sabre")
+        self.apply_laura(compilation_name="triq+_avg", layout="mapo")
+        self.apply_laura(compilation_name="triq+_avg", layout="na")
+        self.apply_laura(compilation_name="triq+_avg", layout="sabre")
+        self.apply_laura(compilation_name="triq+_mix", layout="mapo")
+        self.apply_laura(compilation_name="triq+_mix", layout="na")
+        self.apply_laura(compilation_name="triq+_mix", layout="sabre")
         
 
         # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_w15.value, generate_props=generate_props)
@@ -532,8 +596,8 @@ if __name__ == "__main__":
 
         # # contact.07-glint@icloud.com
         # "68fb7ac07545c0cc3b63bea6bae1a2e69fe11c4f84be2d4dc335abd5747c602701e9e687876adbf9bb61b11f25fa82ca2c932808fd3f128450cc13670d4822fe",
-        # still working
         
+        # # still working
         # # cornice.poker_0g@icloud.com
         # "bfbe3159e00973e14168671f8790ab7d2b85e8cb61160ee0b17225cf312df48e582cad577b02781ddca79d382e9e3aba3ad9c46c9c47d1b1b5ed27c8815cc2ca",
         # # petrol
@@ -572,32 +636,34 @@ if __name__ == "__main__":
         # "af61c32894083127bf069fff6f0904e41f78c3a0e75cbf3619840b1b9377ac923a9a33893192dc830306e973e52a550d8c0c47fe59aa22177ba7eae45635f85a",
         # # abalone
         # "7df4633e575ac0094fd2a538a887002a745d2927c1c29d444c2360fc4572151001905be16ba478c41780212aa7c35593edd38f8b636bd595d8253b01dee89127",
-        # 08.lessee.acts@icloud.com
-        "887108cd60c926a48d330d614c31d496e5e191ef226b742a006869c5f56150c6fa8dc9e305301d6a7d85785319b484b1782bf98df106c4a899e69c7abafcdaa1",
-        # salami
-        "1fc316667164f5d54c56a31b43d7e9d12fa1d32c395727be69c77c733aee0f0468cc9178f357d6004fc636fd2ebb861dcf8af287493c818a70527dac50e06a25",
-        # mammals
-        "f45537aaef3c72fa31ce928a7eaad4b7f44930b48734f73e3276ff76273299b13b2dc8810fa53976c404641bb30926a6724dfe6b7afdfdbd68423389992cf344",
-        # dopa
-        "d312f1b28a7e5381dfe0754f5ff3ee055cc9cfab5b944250aaf58d5c822a513bd88b77cb19f7dfd7b7f955e5fbeaa266a552ba45ebbad0262965d35c59803734",
-        # pepeucm1
-        "924828a6b1671411b96c27b10123849b161154290707582dc60d0b900146ccc8fb93adda735a6d0805168b3007a8ad56f626f9f207881d5055c841a58e51a7d9",
-        # pepedelft1
-        "2298ebebdf52aa8ef9258a07154bc62d335af0126f2bed26502a43f32a206309618c34344db22713f54bad3dc1c7569d7d1e3a0075e0421160e83b8c50967b45",
-        # # new
-        # lintel-monody-0i@icloud.com
-        "69d3c6f3f7241ff44a20ed8e4bcc445917394ebc7bc12442983aed7c9b52f55daa09e0bfa8572b1cd364f06b96b07686b0d39970eba8249c31c8b9ef62e281d7",
-        # patter-slosh-0f@icloud.com
-        "54a2dcecfe2b2efe441c23c9e1637ec2a9159b37d9938128c45c4a9a81ff1f6c3a947b5359b2bdf761158f6240d4b7369b162c108d900556c96fdd01847bcd55",
-        # tappers_shuffle.0x@icloud.com
-        "19362af21032b838765e5ec3bc3b0a4413501912b124ea3d6f88623561c3f5b2b3ec0c4038aa904f11b7fcc4e5ca38fee5f0b62763eda8bb0dbde14797666d96",
-        # 05twos-ammonia@icloud.com
-        "099f0f6194dd06b395ff22689cc939aff14bee22bea12ac9e56a73dbc525da653c281524b7216d2550cf963fdf5053198ef887a1dfb58839f2794c0e4eacc446",
+        # # 08.lessee.acts@icloud.com
+        # "887108cd60c926a48d330d614c31d496e5e191ef226b742a006869c5f56150c6fa8dc9e305301d6a7d85785319b484b1782bf98df106c4a899e69c7abafcdaa1",
+        # # salami
+        # "1fc316667164f5d54c56a31b43d7e9d12fa1d32c395727be69c77c733aee0f0468cc9178f357d6004fc636fd2ebb861dcf8af287493c818a70527dac50e06a25",
+        # # mammals
+        # "f45537aaef3c72fa31ce928a7eaad4b7f44930b48734f73e3276ff76273299b13b2dc8810fa53976c404641bb30926a6724dfe6b7afdfdbd68423389992cf344",
+        # # dopa
+        # "d312f1b28a7e5381dfe0754f5ff3ee055cc9cfab5b944250aaf58d5c822a513bd88b77cb19f7dfd7b7f955e5fbeaa266a552ba45ebbad0262965d35c59803734",
+        # # pepeucm1
+        # "924828a6b1671411b96c27b10123849b161154290707582dc60d0b900146ccc8fb93adda735a6d0805168b3007a8ad56f626f9f207881d5055c841a58e51a7d9",
+        # # pepedelft1
+        # "2298ebebdf52aa8ef9258a07154bc62d335af0126f2bed26502a43f32a206309618c34344db22713f54bad3dc1c7569d7d1e3a0075e0421160e83b8c50967b45",
+        # # # new
+        # # lintel-monody-0i@icloud.com
+        # "69d3c6f3f7241ff44a20ed8e4bcc445917394ebc7bc12442983aed7c9b52f55daa09e0bfa8572b1cd364f06b96b07686b0d39970eba8249c31c8b9ef62e281d7",
+        # # patter-slosh-0f@icloud.com
+        # "54a2dcecfe2b2efe441c23c9e1637ec2a9159b37d9938128c45c4a9a81ff1f6c3a947b5359b2bdf761158f6240d4b7369b162c108d900556c96fdd01847bcd55",
+        # # tappers_shuffle.0x@icloud.com
+        # "19362af21032b838765e5ec3bc3b0a4413501912b124ea3d6f88623561c3f5b2b3ec0c4038aa904f11b7fcc4e5ca38fee5f0b62763eda8bb0dbde14797666d96",
+        # # 05twos-ammonia@icloud.com
+        # "099f0f6194dd06b395ff22689cc939aff14bee22bea12ac9e56a73dbc525da653c281524b7216d2550cf963fdf5053198ef887a1dfb58839f2794c0e4eacc446",
+        
+        # For Calibration Paper
+        # 01_musky_lotions@icloud.com
+        "7266698be44c4cadc223c834199903ae8d8131657642f1830e8134fcc187a8f121462b5605869f0891bac4a8fdd5ab28b29208332e33067c7b72c6c373b5cb32",
         
         # # clump_zingy0t@icloud.com
         # "7cdc02dde4d1ac701b6bf11e8ab30b48beb5880a010016847c7e671c850cbc523fa94d75a8c1ea37fde5ea56dce50279955a732d989bc36f486c276b1ac3429e",
-        
-
         # # ropes
         # "b94c13374ae4f0b04fb2539b727e165ec695373f7fe198dd69c3b11f22a2aa380c8adca06390f201d2aa09247348aeae6f7664e0735698c9d8ad59880e58b8b8",
         # # rudder
@@ -616,7 +682,6 @@ if __name__ == "__main__":
         # "e62477a6e14315c89eb74f224f4aa6d44ae4fe4739bac484ab485ceedc97d4df9962b81286ead7ffe27a4b5443e8c03dd9ee516f09213a49fd3fa88976eba103",
         # # chores
         # "83fae468c72cb0e06e66c77c7520a24058a4ec4629b7e45236f7cf336237abc4cc5ce6ef9d2192ab652da68c7667143d09454687d76e42f9919f1e91ffb043a3",
-
         # # frisbee
         # "68d7a37e272a1a29ab8a3c767c63443fbf78fb82cfc34ac689d92f8f77f8fcdc4fd48dec46aa257a116f3194ba6532334f67d1b0a6f9feb53f1296804cb418b2"        
         # # ucm
@@ -628,7 +693,7 @@ if __name__ == "__main__":
         print(conf.qiskit_token)
         print("============================")
 
-        for repetition in range(3):
+        for repetition in range(1):
             print("Repetition:", repetition)
             print("============================")
             # List all files in the base folder with the .qasm extension
@@ -644,13 +709,11 @@ if __name__ == "__main__":
             # q = QEM(runs=4, fixed_initial_layout = False, run_in_simulator=False, user_id=7)
             # q = QEM(runs=4, fixed_initial_layout = False, run_in_simulator=False, user_id=8)
             
-            q = QEM(runs=conf.runs, fixed_initial_layout = False, run_in_simulator=False, user_id=10, token=token)
-            # q = QEM(runs=conf.runs, fixed_initial_layout = False, run_in_simulator=True, user_id=97, token=token)
+            # q = QEM(runs=conf.runs, fixed_initial_layout = False, run_in_simulator=False, user_id=10, token=token)
+            # q = QEM(runs=conf.runs, fixed_initial_layout = False, run_in_simulator=True, user_id=96, token=token)
             
-            # q = QEM(runs=conf.runs, fixed_initial_layout = False, run_in_simulator=False, user_id=11, token=token)
+            q = QEM(runs=conf.runs, fixed_initial_layout = False, run_in_simulator=False, user_id=11, token=token)
 
-            
-            # q = QEM(runs=1, fixed_initial_layout = True, run_in_simulator=False, user_id=99)
             # q = QEM(runs=1, fixed_initial_layout = False, run_in_simulator=False, user_id=99)
             if debug: tmp_end_time = time.perf_counter()
             if debug: print("Time for initialization: {} seconds".format(tmp_end_time - tmp_start_time))
