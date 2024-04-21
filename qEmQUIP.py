@@ -75,9 +75,9 @@ class QEM:
             # triq_wrapper.generate_recent_average_calibration_data(self, 45)
             # triq_wrapper.generate_recent_average_calibration_data(self, 15)
         
-        triq_wrapper.generate_realtime_calibration_data(self)
-        triq_wrapper.generate_mix_calibration_data(self)
-        triq_wrapper.generate_average_calibration_data(self)
+        # triq_wrapper.generate_realtime_calibration_data(self)
+        # triq_wrapper.generate_mix_calibration_data(self)
+        # triq_wrapper.generate_average_calibration_data(self)
 
         # if fixed_initial_layout:
         #     self.set_initial_layout()
@@ -496,69 +496,34 @@ WHERE h.job_id IS NULL AND d.header_id = %s  ''', (header_id,))
         """
         
         """
-        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
-        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_lcd.value, generate_props=generate_props)
-
-        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
         
-        # self.apply_triq(compilation_name="triq_lcd")
-        
-        
-        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
-
-        self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_0.value, generate_props=generate_props)
+        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_0.value, generate_props=generate_props)
         self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
-        self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_lcd.value, generate_props=generate_props)
-        self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_avg.value, generate_props=generate_props)
-        self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_mix.value, generate_props=generate_props)
-        self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_lcd.value, generate_props=generate_props)
-        self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_avg.value, generate_props=generate_props)
-        self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_mix.value, generate_props=generate_props)
-        self.apply_triq(compilation_name="triq_lcd", layout="mapo")
-        self.apply_triq(compilation_name="triq_lcd", layout="na")
-        self.apply_triq(compilation_name="triq_lcd", layout="sabre")
-        self.apply_triq(compilation_name="triq_avg", layout="mapo")
-        self.apply_triq(compilation_name="triq_avg", layout="na")
-        self.apply_triq(compilation_name="triq_avg", layout="sabre")
-        self.apply_triq(compilation_name="triq_mix", layout="mapo")
-        self.apply_triq(compilation_name="triq_mix", layout="na")
-        self.apply_triq(compilation_name="triq_mix", layout="sabre")
-        self.apply_laura(compilation_name="triq+_lcd", layout="mapo")
-        self.apply_laura(compilation_name="triq+_lcd", layout="na")
-        self.apply_laura(compilation_name="triq+_lcd", layout="sabre")
-        self.apply_laura(compilation_name="triq+_avg", layout="mapo")
-        self.apply_laura(compilation_name="triq+_avg", layout="na")
-        self.apply_laura(compilation_name="triq+_avg", layout="sabre")
-        self.apply_laura(compilation_name="triq+_mix", layout="mapo")
-        self.apply_laura(compilation_name="triq+_mix", layout="na")
-        self.apply_laura(compilation_name="triq+_mix", layout="sabre")
-        
-
-        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_w15.value, generate_props=generate_props)
-        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_w15_adj.value, generate_props=generate_props)
+        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_lcd.value, generate_props=generate_props)
+        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_avg.value, generate_props=generate_props)
+        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_mix.value, generate_props=generate_props)
         # self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_lcd.value, generate_props=generate_props)
         # self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_avg.value, generate_props=generate_props)
         # self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_mix.value, generate_props=generate_props)
-        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_avg_adj.value, generate_props=generate_props)
-        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_w15_adj.value, generate_props=generate_props)
-
-        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_mix.value, generate_props=generate_props)
-        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_w15.value, generate_props=generate_props)
-        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_lcd_adj.value, generate_props=generate_props)
-        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_avg_adj.value, generate_props=generate_props)
-        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_mix_adj.value, generate_props=generate_props)
-        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_w15_adj.value, generate_props=generate_props)
-
-        # for i in range(1, 3):
-        # for i in range(1, 46):
-        #     self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_wn.value, generate_props=generate_props, recent_n=i)
+        # self.apply_triq(compilation_name="triq_lcd", layout="mapo")
+        # self.apply_triq(compilation_name="triq_lcd", layout="na")
+        # self.apply_triq(compilation_name="triq_lcd", layout="sabre")
+        # self.apply_triq(compilation_name="triq_avg", layout="mapo")
+        # self.apply_triq(compilation_name="triq_avg", layout="na")
+        # self.apply_triq(compilation_name="triq_avg", layout="sabre")
+        # self.apply_triq(compilation_name="triq_mix", layout="mapo")
+        # self.apply_triq(compilation_name="triq_mix", layout="na")
+        # self.apply_triq(compilation_name="triq_mix", layout="sabre")
+        # self.apply_laura(compilation_name="triq+_lcd", layout="mapo")
+        # self.apply_laura(compilation_name="triq+_lcd", layout="na")
+        # self.apply_laura(compilation_name="triq+_lcd", layout="sabre")
+        # self.apply_laura(compilation_name="triq+_avg", layout="mapo")
+        # self.apply_laura(compilation_name="triq+_avg", layout="na")
+        # self.apply_laura(compilation_name="triq+_avg", layout="sabre")
+        # self.apply_laura(compilation_name="triq+_mix", layout="mapo")
+        # self.apply_laura(compilation_name="triq+_mix", layout="na")
+        # self.apply_laura(compilation_name="triq+_mix", layout="sabre")
         
-        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
-        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_avg.value, generate_props=generate_props)
-        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_w15.value, generate_props=generate_props)
-        # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_avg_adj.value, generate_props=generate_props)
-
-
     def get_fake_perth(self):
         fake_perth = qiskit_wrapper.NewFakePerthAverage()
         print(fake_perth.name)
@@ -592,10 +557,20 @@ if __name__ == "__main__":
         # # jose
         # "94882007fb17bcb98ad4c7d13adb024491bd30e72e4be58628dd685ce2c90bcbefb8abc65094cf051de77c8b676b4aa936bba8ad4a0df0e573e3cc01308c5421",
         # # pepe3
-        # "01501f074b8bc9910185d5563408e2838951163e8f55b90a338c94c58116b92a1cd88081474827667b9d907604f2dd27eaa8399a83fbb9505a24e25875819b23",
-
+        # "01501f074b8bc9910185d5563408e2838951163e8f55b90a338c94c58116b92a1cd88081474827667b9d907604f2dd27eaa8399a83fbb9505a24e25875819b23"
         # # contact.07-glint@icloud.com
         # "68fb7ac07545c0cc3b63bea6bae1a2e69fe11c4f84be2d4dc335abd5747c602701e9e687876adbf9bb61b11f25fa82ca2c932808fd3f128450cc13670d4822fe",
+        # # arrival_protein_0h@icloud.com
+        # "5c63e6d0dbc47a7c98741ea6b7de90afb0729f5e036dbea439cec03ee680d5dfa573bdb42920017edb942be678d54d4fb5d83d5e7296749f78dee5449a6f443b",
+        # # frisbee_among.0p@icloud.com
+        # "68d7a37e272a1a29ab8a3c767c63443fbf78fb82cfc34ac689d92f8f77f8fcdc4fd48dec46aa257a116f3194ba6532334f67d1b0a6f9feb53f1296804cb418b2",
+        # # button.06-galleys@icloud.com
+        # "ec5f9f43cea1eb948b374f22419e8e96307aa8ed59af234cd9133db2564dcc0f1c36eafc99f1565a9c5488d06296d0a291f1fff571fea5e8d01d0eddce7fa14f",
+        # # known
+        # "78b48009dcb68d57e164d1929cf4f0b248a827d18fc739107e127eef34d87bf67ad9b445744f7c7cd2cd1232ea8b92db11d7878be3542a131d17621586cf410c",
+        # # fasts
+        # "ad1527ea50d2b9fb3f122427c6423c55c036d6e3e6559c96a9d5bf4b2b813909a4aac65cbf23bc6ea8cc55da005be0dc85cfb72fa3cd5f57c3eec8a99ea3f9d8",
+        
         
         # # still working
         # # cornice.poker_0g@icloud.com
@@ -606,62 +581,58 @@ if __name__ == "__main__":
         # "76eaa6f112f125eae669975b89d1620f8ea96cc9c28c650a2d9bed8e171d1ddf21aa685f46fa5d9377a86f7526ace1477c37f5fd5b0e8c0b0a25813a958958ce",
         # # bylaw
         # "30ea7c188f2b6531d2525875b7dab58f0d0091cb4c6e080472cdc76a96009aabbc3367ee1e1ac5f1aa2229941b08a7ef487066df163d47545c9524c4cad1c2ed",
-        # # fasts
-        # "ad1527ea50d2b9fb3f122427c6423c55c036d6e3e6559c96a9d5bf4b2b813909a4aac65cbf23bc6ea8cc55da005be0dc85cfb72fa3cd5f57c3eec8a99ea3f9d8",
-        # # arrival
-        # "5c63e6d0dbc47a7c98741ea6b7de90afb0729f5e036dbea439cec03ee680d5dfa573bdb42920017edb942be678d54d4fb5d83d5e7296749f78dee5449a6f443b",
-        # # frisbee
-        # "68d7a37e272a1a29ab8a3c767c63443fbf78fb82cfc34ac689d92f8f77f8fcdc4fd48dec46aa257a116f3194ba6532334f67d1b0a6f9feb53f1296804cb418b2",
-        # # button
-        # "ec5f9f43cea1eb948b374f22419e8e96307aa8ed59af234cd9133db2564dcc0f1c36eafc99f1565a9c5488d06296d0a291f1fff571fea5e8d01d0eddce7fa14f",
-        # # known
-        # "78b48009dcb68d57e164d1929cf4f0b248a827d18fc739107e127eef34d87bf67ad9b445744f7c7cd2cd1232ea8b92db11d7878be3542a131d17621586cf410c",
-        # # puffs-undoing.02@icloud.com
-        # "266686280de68a1d68433c62d7e154391b905705041b43744a591c19528cefb7335fa425ea81855fd0ca88ae7950b726dd615c23b53bc14a99e579874aa1202f",
-        # # shanty
-        # "88fa7b6ee1ba1303c21d4a46cc6db9b44bfc1c4a86ff4d10476d5c6a28b7b2427e23c0cb7430ef103ac38310f74a71791a03aee26e2b9cdad266ef0a120d7c71",
-        # # pipe
-        # "f4376ab6435cab311bd27c6a403617cff71804667f537c72879fd68fc2e80ff8fc3c2c67509fa840f2ac39318604154319858e71434b35db9570568614c51d63",
-        # # lodging
-        # "73e5caa60d526c2122261d8b1d93d451f8e8add930a03d2ab6fe16702673ccfcdce9dd018820f5ca6bed692112c9a5d32e2d2f2b75d367d38dde3ed2a51e3c6b",
-        # # bionic
-        # "dc8be56745da5fe77438ee9a3cfc0b6fa87f219ec3e50db59788cf157ed43ed776a1986b569ad5ec57525aa5f299fdb17c90cb34d3a04be7ca4af1bfbbc85eca",
-        # # ales
-        # "7f531e9960905f9a3142ead5d8c004bf5dc39a59462dd70e5f623918bd539fecc0f7434dcbbf453aecad2cc6545595ce1f9edfbb029fc948e6e22c35ebf5e331",
-        # # anion
-        # "4bcab1e9db485961e3a583b52b04c7fd35f476751e1c0107406e7fa6b2b6ae899c65142ac5547842f02bd6c667b1ce92a790b107acf56c3e748d32dd63830a55",
-        # # lumbar
-        # "6955cf58b16e371d4b788ffd7602b6b1c134701f6a058a8ef02a71d6547b912f0602bc04f5e80a55ad67e4e64b29e0863b568760e7e7baa62159c975fe3df07b",
-        # # wool
-        # "af61c32894083127bf069fff6f0904e41f78c3a0e75cbf3619840b1b9377ac923a9a33893192dc830306e973e52a550d8c0c47fe59aa22177ba7eae45635f85a",
-        # # abalone
-        # "7df4633e575ac0094fd2a538a887002a745d2927c1c29d444c2360fc4572151001905be16ba478c41780212aa7c35593edd38f8b636bd595d8253b01dee89127",
-        # # 08.lessee.acts@icloud.com
-        # "887108cd60c926a48d330d614c31d496e5e191ef226b742a006869c5f56150c6fa8dc9e305301d6a7d85785319b484b1782bf98df106c4a899e69c7abafcdaa1",
-        # # salami
-        # "1fc316667164f5d54c56a31b43d7e9d12fa1d32c395727be69c77c733aee0f0468cc9178f357d6004fc636fd2ebb861dcf8af287493c818a70527dac50e06a25",
-        # # mammals
-        # "f45537aaef3c72fa31ce928a7eaad4b7f44930b48734f73e3276ff76273299b13b2dc8810fa53976c404641bb30926a6724dfe6b7afdfdbd68423389992cf344",
-        # # dopa
-        # "d312f1b28a7e5381dfe0754f5ff3ee055cc9cfab5b944250aaf58d5c822a513bd88b77cb19f7dfd7b7f955e5fbeaa266a552ba45ebbad0262965d35c59803734",
-        # # pepeucm1
-        # "924828a6b1671411b96c27b10123849b161154290707582dc60d0b900146ccc8fb93adda735a6d0805168b3007a8ad56f626f9f207881d5055c841a58e51a7d9",
-        # # pepedelft1
-        # "2298ebebdf52aa8ef9258a07154bc62d335af0126f2bed26502a43f32a206309618c34344db22713f54bad3dc1c7569d7d1e3a0075e0421160e83b8c50967b45",
-        # # # new
-        # # lintel-monody-0i@icloud.com
-        # "69d3c6f3f7241ff44a20ed8e4bcc445917394ebc7bc12442983aed7c9b52f55daa09e0bfa8572b1cd364f06b96b07686b0d39970eba8249c31c8b9ef62e281d7",
-        # # patter-slosh-0f@icloud.com
-        # "54a2dcecfe2b2efe441c23c9e1637ec2a9159b37d9938128c45c4a9a81ff1f6c3a947b5359b2bdf761158f6240d4b7369b162c108d900556c96fdd01847bcd55",
-        # # tappers_shuffle.0x@icloud.com
-        # "19362af21032b838765e5ec3bc3b0a4413501912b124ea3d6f88623561c3f5b2b3ec0c4038aa904f11b7fcc4e5ca38fee5f0b62763eda8bb0dbde14797666d96",
-        # # 05twos-ammonia@icloud.com
-        # "099f0f6194dd06b395ff22689cc939aff14bee22bea12ac9e56a73dbc525da653c281524b7216d2550cf963fdf5053198ef887a1dfb58839f2794c0e4eacc446",
+        # puffs-undoing.02@icloud.com
+        "266686280de68a1d68433c62d7e154391b905705041b43744a591c19528cefb7335fa425ea81855fd0ca88ae7950b726dd615c23b53bc14a99e579874aa1202f",
+        # shanty
+        "88fa7b6ee1ba1303c21d4a46cc6db9b44bfc1c4a86ff4d10476d5c6a28b7b2427e23c0cb7430ef103ac38310f74a71791a03aee26e2b9cdad266ef0a120d7c71",
+        # pipe
+        "f4376ab6435cab311bd27c6a403617cff71804667f537c72879fd68fc2e80ff8fc3c2c67509fa840f2ac39318604154319858e71434b35db9570568614c51d63",
+        # lodging
+        "73e5caa60d526c2122261d8b1d93d451f8e8add930a03d2ab6fe16702673ccfcdce9dd018820f5ca6bed692112c9a5d32e2d2f2b75d367d38dde3ed2a51e3c6b",
+        # bionic
+        "dc8be56745da5fe77438ee9a3cfc0b6fa87f219ec3e50db59788cf157ed43ed776a1986b569ad5ec57525aa5f299fdb17c90cb34d3a04be7ca4af1bfbbc85eca",
+        # ales
+        "7f531e9960905f9a3142ead5d8c004bf5dc39a59462dd70e5f623918bd539fecc0f7434dcbbf453aecad2cc6545595ce1f9edfbb029fc948e6e22c35ebf5e331",
+        # anion
+        "4bcab1e9db485961e3a583b52b04c7fd35f476751e1c0107406e7fa6b2b6ae899c65142ac5547842f02bd6c667b1ce92a790b107acf56c3e748d32dd63830a55",
+        # lumbar
+        "6955cf58b16e371d4b788ffd7602b6b1c134701f6a058a8ef02a71d6547b912f0602bc04f5e80a55ad67e4e64b29e0863b568760e7e7baa62159c975fe3df07b",
+        # wool
+        "af61c32894083127bf069fff6f0904e41f78c3a0e75cbf3619840b1b9377ac923a9a33893192dc830306e973e52a550d8c0c47fe59aa22177ba7eae45635f85a",
+        # abalone
+        "7df4633e575ac0094fd2a538a887002a745d2927c1c29d444c2360fc4572151001905be16ba478c41780212aa7c35593edd38f8b636bd595d8253b01dee89127",
+        # 08.lessee.acts@icloud.com
+        "887108cd60c926a48d330d614c31d496e5e191ef226b742a006869c5f56150c6fa8dc9e305301d6a7d85785319b484b1782bf98df106c4a899e69c7abafcdaa1",
+        # salami
+        "1fc316667164f5d54c56a31b43d7e9d12fa1d32c395727be69c77c733aee0f0468cc9178f357d6004fc636fd2ebb861dcf8af287493c818a70527dac50e06a25",
+        # mammals
+        "f45537aaef3c72fa31ce928a7eaad4b7f44930b48734f73e3276ff76273299b13b2dc8810fa53976c404641bb30926a6724dfe6b7afdfdbd68423389992cf344",
+        # dopa
+        "d312f1b28a7e5381dfe0754f5ff3ee055cc9cfab5b944250aaf58d5c822a513bd88b77cb19f7dfd7b7f955e5fbeaa266a552ba45ebbad0262965d35c59803734",
+        # pepeucm1
+        "924828a6b1671411b96c27b10123849b161154290707582dc60d0b900146ccc8fb93adda735a6d0805168b3007a8ad56f626f9f207881d5055c841a58e51a7d9",
+        # pepedelft1
+        "2298ebebdf52aa8ef9258a07154bc62d335af0126f2bed26502a43f32a206309618c34344db22713f54bad3dc1c7569d7d1e3a0075e0421160e83b8c50967b45",
+        # # new
+        # lintel-monody-0i@icloud.com
+        "69d3c6f3f7241ff44a20ed8e4bcc445917394ebc7bc12442983aed7c9b52f55daa09e0bfa8572b1cd364f06b96b07686b0d39970eba8249c31c8b9ef62e281d7",
+        # patter-slosh-0f@icloud.com
+        "54a2dcecfe2b2efe441c23c9e1637ec2a9159b37d9938128c45c4a9a81ff1f6c3a947b5359b2bdf761158f6240d4b7369b162c108d900556c96fdd01847bcd55",
+        # tappers_shuffle.0x@icloud.com
+        "19362af21032b838765e5ec3bc3b0a4413501912b124ea3d6f88623561c3f5b2b3ec0c4038aa904f11b7fcc4e5ca38fee5f0b62763eda8bb0dbde14797666d96",
+        # 05twos-ammonia@icloud.com
+        "099f0f6194dd06b395ff22689cc939aff14bee22bea12ac9e56a73dbc525da653c281524b7216d2550cf963fdf5053198ef887a1dfb58839f2794c0e4eacc446",
+        # pencil-tweeds0t@icloud.com
+        "445bcb87747eeb03961bacf306f6499f93f6f09bdf84b17c8a0e1f0d40466a94103d078a5539f74779b6d9b5ee4291c0f76263d341c070b23b55ac6ed32824ce",
+
         
-        # For Calibration Paper
-        # 01_musky_lotions@icloud.com
-        "7266698be44c4cadc223c834199903ae8d8131657642f1830e8134fcc187a8f121462b5605869f0891bac4a8fdd5ab28b29208332e33067c7b72c6c373b5cb32",
+        # # For Calibration Paper
+        # # advert.weights.0u@icloud.com
+        # "ceaea54206809655f1db52eef61e2d13c087eee215dacc05b473c8c55ddddb490ca30a014fcfdb3a7725f97809f257a014f757e108873100ad59fa2196f5c11c",
         
+
+        # # 01_musky_lotions@icloud.com
+        # "7266698be44c4cadc223c834199903ae8d8131657642f1830e8134fcc187a8f121462b5605869f0891bac4a8fdd5ab28b29208332e33067c7b72c6c373b5cb32",
         # # clump_zingy0t@icloud.com
         # "7cdc02dde4d1ac701b6bf11e8ab30b48beb5880a010016847c7e671c850cbc523fa94d75a8c1ea37fde5ea56dce50279955a732d989bc36f486c276b1ac3429e",
         # # ropes
@@ -693,7 +664,7 @@ if __name__ == "__main__":
         print(conf.qiskit_token)
         print("============================")
 
-        for repetition in range(1):
+        for repetition in range(3):
             print("Repetition:", repetition)
             print("============================")
             # List all files in the base folder with the .qasm extension
@@ -709,10 +680,10 @@ if __name__ == "__main__":
             # q = QEM(runs=4, fixed_initial_layout = False, run_in_simulator=False, user_id=7)
             # q = QEM(runs=4, fixed_initial_layout = False, run_in_simulator=False, user_id=8)
             
-            # q = QEM(runs=conf.runs, fixed_initial_layout = False, run_in_simulator=False, user_id=10, token=token)
+            q = QEM(runs=conf.runs, fixed_initial_layout = False, run_in_simulator=False, user_id=10, token=token)
             # q = QEM(runs=conf.runs, fixed_initial_layout = False, run_in_simulator=True, user_id=96, token=token)
             
-            q = QEM(runs=conf.runs, fixed_initial_layout = False, run_in_simulator=False, user_id=11, token=token)
+            # q = QEM(runs=conf.runs, fixed_initial_layout = False, run_in_simulator=False, user_id=11, token=token)
 
             # q = QEM(runs=1, fixed_initial_layout = False, run_in_simulator=False, user_id=99)
             if debug: tmp_end_time = time.perf_counter()

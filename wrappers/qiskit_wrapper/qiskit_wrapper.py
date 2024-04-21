@@ -280,8 +280,8 @@ def get_initial_mapping_sabre(input_qasm, backend, calibration_type = calibratio
                                   recent_n = None, generate_props = False):
     
     circuit = QuantumCircuit.from_qasm_str(input_qasm)
-    best_small_qc = get_best_circuit_sabre(circuit, backend)
-    initial_layout = get_initial_layout_from_circuit(best_small_qc)
+    sabre_qc = transpile(circuit, backend, optimization_level = 3)
+    initial_layout = get_initial_layout_from_circuit(sabre_qc)
 
     return initial_layout
 
