@@ -56,7 +56,7 @@ def create_dir(path):
         # Create a new directory because it does not exist
         os.makedirs(path)
 
-def generate_qasm(qasm_str, hardware_name, laura_optimization):
+def generate_qasm(qasm_str, hardware_name, laura_optimization, measurement_type):
     tmp_hw_name = hardware_name
 
     # parse qasm into .in
@@ -67,7 +67,7 @@ def generate_qasm(qasm_str, hardware_name, laura_optimization):
     # call triq
     call_triq = [os.path.join(laura_path, "laura"), 
                 dag_file_path, 
-                out_file_path, tmp_hw_name, str(laura_optimization), map_file_path]
+                out_file_path, tmp_hw_name, str(laura_optimization), map_file_path, measurement_type]
     
     out_file=open("log/output.log",'w+')
 
@@ -81,7 +81,7 @@ def generate_qasm(qasm_str, hardware_name, laura_optimization):
 
     return result_qasm
 
-def run(qasm_str, hardware_name, laura_optimization):
+def run(qasm_str, hardware_name, laura_optimization, measurement_type = "normal"):
     """
     Parameters:
         qasm_path:
@@ -89,7 +89,7 @@ def run(qasm_str, hardware_name, laura_optimization):
         triq_optimization:
     """
     
-    result_qasm = generate_qasm(qasm_str, hardware_name, laura_optimization)
+    result_qasm = generate_qasm(qasm_str, hardware_name, laura_optimization, measurement_type)
 
     if (os.path.isfile(dag_file_path)):
         os.remove(dag_file_path)
@@ -107,7 +107,7 @@ def get_mapping(qasm_str, hardware_name, triq_optimization):
         hardware_name:
         triq_optimization:
     """
-    result_qasm = generate_qasm(qasm_str, hardware_name, triq_optimization)
+    # result_qasm = generate_qasm(qasm_str, hardware_name, triq_optimization)
 
     log_path = os.path.expanduser("./log/output.log")
 
@@ -115,8 +115,8 @@ def get_mapping(qasm_str, hardware_name, triq_optimization):
     with open(log_path, "r") as file:
         mapping_dict = json.load(file)
 
-    if (os.path.isfile(log_path)):
-        os.remove(log_path)
+    # if (os.path.isfile(log_path)):
+    #     os.remove(log_path)
 
     return mapping_dict
 

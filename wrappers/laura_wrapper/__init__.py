@@ -1,5 +1,6 @@
-from .laura_wrapper import run
+from .laura_wrapper import run, get_mapping
 
 __all__ = [
-    "run"
+    "run",
+    "get_mapping"
 ]

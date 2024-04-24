@@ -17,8 +17,8 @@ import sys
 
 global_gate_id = 0
 prev_gate = {}
-gate_names = {"cx":"CNOT", "cz":"CZ", "h":"H", "x":"X", "y":"Y", "z":"Z", "rx":"RX", "ry":"RY", "rz":"RZ", "s":"S", "sdg":"Sdag", "t":"T", "tdg":"Tdag", "sx":"SX", "sxdg":"SXdag", "measure":"MeasZ", "ccx":"CCX"}
-gset1 = ['x', 'y', 'z', 'h', 's', 'sdg', 't', 'tdg', 'sx', 'sxdg', 'measure']
+gate_names = {"cx":"CNOT", "cz":"CZ", "h":"H", "x":"X", "y":"Y", "z":"Z", "rx":"RX", "ry":"RY", "rz":"RZ", "s":"S", "sdg":"Sdag", "t":"T", "tdg":"Tdag", "sx":"SX", "sxdg":"SXdag", "measure":"MeasZ", "ccx":"CCX", "reset":"Reset"}
+gset1 = ['x', 'y', 'z', 'h', 's', 'sdg', 't', 'tdg', 'sx', 'sxdg', 'measure', 'reset']
 gset2 = ['rx', 'ry', 'rz']
 gset3 = ['cx']
 gset4 = ['ccx'] #20230907, Handy, add ccx gate to process from qasm
@@ -246,4 +246,3 @@ def parse_ir(qasm_str, outfname):
             if check_valid_gate(line):
                 process_gate(line, f_out)
                 global_gate_id += 1
-

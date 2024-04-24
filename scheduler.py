@@ -29,7 +29,7 @@ def get_pending_jobs():
         cursor.execute('''SELECT distinct h.id, h.job_id, qiskit_token 
                        FROM framework.result_header h 
                         INNER JOIN framework.result_detail d ON h.id = d.header_id 
-                        WHERE h.status = %s  ''', ("pending",))
+                        WHERE h.status = %s ''', ("pending",))
         
         results = cursor.fetchall()
         

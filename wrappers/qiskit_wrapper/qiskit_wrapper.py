@@ -12,6 +12,9 @@ Example:
 from qiskit import QuantumCircuit, transpile, Aer
 from qiskit.transpiler import CouplingMap
 from qiskit_ibm_runtime import Sampler
+from qiskit_aer.noise import NoiseModel
+from qiskit_aer import AerSimulator
+from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from commons import calibration_type_enum, sql_query, normalize_counts, Config
 from qiskit.providers.models import BackendProperties
 import json
@@ -90,9 +93,13 @@ class QiskitCircuit:
             return transpile(self.circuit.decompose(), backend, basis_gates=backend.basis_gates, optimization_level=0, layout_method="trivial")
             # return transpile(self.circuit.decompose(), backend=backend, optimization_level=0)
         
-    def transpile_to_target_backend(self, backend, simulator = False):
+    def transpile_to_target_backend(self, backend, simulator = False, backend_sim=None):
         if simulator:
-            return transpile(self.circuit.decompose(), backend, basis_gates=["u3", "cx"], optimization_level=0, layout_method="trivial")
+            pm = generate_preset_pass_manager(optimization_level=1, backend=backend)
+            isa_circuits = pm.run(self.circuit)
+            return isa_circuits
+
+            # return transpile(self.circuit.decompose(), backend, basis_gates=["u3", "cx"], optimization_level=0, layout_method="trivial")
         else:
             return transpile(self.circuit, backend=backend, optimization_level=0, layout_method="trivial")
     
@@ -203,13 +210,15 @@ def optimize_qasm(input_qasm, backend, optimization, enable_noise_adaptive = Fal
     # print(layout_method, initial_layout)
 
     tmp_start_time  = time.perf_counter()
-
+    initial_mapping = ""
     # Transpile and optimize the circuit
     if optimization == 0:
         transpiled_circuit = transpile(circuit, 
                                 tmp_backend,
                                 optimization_level=optimization
                                 )
+        initial_mapping = get_initial_layout_from_circuit(transpiled_circuit)
+
     elif enable_mapomatic:
         routing_method = 'sabre'
         tmp_backend = get_fake_backend(calibration_type, backend, recent_n, generate_props)
@@ -217,6 +226,7 @@ def optimize_qasm(input_qasm, backend, optimization, enable_noise_adaptive = Fal
         initial_layout, new_circuit = get_best_mapomatic_layout(circuit, tmp_backend)
         
         transpiled_circuit = transpile(new_circuit, tmp_backend, initial_layout = initial_layout)
+        initial_mapping = get_initial_layout_from_circuit(transpiled_circuit)
 
         print("masuk mapomatic: ", initial_layout)
     else:
@@ -228,6 +238,7 @@ def optimize_qasm(input_qasm, backend, optimization, enable_noise_adaptive = Fal
                                 basis_gates=basis_gates,
                                 initial_layout=initial_layout
                                 )
+        initial_mapping = get_initial_layout_from_circuit(transpiled_circuit)
         
     tmp_end_time = time.perf_counter()
     compilation_time = tmp_end_time - tmp_start_time
@@ -237,7 +248,7 @@ def optimize_qasm(input_qasm, backend, optimization, enable_noise_adaptive = Fal
 
     # print(optimized_qasm)
 
-    return optimized_qasm, compilation_time
+    return optimized_qasm, compilation_time, initial_mapping
 
 def get_best_circuit_sabre(circ, backend):
     trans_qc_list = transpile([circ]*10, backend, optimization_level=3)
@@ -615,3 +626,48 @@ def generate_new_props(backend, calibration_type, recent_n = None):
     f.write(new_prop_json)
     f.close()
 
+def generate_noise_model_from_part_backend(backend, n_qubit, scale_error):
+    real_noise_model = NoiseModel.from_backend(backend)
+    real_noise_dict = real_noise_model.to_dict()
+    new_noise_dict = {}
+    new_noise_dict["errors"] = []
+    
+    for idx, i in enumerate(real_noise_dict["errors"]):
+        q = i["gate_qubits"][0]
+        if len(q) == 1 and q[0] < n_qubit:
+            new_noise_dict["errors"].append(real_noise_dict["errors"][idx])
+            
+    
+        if len(q) == 2 and q[0] < n_qubit and q[1] < n_qubit:
+            new_noise_dict["errors"].append(real_noise_dict["errors"][idx])
+            
+    new_noise_model = NoiseModel.from_dict(new_noise_dict)
+    
+    return new_noise_model
+
+def generate_brisbane_32_noisy_simulator(backend, scale_error):
+    brisbane_map = backend.configuration().coupling_map
+    brisbane_32_map = []
+    for i in brisbane_map:
+        if i[0] > 31:
+            pass
+        elif i[1] > 31:
+            pass
+        else:
+            brisbane_32_map.append(i)
+
+    properties = backend.properties()
+    prop_dict = properties.to_dict()
+    error_percentage = 1
+
+    noise_brisbane_32_cx = generate_noise_model_from_part_backend(backend, 32, scale_error)
+  
+    sim_brisbane_32 = AerSimulator(noise_model=noise_brisbane_32_cx)
+    sim_brisbane_32.set_options(
+        noise_model=noise_brisbane_32_cx,
+        basis_gates=backend.configuration().basis_gates,
+        coupling_map=brisbane_32_map,
+    )
+
+    # return noise_paper
+    return noise_brisbane_32_cx, sim_brisbane_32, brisbane_32_map
