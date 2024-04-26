@@ -64,9 +64,10 @@ def decompose_ccx(line, f_out, g):
     d = []   # to keep all the decompose gates
 
     base = line.split(" ")
-    c1 = base[1][:-1]
-    c2 = base[2][:-1]
-    t = base[3][:-1]
+    targets = base[1].split(",")
+    c1 = targets[0]
+    c2 = targets[1]
+    t = targets[2][:-1]
 
     #print(global_gate_id, g, c1, c2, t)
     

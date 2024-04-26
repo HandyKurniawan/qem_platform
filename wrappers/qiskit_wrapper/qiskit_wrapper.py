@@ -18,6 +18,8 @@ from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from commons import calibration_type_enum, sql_query, normalize_counts, Config
 from qiskit.providers.models import BackendProperties
 import json
+import requests
+import mysql.connector
 from .fake_ibm_perth import NewFakePerthRealAdjust, NewFakePerthRecent15, NewFakePerthRecent15Adjust, \
                         NewFakePerthMix, NewFakePerthMixAdjust, NewFakePerthAverage, NewFakePerthAverageAdjust
 from .fake_ibm_brisbane import NewFakeBrisbaneRealAdjust, NewFakeBrisbaneRecent15, NewFakeBrisbaneRecent15Adjust, \
@@ -671,3 +673,97 @@ def generate_brisbane_32_noisy_simulator(backend, scale_error):
 
     # return noise_paper
     return noise_brisbane_32_cx, sim_brisbane_32, brisbane_32_map
+
+
+def send_rest_api_request(url, token):
+    response = requests.request(
+        "GET",
+        url,
+        headers={
+            "Accept": "application/json",
+            "Authorization": "Bearer {}".format(token)
+        },
+    )
+
+    return response.json()
+
+def get_qiskit_user_info(token):
+
+    response_json = send_rest_api_request("https://api.quantum-computing.ibm.com/runtime/users/me", token)
+
+    email = response_json["email"]
+    plan = response_json["instances"][0]["plan"]
+
+    return email, plan
+
+def get_qiskit_usage_info(token):
+
+    response_json = send_rest_api_request("https://api.quantum-computing.ibm.com/runtime/usage", token)
+
+    print(response_json)
+
+    instance = response_json["byInstance"][0]["instance"]
+    quota = response_json["byInstance"][0]["quota"]
+    usage = response_json["byInstance"][0]["usage"]
+    pendingJobs = response_json["byInstance"][0]["pendingJobs"]
+    maxPendingJobs = response_json["byInstance"][0]["maxPendingJobs"]
+
+    return instance, quota, usage, pendingJobs, maxPendingJobs
+
+#region REST API
+
+def update_qiskit_usage_info(token):
+
+    # print("Start inserting...")
+    # print("==================")
+    # print(token)
+
+    instance, quota, usage, pendingJobs, maxPendingJobs = get_qiskit_usage_info(token)
+
+    email, plan = get_qiskit_user_info(token)
+
+    conn = mysql.connector.connect(**conf.mysql_config)
+    cursor = conn.cursor()
+    
+    # check if the metric is already there, just update
+    cursor.execute('SELECT token FROM qiskit_token WHERE token = %s', (token,))
+    existing_row = cursor.fetchone()
+
+    # insert to the table
+    if not existing_row:
+        cursor.execute("""INSERT INTO qiskit_token (token, str_instance, int_quota, int_usage, int_remaining, 
+                       int_pending_jobs, int_max_pending_jobs, str_email, str_plan)
+                        VALUES (%s, %s, %s, %s, %s, 
+                       %s, %s, %s, %s)""",
+        (token, instance, quota, usage, quota - usage, 
+         pendingJobs, maxPendingJobs, email, plan))
+
+        conn.commit()
+
+        print(token, "has been registered to the database.")
+    else:
+        cursor.execute("""UPDATE qiskit_token SET str_instance = %s, int_quota = %s, int_usage = %s, 
+                       int_remaining = %s, int_pending_jobs = %s, int_max_pending_jobs = %s, str_email = %s, str_plan = %s
+                            WHERE token = %s""",
+        (instance, quota, usage, 
+         quota - usage, pendingJobs, maxPendingJobs, email, plan,
+         token))
+
+        conn.commit()
+        print(token, " is updated.")
+    
+    cursor.close()
+    conn.close()
+
+def get_active_token(remaining, repetition):
+    conn = mysql.connector.connect(**conf.mysql_config)
+    cursor = conn.cursor()
+    
+    # check if the metric is already there, just update
+    cursor.execute('SELECT token FROM qiskit_token WHERE token = %s', (token,))
+    existing_row = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+#endregion

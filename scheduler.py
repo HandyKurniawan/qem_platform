@@ -200,7 +200,7 @@ def get_executed_jobs():
         conn = mysql.connector.connect(**conf.mysql_config)
         cursor = conn.cursor()
 
-        cursor.execute('SELECT id, job_id FROM result_header WHERE status = %s and user_id=11 and id >= 697;', ("executed", ))
+        cursor.execute('SELECT id, job_id FROM result_header WHERE status = %s and user_id IN (11,12) and id >= 697;', ("executed", ))
 
         results = cursor.fetchall()
         cursor.close()

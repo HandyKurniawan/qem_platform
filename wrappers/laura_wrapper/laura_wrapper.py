@@ -62,7 +62,7 @@ def generate_qasm(qasm_str, hardware_name, laura_optimization, measurement_type)
     # parse qasm into .in
     parse_ir(qasm_str, os.path.join(dag_path, dag_name))
 
-    print("map file :", map_file_path)
+    # print("map file :", map_file_path)
 
     # call triq
     call_triq = [os.path.join(laura_path, "laura"), 

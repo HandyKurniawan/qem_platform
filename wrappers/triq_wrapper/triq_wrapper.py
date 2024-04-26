@@ -62,7 +62,7 @@ def generate_qasm(qasm_str, hardware_name, triq_optimization, measurement_type):
     # parse qasm into .in
     parse_ir(qasm_str, os.path.join(dag_path, dag_name))
 
-    print(map_file_path)
+    # print(map_file_path)
 
     # call triq
     call_triq = [os.path.join(triq_path, "triq"), 
