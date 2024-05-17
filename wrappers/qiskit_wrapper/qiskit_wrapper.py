@@ -77,15 +77,15 @@ class QiskitCircuit:
                 # result_sim = job_sim.result()  
                 # self.correct_output = dict(result_sim.quasi_dists[0])  
                 backend_sim = Aer.get_backend('qasm_simulator')
-                job_sim = backend_sim.run(transpile(qc, backend_sim), shots=50000)
+                job_sim = backend_sim.run(transpile(qc, backend_sim), shots=100000)
                 result_sim = job_sim.result()  
-                self.correct_output = normalize_counts(dict(result_sim.get_counts(qc)), shots=50000)
+                self.correct_output = normalize_counts(dict(result_sim.get_counts(qc)), shots=100000)
             else:
                 backend_sim = Aer.get_backend('qasm_simulator')
-                job_sim = backend_sim.run(transpile(qc, backend_sim), shots=50000)
+                job_sim = backend_sim.run(transpile(qc, backend_sim), shots=100000)
                 result_sim = job_sim.result()  
                 # self.correct_output = normalize_counts(dict(result_sim.get_counts(qc)))
-                self.correct_output = normalize_counts((result_sim.get_counts(qc)), shots=50000)
+                self.correct_output = normalize_counts((result_sim.get_counts(qc)), shots=100000)
                 # print(self.correct_output)
 
     def get_native_gates_circuit(self, backend, simulator = False):
@@ -287,6 +287,9 @@ def get_initial_mapping_mapomatic(input_qasm, backend, calibration_type = calibr
     circuit = QuantumCircuit.from_qasm_str(input_qasm)
     tmp_backend = get_fake_backend(calibration_type, backend, recent_n, generate_props)
     initial_layout, new_circuit = get_best_mapomatic_layout(circuit, tmp_backend)
+
+    # print("Mapo initial_layout :", initial_layout)
+
     return initial_layout
 
 def get_initial_mapping_sabre(input_qasm, backend, calibration_type = calibration_type_enum.lcd, 
@@ -305,6 +308,7 @@ def get_initial_mapping_na(input_qasm, backend, calibration_type = calibration_t
     tmp_backend = get_fake_backend(calibration_type, backend, recent_n, generate_props)
     na_qc = transpile(circuit, tmp_backend, layout_method = "noise_adaptive", routing_method = "sabre", optimization_level = 3)
     initial_layout = get_initial_layout_from_circuit(na_qc)
+    # print("get_initial_mapping_na :", initial_layout)
 
     return initial_layout
 
@@ -755,15 +759,19 @@ def update_qiskit_usage_info(token):
     cursor.close()
     conn.close()
 
-def get_active_token(remaining, repetition):
-    conn = mysql.connector.connect(**conf.mysql_config)
-    cursor = conn.cursor()
-    
-    # check if the metric is already there, just update
-    cursor.execute('SELECT token FROM qiskit_token WHERE token = %s', (token,))
-    existing_row = cursor.fetchone()
+def get_active_token(remaining, repetition, token_number):
 
-    cursor.close()
-    conn.close()
+    sql = """SELECT token, int_remaining, int_pending_jobs, int_max_pending_jobs FROM qiskit_token 
+    WHERE int_remaining > 0 """
+
+    if remaining > 300:
+        sql = sql + """ and int_pending_jobs = 0 """
+
+    sql = sql + """ AND int_remaining > {} AND (int_max_pending_jobs - int_pending_jobs) > {} ORDER BY int_remaining ASC LIMIT {}
+    """.format(remaining, repetition, token_number)
+
+    results = sql_query(sql, ())
+
+    return results
 
 #endregion

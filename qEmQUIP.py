@@ -76,6 +76,7 @@ class QEM:
             # triq_wrapper.generate_recent_average_calibration_data(self, 15)
         
         if conf.initialized_triq == 1:
+            triq_wrapper.generate_recent_average_calibration_data(self, 15, True)
             triq_wrapper.generate_realtime_calibration_data(self)
             triq_wrapper.generate_average_calibration_data(self)
             triq_wrapper.generate_mix_calibration_data(self)
@@ -150,7 +151,7 @@ class QEM:
         existing_row = self.cursor.fetchone()
 
         # Handy Remark, remove later
-        skip = True
+        skip = conf.skip_update_simulator
 
         # qc = QiskitCircuit(qasm_source, name=circuit_name)
         qc = QiskitCircuit(qasm_source, name=circuit_name, skip_simulation=skip)
@@ -172,11 +173,11 @@ class QEM:
 
             print(circuit_name, "has been registered to the database.")
         else:
-            # self.cursor.execute("""UPDATE circuit SET qasm = %s, depth  = %s, total_gates  = %s, gates = %s, correct_output = %s 
-            #                     WHERE name = %s""",
-            # (qc.qasm, qc.depth, qc.total_gate, gates_json, correct_output_json, circuit_name))
+            self.cursor.execute("""UPDATE circuit SET qasm = %s, depth  = %s, total_gates  = %s, gates = %s, correct_output = %s 
+                                WHERE name = %s""",
+            (qc.qasm, qc.depth, qc.total_gate, gates_json, correct_output_json, circuit_name))
 
-            # self.conn.commit()
+            self.conn.commit()
             print(circuit_name, "already exist.")
 
         return qc
@@ -313,6 +314,8 @@ class QEM:
             calibration_type = calibration_type_enum.average.value
         elif compilation_name == "triq_mix":
             calibration_type = calibration_type_enum.mix.value
+        elif compilation_name == "triq_w15_adj":
+            calibration_type = calibration_type_enum.recent_15_adjust.value
 
         initial_mapping = ""
 
@@ -340,7 +343,10 @@ class QEM:
             hardware_name = conf.hardware_name + "_" + "avg"
         elif compilation_name == "triq_mix":
             hardware_name = conf.hardware_name + "_" + "mix"
+        elif compilation_name == "triq_w15_adj":
+            hardware_name = conf.hardware_name + "_" + "recent_15_adj"
             
+        print("TriQ hardware name :", hardware_name)
         tmp_start_time  = time.perf_counter()
         updated_qasm = triq_wrapper.run(updated_qasm, hardware_name, 0, measurement_type=conf.triq_measurement_type)
         tmp_end_time = time.perf_counter()
@@ -355,7 +361,7 @@ class QEM:
 
         return updated_qasm
 
-    def apply_laura(self, compilation_name, layout="mapo"):
+    def apply_laura(self, compilation_name, laura_optimization = 0, layout="mapo"):
         """
         apply_laura:
             "before" : before laura's version of triq
@@ -397,13 +403,13 @@ class QEM:
             hardware_name = conf.hardware_name + "_" + "mix"
             
         tmp_start_time  = time.perf_counter()
-        updated_qasm = laura_wrapper.run(updated_qasm, hardware_name, 2)
+        updated_qasm = laura_wrapper.run(updated_qasm, hardware_name, laura_optimization)
         tmp_end_time = time.perf_counter()
 
-        final_mapping = laura_wrapper.get_mapping(updated_qasm, hardware_name, 2)
+        final_mapping = laura_wrapper.get_mapping(updated_qasm, hardware_name, laura_optimization)
 
         compilation_time = tmp_end_time - tmp_start_time
-        compilation_name = layout + "_" + compilation_name
+        compilation_name = layout + "_" + compilation_name + "_{}".format(laura_optimization)
         self.insert_to_result_detail(compilation_name, compilation_time, updated_qasm, initial_mapping, final_mapping)
 
         return updated_qasm
@@ -520,32 +526,59 @@ WHERE h.job_id IS NULL AND d.header_id = %s  ''', (header_id,))
         elif conf.program_type == "Calibration" or conf.program_type == "CalibrationScale":
             self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_0.value, generate_props=generate_props)
             self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
-            self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_lcd.value, generate_props=generate_props)
-            self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_avg.value, generate_props=generate_props)
-            self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_mix.value, generate_props=generate_props)
-            self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_lcd.value, generate_props=generate_props)
-            self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_avg.value, generate_props=generate_props)
-            self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_mix.value, generate_props=generate_props)
-            self.apply_triq(compilation_name="triq_lcd", layout="mapo")
-            self.apply_triq(compilation_name="triq_lcd", layout="na")
-            self.apply_triq(compilation_name="triq_lcd", layout="sabre")
+            # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_lcd.value, generate_props=generate_props)
+            # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_avg.value, generate_props=generate_props)
+            # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_mix.value, generate_props=generate_props)
+            # self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_lcd.value, generate_props=generate_props)
+            # self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_avg.value, generate_props=generate_props)
+            # self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_mix.value, generate_props=generate_props)
+            # self.apply_triq(compilation_name="triq_lcd", layout="mapo")
+            # self.apply_triq(compilation_name="triq_lcd", layout="na")
+            # self.apply_triq(compilation_name="triq_lcd", layout="sabre")
             self.apply_triq(compilation_name="triq_avg", layout="mapo")
             self.apply_triq(compilation_name="triq_avg", layout="na")
             self.apply_triq(compilation_name="triq_avg", layout="sabre")
-            self.apply_triq(compilation_name="triq_mix", layout="mapo")
+            # self.apply_triq(compilation_name="triq_mix", layout="mapo")
+            # self.apply_triq(compilation_name="triq_mix", layout="na")
+            # self.apply_triq(compilation_name="triq_mix", layout="sabre")
+            # self.apply_laura(compilation_name="triq+_lcd", layout="mapo")
+            # self.apply_laura(compilation_name="triq+_lcd", layout="na")
+            # self.apply_laura(compilation_name="triq+_lcd", layout="sabre")
+            self.apply_laura(compilation_name="triq+_avg", laura_optimization=0, layout="mapo")
+            self.apply_laura(compilation_name="triq+_avg", laura_optimization=0, layout="na")
+            self.apply_laura(compilation_name="triq+_avg", laura_optimization=0, layout="sabre")
+            # self.apply_laura(compilation_name="triq+_mix", layout="mapo")
+            # self.apply_laura(compilation_name="triq+_mix", layout="na")
+            # self.apply_laura(compilation_name="triq+_mix", layout="sabre")
+        elif conf.program_type == "Polar":
+            self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_0.value, generate_props=generate_props)
+            self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
+            
+            self.apply_triq(compilation_name="triq_lcd", layout="na")
+            self.apply_triq(compilation_name="triq_lcd", layout="sabre")
+
+            self.apply_triq(compilation_name="triq_avg", layout="na")
+            self.apply_triq(compilation_name="triq_avg", layout="sabre")
+
             self.apply_triq(compilation_name="triq_mix", layout="na")
             self.apply_triq(compilation_name="triq_mix", layout="sabre")
-            self.apply_laura(compilation_name="triq+_lcd", layout="mapo")
-            self.apply_laura(compilation_name="triq+_lcd", layout="na")
-            self.apply_laura(compilation_name="triq+_lcd", layout="sabre")
-            self.apply_laura(compilation_name="triq+_avg", layout="mapo")
-            self.apply_laura(compilation_name="triq+_avg", layout="na")
-            self.apply_laura(compilation_name="triq+_avg", layout="sabre")
-            self.apply_laura(compilation_name="triq+_mix", layout="mapo")
-            self.apply_laura(compilation_name="triq+_mix", layout="na")
-            self.apply_laura(compilation_name="triq+_mix", layout="sabre")
-        elif conf.program_type == "Polar":
+
+            self.apply_triq(compilation_name="triq_w15_adj", layout="na")
+            self.apply_triq(compilation_name="triq_w15_adj", layout="sabre")
+
+            
+        elif conf.program_type == "Testing" or conf.program_type == "TriQP":
+            self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_0.value, generate_props=generate_props)
+            self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
+            self.apply_triq(compilation_name="triq_avg", layout="mapo")
             self.apply_triq(compilation_name="triq_avg", layout="na")
+            self.apply_triq(compilation_name="triq_avg", layout="sabre")
+            self.apply_laura(compilation_name="triq+_avg", laura_optimization=0, layout="mapo")
+            self.apply_laura(compilation_name="triq+_avg", laura_optimization=0, layout="na")
+            self.apply_laura(compilation_name="triq+_avg", laura_optimization=0, layout="sabre")
+            self.apply_laura(compilation_name="triq+_avg", laura_optimization=2, layout="mapo")
+            self.apply_laura(compilation_name="triq+_avg", laura_optimization=2, layout="na")
+            self.apply_laura(compilation_name="triq+_avg", laura_optimization=2, layout="sabre")
 #endregion
         
     def get_fake_perth(self):
@@ -571,68 +604,78 @@ if __name__ == "__main__":
     # q.send_qasm_to_real_backend()
 #endregion
 
-    for repetition in range(conf.repetition):
+    #get active token
+    token_list = qiskit_wrapper.get_active_token(conf.remaining, conf.repetition, conf.token_number)
 
-        #get active token
-        
+    if len(token_list) == 0:
+        print("================================")
+        print("=       NO MORE TOKEN LEFT     =")
+        print("================================")
+
+    for res in token_list:
+        token, remaining, pending_job, max_pending_job = res
         conf.qiskit_token = token
-        print(conf.qiskit_token)
 
-        
+        print("Program Type: ", conf.program_type)
 
-        print("Repetition:", repetition)
-        print("============================")
-        # List all files in the base folder with the .qasm extension
-        qasm_files = glob.glob(os.path.expanduser(os.path.join(conf.base_folder, "*.qasm")))
-        qasm_files = sorted(qasm_files)
-        qasm_files.sort(key=num_sort) 
+        for repetition in range(conf.repetition):
 
-        if debug: start_time = time.perf_counter()
+            print("Repetition:", repetition)
+            print("============================")
+            print(conf.base_folder)
+            # List all files in the base folder with the .qasm extension
+            qasm_files = glob.glob(os.path.expanduser(os.path.join(conf.base_folder, "*.qasm")))
+            qasm_files = sorted(qasm_files)
+            qasm_files.sort(key=num_sort) 
 
-        # initial class QEM
-        if debug: tmp_start_time  = time.perf_counter() 
-        q = QEM(runs=conf.runs, fixed_initial_layout = False, run_in_simulator=conf.run_in_simulator, user_id=conf.user_id, token=token)
-        
-        if debug: tmp_end_time = time.perf_counter()
-        if debug: print("Time for initialization: {} seconds".format(tmp_end_time - tmp_start_time))
+            if debug: start_time = time.perf_counter()
 
-        # init header
-        if debug: tmp_start_time  = time.perf_counter()
-        q.init_result_header(token)
-        if debug: tmp_end_time = time.perf_counter()
-        if debug: print("Time for running the init header: {} seconds".format(tmp_end_time - tmp_start_time))
-
-        generate_props = True
-        # generate_props = False
-
-        for i in qasm_files:
-            qasm_source = i
-            q.circuit_name = i.split("/")[-1].split(".")[0]
-            print("=========== {} ===========".format(q.circuit_name))
+            # initial class QEM
+            if debug: tmp_start_time  = time.perf_counter() 
+            q = QEM(runs=conf.runs, fixed_initial_layout = False, run_in_simulator=conf.run_in_simulator, user_id=conf.user_id, token=token)
             
-            qc = q.get_circuit_properties(qasm_source=qasm_source)
-            q.qasm = qc.qasm
-            q.qasm_original = qc.qasm_original
-
-            # Run Optimization
-            if debug: tmp_start_time  = time.perf_counter()
-            q.run(generate_props)
             if debug: tmp_end_time = time.perf_counter()
-            if debug: print("Time for running the optimization: {} seconds".format(tmp_end_time - tmp_start_time))
+            if debug: print("Time for initialization: {} seconds".format(tmp_end_time - tmp_start_time))
+
+            # init header
+            if debug: tmp_start_time  = time.perf_counter()
+            q.init_result_header(token)
+            if debug: tmp_end_time = time.perf_counter()
+            if debug: print("Time for running the init header: {} seconds".format(tmp_end_time - tmp_start_time))
+
+            generate_props = True
+            # generate_props = False
+
+            for i in qasm_files:
+                qasm_source = i
+                q.circuit_name = i.split("/")[-1].split(".")[0]
+                print("=========== {} ===========".format(q.circuit_name))
+                
+                qc = q.get_circuit_properties(qasm_source=qasm_source)
+                q.qasm = qc.qasm
+                q.qasm_original = qc.qasm_original
+
+                # Run Optimization
+                if debug: tmp_start_time  = time.perf_counter()
+                q.run(generate_props)
+                if debug: tmp_end_time = time.perf_counter()
+                if debug: print("Time for running the optimization: {} seconds".format(tmp_end_time - tmp_start_time))
+                
+                generate_props = False
+
+            q.close_database_connection()
+
+            q.open_database_connection()
             
-            generate_props = False
+            # Send to backend
+            if debug: tmp_start_time  = time.perf_counter()
+            q.send_qasm_to_real_backend()
+            if debug: tmp_end_time = time.perf_counter()
+            if debug: print("Time for sending to backend: {} seconds".format(tmp_end_time - tmp_start_time))
+            
+            qiskit_wrapper.update_qiskit_usage_info(token)
 
-        q.close_database_connection()
+            q.close_database_connection()
 
-        q.open_database_connection()
-        
-        # Send to backend
-        if debug: tmp_start_time  = time.perf_counter()
-        q.send_qasm_to_real_backend()
-        if debug: tmp_end_time = time.perf_counter()
-        if debug: print("Time for sending to backend: {} seconds".format(tmp_end_time - tmp_start_time))
-        
-        q.close_database_connection()
-
-        if debug: end_time = time.perf_counter()
-        if debug: print("Total time executed: {} seconds".format(end_time - start_time))
+            if debug: end_time = time.perf_counter()
+            if debug: print("Total time executed: {} seconds".format(end_time - start_time))

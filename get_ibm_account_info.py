@@ -6,7 +6,7 @@ import time
 mysql_config = {
     'user': 'handy',
     'password': 'handy',
-    'host': 'ec2-13-60-63-1.eu-north-1.compute.amazonaws.com',
+    'host': 'ec2-16-171-29-171.eu-north-1.compute.amazonaws.com',
     'database': 'framework'
 }
 
@@ -88,18 +88,45 @@ def update_qiskit_usage_info(token):
     cursor.close()
     conn.close()
     
+def get_all_token():
+    conn = mysql.connector.connect(**mysql_config)
+    cursor = conn.cursor()
     
+    cursor.execute('''SELECT token FROM qiskit_token WHERE int_pending_jobs > 0 ''')
+    
+    results = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
 
-token_list = [
-    # Finished
-    # # pepe 4
-    # "055a93864810f2fc66e4de35b13027e8e591f0d019abb91b4895971fa16a991bef0ac573457c707c3d1070e5105d8f0cdd489f842cc06723d29a233c9f483e74",
-]
+    return results
 
-for token in token_list:
+def get_new_token():
+    conn = mysql.connector.connect(**mysql_config)
+    cursor = conn.cursor()
+    
+    cursor.execute('''SELECT token FROM qiskit_token WHERE str_email IS NULL ''')
+    
+    results = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+
+    return results
+
+results = get_all_token()
+for res in results:
+    token = res[0]
+
     update_qiskit_usage_info(token)
 
-    time.sleep(20)
+    time.sleep(10)
 
-    
+# for new token
+results = get_new_token()
+for res in results:
+    token = res[0]
+    update_qiskit_usage_info(token)
+
+    time.sleep(10)
     

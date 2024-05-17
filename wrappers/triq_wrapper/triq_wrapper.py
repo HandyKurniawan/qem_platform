@@ -69,6 +69,8 @@ def generate_qasm(qasm_str, hardware_name, triq_optimization, measurement_type):
                 dag_file_path, 
                 out_file_path, tmp_hw_name, str(triq_optimization), map_file_path, measurement_type]
 
+    print(call_triq)
+
     out_file=open("log/output.log",'w+')
 
     p = sp.Popen(call_triq, stdout=out_file, text=True, shell=False)    
@@ -123,6 +125,7 @@ def get_mapping(qasm_str, hardware_name, triq_optimization):
 
 def generate_initial_mapping_file(init_maps):
     string_maps = ', '.join(map(str, init_maps))
+    print("map_file_path :", string_maps)
     f = open(map_file_path, "w+")
     f.write(string_maps)
     f.close()
@@ -170,6 +173,10 @@ WHERE i.hw_name = %s ORDER BY calibration_datetime DESC LIMIT 0, 1;
         f.write("{}\n".format(count))
         for res in results:
             calibration_id, qubit_control, qubit_target, fidelity_2q = res
+
+            if fidelity_2q <= 0:
+                fidelity_2q = 0.001
+
             f.write("{} {} {} \n".format(qubit_control, qubit_target, fidelity_2q))
 
         f.close()
@@ -231,7 +238,7 @@ MAX(''' + native_gates_2q + '''_fidelity), MIN(''' + native_gates_2q + '''_fidel
 SELECT DISTINCT qubit_control, qubit_target, 1 - ''' + native_gates_2q + '''_error AS ''' + native_gates_2q + '''_fidelity, 
 ''' + native_gates_2q + '''_date 
 FROM calibration_data.ibm_two_qubit_gate_spec q
-WHERE q.hw_name = %s AND ''' + native_gates_2q + '''_error != 1
+WHERE q.hw_name = %s 
 ) X GROUP BY qubit_control, qubit_target;
                     ''', (conf.hardware_name, ))
     results = cursor.fetchall()
@@ -241,6 +248,10 @@ WHERE q.hw_name = %s AND ''' + native_gates_2q + '''_error != 1
         f.write("{}\n".format(count))
         for res in results:
             qubit_control, qubit_target, fidelity_2q, fidelity_2q_std, fidelity_2q_max, fidelity_2q_min = res
+
+            if fidelity_2q <= 0:
+                fidelity_2q = 0.001
+
             f.write("{} {} {} \n".format(qubit_control, qubit_target, fidelity_2q))
 
         f.close()
@@ -266,18 +277,36 @@ WHERE i.hw_name = %s
 
     conn.close()
 
-def generate_recent_average_calibration_data(qem, days):
+def generate_recent_average_calibration_data(qem, days, adjust = False):
     # Connect to the MySQL database
     conn = mysql.connector.connect(**conf.mysql_config)
     cursor = conn.cursor()
 
     # get last calibration id
-    cursor.execute('''SELECT calibration_id, 2q_native_gates FROM calibration_data.ibm i
+    cursor.execute('''SELECT calibration_id, 2q_native_gates, number_of_qubit FROM calibration_data.ibm i
 INNER JOIN calibration_data.hardware h ON i.hw_name = h.hw_name
 WHERE i.hw_name = %s ORDER BY calibration_datetime DESC LIMIT 0, 1;
                     ''', (conf.hardware_name, ))
     results = cursor.fetchall()
-    calibration_id, native_gates_2q = results[0]
+    calibration_id, native_gates_2q, number_of_qubit = results[0]
+
+    std_1q_error = {}
+    avg_1q_error = {}
+    if adjust:
+        # get STD of 1 qubit gate error
+        sql = """SELECT qubit, STDDEV(x_error), AVG(x_error) FROM (
+        SELECT DISTINCT qubit, x_error, x_date 
+        FROM calibration_data.ibm_one_qubit_gate_spec q
+        WHERE q.hw_name = %s
+        ) X GROUP BY qubit;"""
+        cursor.execute(sql, (conf.hardware_name,))
+        results = cursor.fetchall()
+        count = len(results)
+        if count > 0:
+            for res in results:
+                qubit, error, avg_error = res
+                std_1q_error[qubit] = float(error)
+                avg_1q_error[qubit] = float(avg_error) + float(error) + float(error)
 
     # get 1 qubit gate error
     cursor.execute('''
@@ -289,15 +318,56 @@ AND x_date BETWEEN date_add(now(), INTERVAL %s DAY) AND now()
 ) X GROUP BY qubit;
                     ''', (conf.hardware_name, days * -1))
     results = cursor.fetchall()
-    count = len(results)
+    count = len(avg_1q_error)
     if count > 0:
-        f = open("./config/{}_recent_{}_S.rlb".format(conf.hardware_name, days), "w+")
+        file_name = "./config/{}_recent_{}_S.rlb".format(conf.hardware_name, days)
+        if adjust:
+            file_name = "./config/{}_recent_{}_adj_S.rlb".format(conf.hardware_name, days)
+
+        f = open(file_name, "w+")
         f.write("{}\n".format(count))
+
+        fidelity_dict = {}
+        # initialized with avg error + 2 std error, to solve the problem with uncalibrated qubit
+        for qubit, fidelity_1q in avg_1q_error.items():
+            fidelity_dict[qubit] = fidelity_1q
+
         for res in results:
             qubit, fidelity_1q, fidelity_1q_std, fidelity_1q_max, fidelity_1q_min = res
+
+            if adjust:
+                fidelity_1q = float(fidelity_1q) - std_1q_error[qubit]
+
+            if fidelity_1q <= 0:
+                fidelity_1q = 0.001
+
+            fidelity_dict[qubit] = fidelity_1q
+
+        for qubit, fidelity_1q in fidelity_dict.items():   
             f.write("{} {} \n".format(qubit, fidelity_1q))
 
         f.close()
+
+    std_2q_error = {}
+    avg_2q_error = {}
+    if adjust:
+        # get STD of 2 qubit gate error
+        sql = '''SELECT qubit_control, qubit_target, STDDEV(''' + native_gates_2q + '''_error), AVG(''' + native_gates_2q + '''_error)
+        FROM (
+SELECT DISTINCT qubit_control, qubit_target, ''' + native_gates_2q + '''_error, 
+''' + native_gates_2q + '''_date 
+FROM calibration_data.ibm_two_qubit_gate_spec q
+WHERE q.hw_name = %s 
+) X GROUP BY qubit_control, qubit_target;'''
+        cursor.execute(sql, (conf.hardware_name,))
+        results = cursor.fetchall()
+        count = len(results)
+        if count > 0:
+            for res in results:
+                qubit_control, qubit_target, error, avg_error = res
+                qubits = (qubit_control, qubit_target)
+                std_2q_error[qubits] = float(error)
+                avg_2q_error[qubits] = float(avg_error) + float(error) + float(error)
 
     # get 2 qubit gate error
     cursor.execute('''
@@ -306,20 +376,62 @@ MAX(''' + native_gates_2q + '''_fidelity), MIN(''' + native_gates_2q + '''_fidel
 SELECT DISTINCT qubit_control, qubit_target, 1 - ''' + native_gates_2q + '''_error AS ''' + native_gates_2q + '''_fidelity, 
 ''' + native_gates_2q + '''_date 
 FROM calibration_data.ibm_two_qubit_gate_spec q
-WHERE q.hw_name = %s AND ''' + native_gates_2q + '''_error != 1
+WHERE q.hw_name = %s 
 AND ''' + native_gates_2q + '''_date BETWEEN date_add(now(), INTERVAL %s DAY) AND now()
 ) X GROUP BY qubit_control, qubit_target;
                     ''', (conf.hardware_name, days * -1))
     results = cursor.fetchall()
-    count = len(results)
+    count = len(avg_2q_error)
     if count > 0:
-        f = open("./config/{}_recent_{}_T.rlb".format(conf.hardware_name, days), "w+")
+        file_name = "./config/{}_recent_{}_T.rlb".format(conf.hardware_name, days)
+        if adjust:
+            file_name = "./config/{}_recent_{}_adj_T.rlb".format(conf.hardware_name, days)
+
+        f = open(file_name, "w+")
         f.write("{}\n".format(count))
+
+        fidelity_dict = {}
+        
+        # initialized with avg error + 2 std error, to solve the problem with uncalibrated qubit
+        for qubits, fidelity_2q in avg_2q_error.items():
+            fidelity_dict[qubits] = fidelity_2q
+
         for res in results:
             qubit_control, qubit_target, fidelity_2q, fidelity_2q_std, fidelity_2q_max, fidelity_2q_min = res
+            qubits = (qubit_control, qubit_target)
+
+            if adjust:    
+                fidelity_2q = float(fidelity_2q) - std_2q_error[qubits]
+
+            if fidelity_2q <= 0:
+                fidelity_2q = 0.001
+
+            fidelity_dict[qubits] = fidelity_2q
+
+        for qubits, fidelity_2q in fidelity_dict.items():  
+            qubit_control = qubits[0]
+            qubit_target = qubits[1]
             f.write("{} {} {} \n".format(qubit_control, qubit_target, fidelity_2q))
 
         f.close()
+
+    std_readout_error = {}
+    avg_readout_error = {}
+    if adjust:
+        # get STD of 1 qubit gate error
+        sql = """SELECT qubit, STDDEV(readout_error), AVG(readout_error) FROM (
+SELECT DISTINCT qubit, readout_error, readout_error_date FROM calibration_data.ibm_qubit_spec q
+INNER JOIN calibration_data.ibm i ON q.calibration_id = i.calibration_id 
+WHERE i.hw_name = %s
+) X GROUP BY qubit;"""
+        cursor.execute(sql, (conf.hardware_name,))
+        results = cursor.fetchall()
+        count = len(results)
+        if count > 0:
+            for res in results:
+                qubit, error, avg_error = res
+                std_readout_error[qubit] = float(error)
+                avg_readout_error[qubit] = float(avg_error) + float(error) + float(error)
 
     # get readout error
     cursor.execute('''
@@ -330,12 +442,33 @@ WHERE i.hw_name = %s AND readout_error_date BETWEEN date_add(now(), INTERVAL %s 
 ) X GROUP BY qubit;
                     ''', (conf.hardware_name, days * -1))
     results = cursor.fetchall()
-    count = len(results)
+    count = len(avg_readout_error)
     if count > 0:
-        f = open("./config/{}_recent_{}_M.rlb".format(conf.hardware_name, days), "w+")
+        file_name = "./config/{}_recent_{}_M.rlb".format(conf.hardware_name, days)
+        if adjust:
+            file_name = "./config/{}_recent_{}_adj_M.rlb".format(conf.hardware_name, days)
+
+        f = open(file_name, "w+")
         f.write("{}\n".format(count))
+
+        fidelity_dict = {}
+        # initialized with avg error + 2 std error, to solve the problem with uncalibrated qubit
+        for qubit, readout_fidelity in avg_readout_error.items():
+            fidelity_dict[qubit] = readout_fidelity
+
+        # update with chosen calculated days
         for res in results:
             qubit, readout_fidelity, readout_fidelity_std, readout_fidelity_max, readout_fidelity_min = res
+            
+            if adjust:
+                readout_fidelity = float(readout_fidelity) - std_readout_error[qubit]
+
+            if readout_fidelity <= 0:
+                readout_fidelity = 0.001
+
+            fidelity_dict[qubit] = readout_fidelity
+
+        for qubit, readout_fidelity in fidelity_dict.items():
             f.write("{} {}\n".format(qubit, readout_fidelity))
 
         f.close()
@@ -420,7 +553,7 @@ MIN(''' + native_gates_2q + '''_fidelity) AS ''' + native_gates_2q + '''_fidelit
 SELECT DISTINCT qubit_control, qubit_target, 1 - ''' + native_gates_2q + '''_error AS ''' + native_gates_2q + '''_fidelity, ''' + native_gates_2q + '''_date FROM calibration_data.ibm_two_qubit_gate_spec q
 INNER JOIN calibration_data.ibm i ON q.calibration_id = i.calibration_id 
 WHERE i.hw_name = %s) X GROUP BY qubit_control, qubit_target) a ON q.qubit_control = a.qubit_control AND q.qubit_target = a.qubit_target
-WHERE q.calibration_id = %s AND ''' + native_gates_2q + '''_error != 1;
+WHERE q.calibration_id = %s;
 ''', (calibration_date, conf.hardware_name, calibration_id, ))
     results = cursor.fetchall()
     count = len(results)
@@ -429,6 +562,10 @@ WHERE q.calibration_id = %s AND ''' + native_gates_2q + '''_error != 1;
         f.write("{}\n".format(count))
         for res in results:
             calibration_id, qubit_control, qubit_target, fidelity_2q = res
+
+            if fidelity_2q <= 0:
+                fidelity_2q = 0.001
+
             f.write("{} {} {} \n".format(qubit_control, qubit_target, fidelity_2q))
             
 
