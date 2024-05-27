@@ -49,10 +49,10 @@ class Config:
         self.remaining = int(self.config_parser[quantum_config_name]['remaining'])
         self.token_number = int(self.config_parser[quantum_config_name]['token_number'])
         self.skip_update_simulator = True if self.config_parser[quantum_config_name]['skip_update_simulator'] == "1" else False
+        self.noisy_simulator = True if self.config_parser[quantum_config_name]['noisy_simulator'] == "1" else False
+        self.noise_level = list(map(float, self.config_parser[quantum_config_name]['noise_level'].split(",")))
+        self.send_to_backend = True if self.config_parser[quantum_config_name]['send_to_backend'] == "1" else False
         
-        
-
-
 conf = Config()
 
 class triq_optimization(Enum):
@@ -153,6 +153,33 @@ def convert_dict_binary_to_int(bin_dict):
     int_dict = tmp
 
     return int_dict
+
+def convert_dict_int_to_binary(int_dict, n):
+    tmp = {}
+    
+    bit_format = "0:0{}b".format(n)
+    bit_format = "{" + bit_format + "}"
+    
+    for key, value in int_dict.items():
+        int_key = int(key)
+        new_key = bit_format.format(int_key)
+        tmp[new_key] = value
+    bin_dict = tmp
+
+    return bin_dict
+
+def reverse_string_keys(original_dict):
+    reversed_dict = {}
+    
+    for key, value in original_dict.items():
+        if isinstance(key, str):
+            reversed_key = key[::-1]
+        else:
+            reversed_key = key  # Keep the key unchanged if it's not a string
+            
+        reversed_dict[reversed_key] = value
+
+    return reversed_dict
 
 def is_mitigated(job):
     try:

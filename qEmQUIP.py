@@ -27,6 +27,7 @@ from datetime import datetime
 import mysql.connector
 import time
 import json
+import mapomatic as mm
 
 conf = Config()
 debug = conf.activate_debugging_time
@@ -414,44 +415,96 @@ class QEM:
 
         return updated_qasm
     
-    def insert_to_result_detail(self, compilation_name, compilation_time, updated_qasm, initial_mapping = "", final_mapping = ""):
+    def apply_sabre_noise(self, folder="laura"):
+        
+        # read the file        
+        url_file = "~/qem_platform/circuits/{}/{}.qasm".format(folder,q.circuit_name)
+        print("Laura :", url_file)
+        updated_qasm = QuantumCircuit.from_qasm_file(url_file).qasm()
+
+        compilation_time = -999
+        compilation_name = "sabre_noise_avg"
+        self.insert_to_result_detail(compilation_name, compilation_time, updated_qasm, "", "")
+
+        return updated_qasm
+    
+    def insert_to_result_detail(self, compilation_name, compilation_time, updated_qasm, 
+                                initial_mapping = "", final_mapping = ""):
         now_time = datetime.now().strftime("%Y%m%d%H%M%S")
         
-        sql = """
-        INSERT INTO result_detail
-        (header_id, circuit_name, compilation_name, compilation_time, 
-        initial_mapping, final_mapping, created_datetime)
-        VALUES (%s, %s, %s, %s, 
-        %s, %s, %s);
-        """
+        if conf.noisy_simulator:
+            for noise_level in conf.noise_level:
 
-        str_initial_mapping = ', '.join(str(x) for x in initial_mapping)
+                sql = """
+                INSERT INTO result_detail
+                (header_id, circuit_name, compilation_name, compilation_time, 
+                initial_mapping, final_mapping, noisy_simulator, noise_level, 
+                created_datetime)
+                VALUES (%s, %s, %s, %s, 
+                %s, %s, %s, %s,
+                %s);
+                """
 
-        json_final_mapping = ""
-        if final_mapping != "":
-            json_final_mapping = json.dumps(final_mapping, default=str)
+                str_initial_mapping = ', '.join(str(x) for x in initial_mapping)
 
-        # print("Initial mapping:", str_initial_mapping, ", final mapping:", json_final_mapping)
-        print(compilation_name)
+                json_final_mapping = ""
+                if final_mapping != "":
+                    json_final_mapping = json.dumps(final_mapping, default=str)
 
-        self.cursor.execute(sql, (self.header_id, self.circuit_name, compilation_name, compilation_time, \
-                                  str_initial_mapping, json_final_mapping, now_time))
-        detail_id = self.cursor.lastrowid
+                # print("Initial mapping:", str_initial_mapping, ", final mapping:", json_final_mapping)
+                print(compilation_name)
 
-        sql = """
-        INSERT INTO result_updated_qasm
-        (detail_id, updated_qasm)
-        VALUES (%s, %s);
-        """
+                self.cursor.execute(sql, (self.header_id, self.circuit_name, compilation_name, compilation_time, \
+                                        str_initial_mapping, json_final_mapping, 1, noise_level, now_time))
+                detail_id = self.cursor.lastrowid
 
-        self.cursor.execute(sql, (detail_id, updated_qasm))
+                sql = """
+                INSERT INTO result_updated_qasm
+                (detail_id, updated_qasm)
+                VALUES (%s, %s);
+                """
 
-        self.conn.commit()
+                self.cursor.execute(sql, (detail_id, updated_qasm))
+
+                self.conn.commit()
+        else:
+
+
+            sql = """
+            INSERT INTO result_detail
+            (header_id, circuit_name, compilation_name, compilation_time, 
+            initial_mapping, final_mapping, created_datetime)
+            VALUES (%s, %s, %s, %s, 
+            %s, %s, %s);
+            """
+
+            str_initial_mapping = ', '.join(str(x) for x in initial_mapping)
+
+            json_final_mapping = ""
+            if final_mapping != "":
+                json_final_mapping = json.dumps(final_mapping, default=str)
+
+            # print("Initial mapping:", str_initial_mapping, ", final mapping:", json_final_mapping)
+            print(compilation_name)
+
+            self.cursor.execute(sql, (self.header_id, self.circuit_name, compilation_name, compilation_time, \
+                                    str_initial_mapping, json_final_mapping, now_time))
+            detail_id = self.cursor.lastrowid
+
+            sql = """
+            INSERT INTO result_updated_qasm
+            (detail_id, updated_qasm)
+            VALUES (%s, %s);
+            """
+
+            self.cursor.execute(sql, (detail_id, updated_qasm))
+
+            self.conn.commit()
 
         
     def send_qasm_to_real_backend(self):
 
-        self.cursor.execute('SELECT id, qiskit_token, shots, runs FROM result_header WHERE job_id IS NULL;')
+        self.cursor.execute('SELECT id, qiskit_token, shots, runs FROM result_header WHERE job_id IS NULL AND user_id NOT IN (17);')
         results_1 = self.cursor.fetchall()
 
         print("Total send to backend :", len(results_1))
@@ -516,6 +569,87 @@ WHERE h.job_id IS NULL AND d.header_id = %s  ''', (header_id,))
                         time.sleep(1)
                         print(i)
 
+    def run_on_noisy_simulator_local(self):
+
+        self.cursor.execute('SELECT id, qiskit_token, shots, runs FROM result_header WHERE job_id IS NULL;')
+        results_1 = self.cursor.fetchall()
+
+        print("Total send to local simulator :", len(results_1))
+
+        for res_1 in results_1:
+            header_id, qiskit_token, shots, runs = res_1
+
+            self.set_backend(qiskit_token, shots=shots)
+
+            self.cursor.execute('''SELECT d.id, q.updated_qasm, d.compilation_name, d.noise_level 
+FROM result_detail d
+INNER JOIN result_header h ON d.header_id = h.id
+INNER JOIN result_updated_qasm q ON d.id = q.detail_id 
+WHERE h.job_id IS NULL AND d.header_id = %s  ''', (header_id,))
+            results = self.cursor.fetchall()
+
+            success = False
+            list_circuits = []
+
+            for res in results:
+                detail_id, updated_qasm, compilation_name, noise_level = res
+
+                qc = QiskitCircuit(updated_qasm, skip_simulation=True)
+
+                circuit = None
+                if compilation_name == "triq_lcd" or compilation_name == "triq+_lcd":
+                    circuit = qc.transpile_to_target_backend(self.backend, self.run_in_simulator)
+                else:
+                    # circuit = qc.get_native_gates_circuit(self.backend, self.run_in_simulator)
+                    circuit = qc.transpile_to_target_backend(self.backend, self.run_in_simulator)
+                    print("transpile to target backend")
+
+                # circuit = qc.circuit
+
+                # if conf.run_in_simulator:
+                #     circuit = 
+
+                for i in range(runs):
+
+                    list_circuits.append(mm.deflate_circuit(circuit))
+                
+            print("Total no of circuits :",len(list_circuits))
+
+            while not success:
+                try:
+
+                    print("Running to {} with batch id: {} ... ".format("Local Simulator", header_id))
+                    
+                    # job = self.sampler.run(list_circuits, skip_transpilation=True)
+                    # job_id = job.job_id()
+
+
+                    # moved to scheduler to run it one by one
+                    # noise_model, sim_noisy, coupling_map = qiskit_wrapper.get_noisy_simulator(self.backend, noise_level)
+                    # job = sim_noisy.run(list_circuits, shots=shots)
+                    # result = job.result()  
+                    # outputs = result.get_counts()
+                    # for output in outputs:
+                    #     output_normalize = normalize_counts(output, shots=shots)
+                    #     print(output_normalize["9"])
+
+                    success = True
+
+                    # update to result detail
+                    print("Sent!")
+                    self.cursor.execute('UPDATE result_header SET job_id = %s, status = "pending", updated_datetime = NOW() WHERE id = %s', ("simulator", header_id))
+
+                    self.conn.commit()
+
+                except Exception as e:
+                    print(f"An error occurred: {str(e)}. Will try again in 30 seconds...")
+
+                    for i in range(30, 0, -1):
+                        time.sleep(1)
+                        print(i)
+
+
+
 #region Run
     def run(self, generate_props = False):
         """
@@ -524,6 +658,7 @@ WHERE h.job_id IS NULL AND d.header_id = %s  ''', (header_id,))
         if conf.program_type == "PolarRepeat":
             self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
         elif conf.program_type == "Calibration" or conf.program_type == "CalibrationScale":
+            self.apply_sabre_noise("laura")
             self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_0.value, generate_props=generate_props)
             self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
             # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_lcd.value, generate_props=generate_props)
@@ -535,22 +670,42 @@ WHERE h.job_id IS NULL AND d.header_id = %s  ''', (header_id,))
             # self.apply_triq(compilation_name="triq_lcd", layout="mapo")
             # self.apply_triq(compilation_name="triq_lcd", layout="na")
             # self.apply_triq(compilation_name="triq_lcd", layout="sabre")
-            self.apply_triq(compilation_name="triq_avg", layout="mapo")
+            # self.apply_triq(compilation_name="triq_avg", layout="mapo")
             self.apply_triq(compilation_name="triq_avg", layout="na")
             self.apply_triq(compilation_name="triq_avg", layout="sabre")
+            
+
             # self.apply_triq(compilation_name="triq_mix", layout="mapo")
             # self.apply_triq(compilation_name="triq_mix", layout="na")
             # self.apply_triq(compilation_name="triq_mix", layout="sabre")
             # self.apply_laura(compilation_name="triq+_lcd", layout="mapo")
             # self.apply_laura(compilation_name="triq+_lcd", layout="na")
             # self.apply_laura(compilation_name="triq+_lcd", layout="sabre")
-            self.apply_laura(compilation_name="triq+_avg", laura_optimization=0, layout="mapo")
-            self.apply_laura(compilation_name="triq+_avg", laura_optimization=0, layout="na")
-            self.apply_laura(compilation_name="triq+_avg", laura_optimization=0, layout="sabre")
+            # self.apply_laura(compilation_name="triq+_avg", laura_optimization=0, layout="mapo")
+            # self.apply_laura(compilation_name="triq+_avg", laura_optimization=0, layout="na")
+            # self.apply_laura(compilation_name="triq+_avg", laura_optimization=0, layout="sabre")
             # self.apply_laura(compilation_name="triq+_mix", layout="mapo")
             # self.apply_laura(compilation_name="triq+_mix", layout="na")
             # self.apply_laura(compilation_name="triq+_mix", layout="sabre")
-        elif conf.program_type == "Polar":
+        elif conf.program_type == "CalibrationSherbrooke":
+            self.apply_sabre_noise("laura_sherbrooke")
+            self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_0.value, generate_props=generate_props)
+            self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
+            # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_lcd.value, generate_props=generate_props)
+            self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_avg.value, generate_props=generate_props)
+            # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_NA_mix.value, generate_props=generate_props)
+            # self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_lcd.value, generate_props=generate_props)
+            self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_avg.value, generate_props=generate_props)
+            # self.apply_qiskit(compilation_name=qiskit_compilation_enum.mapomatic_mix.value, generate_props=generate_props)
+            self.apply_triq(compilation_name="triq_lcd", layout="na")
+            self.apply_triq(compilation_name="triq_lcd", layout="sabre")
+            self.apply_triq(compilation_name="triq_avg", layout="na")
+            self.apply_triq(compilation_name="triq_avg", layout="sabre")
+
+            self.apply_triq(compilation_name="triq_mix", layout="na")
+            self.apply_triq(compilation_name="triq_mix", layout="sabre")
+
+        elif conf.program_type == "Polar"  or conf.program_type == "PolarSimulation":
             self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_0.value, generate_props=generate_props)
             self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
             
@@ -570,15 +725,15 @@ WHERE h.job_id IS NULL AND d.header_id = %s  ''', (header_id,))
         elif conf.program_type == "Testing" or conf.program_type == "TriQP":
             self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_0.value, generate_props=generate_props)
             self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
-            self.apply_triq(compilation_name="triq_avg", layout="mapo")
-            self.apply_triq(compilation_name="triq_avg", layout="na")
-            self.apply_triq(compilation_name="triq_avg", layout="sabre")
-            self.apply_laura(compilation_name="triq+_avg", laura_optimization=0, layout="mapo")
-            self.apply_laura(compilation_name="triq+_avg", laura_optimization=0, layout="na")
-            self.apply_laura(compilation_name="triq+_avg", laura_optimization=0, layout="sabre")
-            self.apply_laura(compilation_name="triq+_avg", laura_optimization=2, layout="mapo")
-            self.apply_laura(compilation_name="triq+_avg", laura_optimization=2, layout="na")
-            self.apply_laura(compilation_name="triq+_avg", laura_optimization=2, layout="sabre")
+            self.apply_triq(compilation_name="triq_lcd", layout="mapo")
+            self.apply_triq(compilation_name="triq_lcd", layout="na")
+            self.apply_triq(compilation_name="triq_lcd", layout="sabre")
+            # self.apply_laura(compilation_name="triq+_avg", laura_optimization=0, layout="mapo")
+            # self.apply_laura(compilation_name="triq+_avg", laura_optimization=0, layout="na")
+            # self.apply_laura(compilation_name="triq+_avg", laura_optimization=0, layout="sabre")
+            # self.apply_laura(compilation_name="triq+_avg", laura_optimization=2, layout="mapo")
+            # self.apply_laura(compilation_name="triq+_avg", laura_optimization=2, layout="na")
+            # self.apply_laura(compilation_name="triq+_avg", laura_optimization=2, layout="sabre")
 #endregion
         
     def get_fake_perth(self):
@@ -665,17 +820,26 @@ if __name__ == "__main__":
 
             q.close_database_connection()
 
-            q.open_database_connection()
-            
-            # Send to backend
-            if debug: tmp_start_time  = time.perf_counter()
-            q.send_qasm_to_real_backend()
-            if debug: tmp_end_time = time.perf_counter()
-            if debug: print("Time for sending to backend: {} seconds".format(tmp_end_time - tmp_start_time))
-            
-            qiskit_wrapper.update_qiskit_usage_info(token)
+            if conf.send_to_backend:
 
-            q.close_database_connection()
+                q.open_database_connection()
+                
+                if conf.noisy_simulator:
+                    # Send to local simulator
+                    if debug: tmp_start_time  = time.perf_counter()
+                    q.run_on_noisy_simulator_local()
+                    if debug: tmp_end_time = time.perf_counter()
+                    if debug: print("Time for sending to backend: {} seconds".format(tmp_end_time - tmp_start_time))
+                else:
+                    # Send to backend
+                    if debug: tmp_start_time  = time.perf_counter()
+                    q.send_qasm_to_real_backend()
+                    if debug: tmp_end_time = time.perf_counter()
+                    if debug: print("Time for sending to backend: {} seconds".format(tmp_end_time - tmp_start_time))
+                
+                qiskit_wrapper.update_qiskit_usage_info(token)
+
+                q.close_database_connection()
 
             if debug: end_time = time.perf_counter()
             if debug: print("Total time executed: {} seconds".format(end_time - start_time))

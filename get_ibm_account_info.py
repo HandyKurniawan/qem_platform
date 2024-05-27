@@ -6,7 +6,7 @@ import time
 mysql_config = {
     'user': 'handy',
     'password': 'handy',
-    'host': 'ec2-16-171-29-171.eu-north-1.compute.amazonaws.com',
+    'host': 'ec2-13-60-77-250.eu-north-1.compute.amazonaws.com',
     'database': 'framework'
 }
 

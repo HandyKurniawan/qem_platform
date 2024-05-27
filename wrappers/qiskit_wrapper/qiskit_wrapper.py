@@ -19,12 +19,16 @@ from commons import calibration_type_enum, sql_query, normalize_counts, Config
 from qiskit.providers.models import BackendProperties
 import json
 import requests
+import copy
 import mysql.connector
 from .fake_ibm_perth import NewFakePerthRealAdjust, NewFakePerthRecent15, NewFakePerthRecent15Adjust, \
                         NewFakePerthMix, NewFakePerthMixAdjust, NewFakePerthAverage, NewFakePerthAverageAdjust
 from .fake_ibm_brisbane import NewFakeBrisbaneRealAdjust, NewFakeBrisbaneRecent15, NewFakeBrisbaneRecent15Adjust, \
                         NewFakeBrisbaneMix, NewFakeBrisbaneMixAdjust, NewFakeBrisbaneAverage, NewFakeBrisbaneAverageAdjust, \
                         NewFakeBrisbaneRecentNAdjust
+from .fake_ibm_sherbrooke import NewFakeSherbrookeRealAdjust, NewFakeSherbrookeRecent15, NewFakeSherbrookeRecent15Adjust, \
+                        NewFakeSherbrookeMix, NewFakeSherbrookeMixAdjust, NewFakeSherbrookeAverage, NewFakeSherbrookeAverageAdjust, \
+                        NewFakeSherbrookeRecentNAdjust
 from .fake_ibm_brisbane import NewFakeBrisbaneRecent1, NewFakeBrisbaneRecent2, NewFakeBrisbaneRecent3, NewFakeBrisbaneRecent4, \
                         NewFakeBrisbaneRecent5, NewFakeBrisbaneRecent6, NewFakeBrisbaneRecent7, NewFakeBrisbaneRecent8, \
                         NewFakeBrisbaneRecent9, NewFakeBrisbaneRecent10, NewFakeBrisbaneRecent11, NewFakeBrisbaneRecent12, \
@@ -112,25 +116,53 @@ def get_fake_backend(calibration_type, backend, recent_n, generate_props):
     tmp_backend = backend
     if calibration_type == calibration_type_enum.lcd_adjust.value:
         if generate_props: generate_new_props(backend, calibration_type)
-        tmp_backend = NewFakeBrisbaneRealAdjust()
+
+        if backend.name == "ibm_brisbane":
+            tmp_backend = NewFakeBrisbaneRealAdjust()
+        elif backend.name == "ibm_sherbrooke":
+            tmp_backend = NewFakeSherbrookeRealAdjust()
     elif calibration_type == calibration_type_enum.recent_15.value:
         if generate_props: generate_new_props(backend, calibration_type)
-        tmp_backend = NewFakeBrisbaneRecent15()
+
+        if backend.name == "ibm_brisbane":
+            tmp_backend = NewFakeBrisbaneRecent15()
+        elif backend.name == "ibm_sherbrooke":
+            tmp_backend = NewFakeSherbrookeRecent15()
     elif calibration_type == calibration_type_enum.recent_15_adjust.value:
         if generate_props: generate_new_props(backend, calibration_type)
-        tmp_backend = NewFakeBrisbaneRecent15Adjust()
+
+        if backend.name == "ibm_brisbane":
+            tmp_backend = NewFakeBrisbaneRecent15Adjust()
+        elif backend.name == "ibm_sherbrooke":
+            tmp_backend = NewFakeSherbrookeRecent15Adjust()
     elif calibration_type == calibration_type_enum.mix.value:
         if generate_props: generate_new_props(backend, calibration_type)
-        tmp_backend = NewFakeBrisbaneMix()
+
+        if backend.name == "ibm_brisbane":
+            tmp_backend = NewFakeBrisbaneMix()
+        elif backend.name == "ibm_sherbrooke":
+            tmp_backend = NewFakeSherbrookeMix()
     elif calibration_type == calibration_type_enum.mix_adjust.value:
         if generate_props: generate_new_props(backend, calibration_type)
-        tmp_backend = NewFakeBrisbaneMixAdjust()
+
+        if backend.name == "ibm_brisbane":
+            tmp_backend = NewFakeBrisbaneMixAdjust()
+        elif backend.name == "ibm_sherbrooke":
+            tmp_backend = NewFakeSherbrookeMixAdjust()
     elif calibration_type == calibration_type_enum.average.value:
         if generate_props: generate_new_props(backend, calibration_type)
-        tmp_backend = NewFakeBrisbaneAverage()
+
+        if backend.name == "ibm_brisbane":
+            tmp_backend = NewFakeBrisbaneAverage()
+        elif backend.name == "ibm_sherbrooke":
+            tmp_backend = NewFakeSherbrookeAverage()
     elif calibration_type == calibration_type_enum.average_adjust.value:
         if generate_props: generate_new_props(backend, calibration_type)
-        tmp_backend = NewFakeBrisbaneAverageAdjust()
+
+        if backend.name == "ibm_brisbane":
+            tmp_backend = NewFakeBrisbaneAverageAdjust()
+        elif backend.name == "ibm_sherbrooke":
+            tmp_backend = NewFakeSherbrookeAverageAdjust()
     elif calibration_type == calibration_type_enum.recent_n.value:
         if generate_props: generate_new_props(backend, calibration_type, recent_n)
 
@@ -458,7 +490,7 @@ def _get_std_two_qubit_error(prop_dict, hw_name, native_gates_2q):
 
     sql = '''
         SELECT qubit_control, qubit_target, STDDEV(''' + native_gates_2q + '''_error) FROM (
-        SELECT DISTINCT qubit_control, qubit_target, ''' + native_gates_2q + '''_error
+        SELECT DISTINCT qubit_control, qubit_target, ''' + native_gates_2q + '''_error, ''' + native_gates_2q + '''_date
         FROM calibration_data.ibm_two_qubit_gate_spec q
         WHERE q.hw_name = %s AND ''' + native_gates_2q + '''_error != 1
         ) X GROUP BY qubit_control, qubit_target;
@@ -527,7 +559,7 @@ def _get_two_qubit_error_sql(hw_name, calibration_type, native_gates_2q, recent_
     elif calibration_type == calibration_type_enum.average.value or calibration_type == calibration_type_enum.average_adjust.value:
         sql = '''
         SELECT qubit_control, qubit_target, AVG(''' + native_gates_2q + '''_error) FROM (
-        SELECT DISTINCT qubit_control, qubit_target, ''' + native_gates_2q + '''_error
+        SELECT DISTINCT qubit_control, qubit_target, ''' + native_gates_2q + '''_error, ''' + native_gates_2q + '''_date
         FROM calibration_data.ibm_two_qubit_gate_spec q
         WHERE q.hw_name = %s AND ''' + native_gates_2q + '''_error != 1
         ) X GROUP BY qubit_control, qubit_target;
@@ -612,7 +644,7 @@ def generate_new_props(backend, calibration_type, recent_n = None):
     properties = backend.properties()
     prop_dict = properties.to_dict()
 
-    print(calibration_type)
+    print(hw_name, calibration_type)
     
     _update_readout_error(prop_dict, hw_name, calibration_type, recent_n)
     _update_one_qubit_error(prop_dict, hw_name, calibration_type)
@@ -764,7 +796,7 @@ def get_active_token(remaining, repetition, token_number):
     sql = """SELECT token, int_remaining, int_pending_jobs, int_max_pending_jobs FROM qiskit_token 
     WHERE int_remaining > 0 """
 
-    if remaining > 300:
+    if remaining > 200:
         sql = sql + """ and int_pending_jobs = 0 """
 
     sql = sql + """ AND int_remaining > {} AND (int_max_pending_jobs - int_pending_jobs) > {} ORDER BY int_remaining ASC LIMIT {}
@@ -773,5 +805,77 @@ def get_active_token(remaining, repetition, token_number):
     results = sql_query(sql, ())
 
     return results
+
+#endregion
+
+#region Noisy Simulator
+
+def get_noisy_simulator(backend, error_percentage = 1, noiseless = False):
+    _backend = copy.deepcopy(backend)
+    _properties = _backend.properties()
+    _prop_dict = _properties.to_dict()
+    
+    # update readout error
+    for i in _prop_dict["qubits"]:
+        for j in i:
+            if (j["name"] in ("readout_error", "prob_meas0_prep1", "prob_meas1_prep0")):
+                new_val = j["value"] * error_percentage
+                if new_val > 1:
+                    new_val = 1
+                j["value"] = new_val
+                # print(j["name"], j["value"])
+            elif (j["name"] in ("T1", "T2")):
+                new_val = j["value"] + (1000 - (100 * error_percentage))
+                j["value"] = new_val
+
+    # print(_prop_dict["qubits"][0])
+    
+    # update single qubit error
+    for i in _prop_dict["gates"]:
+        if(i["gate"] != "ecr"):
+            pars = i["parameters"]
+        
+            for par in pars:
+                if (par["name"] == "gate_error"):
+                    new_val = par["value"] * error_percentage
+                    if new_val > 1:
+                        new_val = 1
+                    par["value"] = new_val
+                    # print(i["qubits"], par["value"])
+    
+    # Update Two Qubit Error
+    for i in _prop_dict["gates"]:
+        if(i["gate"] == "ecr"):
+            pars = i["parameters"]
+    
+            for par in pars:
+                if (par["name"] == "gate_error"):
+                    new_val = par["value"] * error_percentage
+                    if new_val > 1:
+                        new_val = 1
+                    par["value"] = new_val
+                    # print(i["qubits"], par["value"])
+    
+    new_properties = BackendProperties.from_dict(_prop_dict)
+    new_prop_dict = new_properties.to_dict()
+    new_prop_json = json.dumps(new_prop_dict, indent = 0, default=str) 
+    new_prop_json = new_prop_json.replace("\n", "")
+
+    coupling_map = _backend.configuration().coupling_map
+    # print(coupling_map)
+    
+    noise_model = NoiseModel.from_backend_properties(new_properties)
+    
+    if noiseless:
+        sim_noisy = AerSimulator()
+    else:
+        sim_noisy = AerSimulator(configuration=_backend.configuration(), properties=new_properties,
+                                noise_model=noise_model
+                                )
+        sim_noisy.set_options(
+            noise_model=noise_model,
+            )
+    
+    return noise_model, sim_noisy, coupling_map
 
 #endregion

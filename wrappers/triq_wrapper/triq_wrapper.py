@@ -69,7 +69,7 @@ def generate_qasm(qasm_str, hardware_name, triq_optimization, measurement_type):
                 dag_file_path, 
                 out_file_path, tmp_hw_name, str(triq_optimization), map_file_path, measurement_type]
 
-    print(call_triq)
+    # print(call_triq)
 
     out_file=open("log/output.log",'w+')
 
