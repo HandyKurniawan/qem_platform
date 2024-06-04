@@ -870,10 +870,12 @@ def get_noisy_simulator(backend, error_percentage = 1, noiseless = False):
         sim_noisy = AerSimulator()
     else:
         sim_noisy = AerSimulator(configuration=_backend.configuration(), properties=new_properties,
-                                noise_model=noise_model
+                                noise_model=noise_model, 
+                                # max_shot_size=100,method='statevector', max_memory_mb=10000 
                                 )
         sim_noisy.set_options(
             noise_model=noise_model,
+            # max_shot_size=100, max_memory_mb=10000, method='statevector'
             )
     
     return noise_model, sim_noisy, coupling_map
