@@ -6,7 +6,7 @@ import time
 mysql_config = {
     'user': 'handy',
     'password': 'handy',
-    'host': 'ec2-16-171-25-125.eu-north-1.compute.amazonaws.com',
+    'host': 'ec2-13-60-50-75.eu-north-1.compute.amazonaws.com',
     'database': 'framework'
 }
 
@@ -92,7 +92,7 @@ def get_all_token():
     conn = mysql.connector.connect(**mysql_config)
     cursor = conn.cursor()
     
-    cursor.execute('''SELECT token FROM qiskit_token WHERE int_pending_jobs >= 0 ''')
+    cursor.execute('''SELECT token FROM qiskit_token WHERE int_pending_jobs > 0 ''')
     
     results = cursor.fetchall()
     

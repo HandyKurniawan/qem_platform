@@ -706,7 +706,7 @@ WHERE h.job_id IS NULL AND d.header_id = %s  ''', (header_id,))
             self.apply_triq(compilation_name="triq_mix", layout="sabre")
 
         elif conf.program_type == "Polar"  or conf.program_type == "PolarSimulation":
-            self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_0.value, generate_props=generate_props)
+            # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_0.value, generate_props=generate_props)
             self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
             
             self.apply_triq(compilation_name="triq_lcd", layout="na")
@@ -715,11 +715,11 @@ WHERE h.job_id IS NULL AND d.header_id = %s  ''', (header_id,))
             self.apply_triq(compilation_name="triq_avg", layout="na")
             self.apply_triq(compilation_name="triq_avg", layout="sabre")
 
-            self.apply_triq(compilation_name="triq_mix", layout="na")
-            self.apply_triq(compilation_name="triq_mix", layout="sabre")
+            # self.apply_triq(compilation_name="triq_mix", layout="na")
+            # self.apply_triq(compilation_name="triq_mix", layout="sabre")
 
-            self.apply_triq(compilation_name="triq_w15_adj", layout="na")
-            self.apply_triq(compilation_name="triq_w15_adj", layout="sabre")
+            # self.apply_triq(compilation_name="triq_w15_adj", layout="na")
+            # self.apply_triq(compilation_name="triq_w15_adj", layout="sabre")
 
             
         elif conf.program_type == "Testing" or conf.program_type == "TriQP":
@@ -770,6 +770,8 @@ if __name__ == "__main__":
     for res in token_list:
         token, remaining, pending_job, max_pending_job = res
         conf.qiskit_token = token
+
+        token = "74076e69ed0d571c8e0ff8c0b2c912c28681d47426cf16a5d817825de16f7dbd95bf6ff7c604b706803b78b2e21d1dd5cacf9f1b0aa81d672d938bded8049a17"
 
         print("Program Type: ", conf.program_type)
 
