@@ -21,7 +21,7 @@ conf = Config()
 
 def get_pending_jobs():
     '''
-    Returns job_id if the status in the calibration_data.result_detail table is pending (job has been sent to backend and we are waiting for the result)
+    Returns job_id if the status in the framework.result_detail table is pending (job has been sent to backend and we are waiting for the result)
     '''
     
     try:
