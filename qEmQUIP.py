@@ -706,7 +706,7 @@ WHERE h.job_id IS NULL AND d.header_id = %s  ''', (header_id,))
             self.apply_triq(compilation_name="triq_mix", layout="sabre")
 
         elif conf.program_type == "Polar"  or conf.program_type == "PolarSimulation":
-            # self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_0.value, generate_props=generate_props)
+            self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_0.value, generate_props=generate_props)
             self.apply_qiskit(compilation_name=qiskit_compilation_enum.qiskit_3.value, generate_props=generate_props)
             
             self.apply_triq(compilation_name="triq_lcd", layout="na")
@@ -715,11 +715,11 @@ WHERE h.job_id IS NULL AND d.header_id = %s  ''', (header_id,))
             self.apply_triq(compilation_name="triq_avg", layout="na")
             self.apply_triq(compilation_name="triq_avg", layout="sabre")
 
-            # self.apply_triq(compilation_name="triq_mix", layout="na")
-            # self.apply_triq(compilation_name="triq_mix", layout="sabre")
+            self.apply_triq(compilation_name="triq_mix", layout="na")
+            self.apply_triq(compilation_name="triq_mix", layout="sabre")
 
-            # self.apply_triq(compilation_name="triq_w15_adj", layout="na")
-            # self.apply_triq(compilation_name="triq_w15_adj", layout="sabre")
+            self.apply_triq(compilation_name="triq_w15_adj", layout="na")
+            self.apply_triq(compilation_name="triq_w15_adj", layout="sabre")
 
             
         elif conf.program_type == "Testing" or conf.program_type == "TriQP":
@@ -800,7 +800,7 @@ if __name__ == "__main__":
             if debug: tmp_end_time = time.perf_counter()
             if debug: print("Time for running the init header: {} seconds".format(tmp_end_time - tmp_start_time))
 
-            generate_props = True
+            generate_props = conf.initialized_triq
             # generate_props = False
 
             for i in qasm_files:
