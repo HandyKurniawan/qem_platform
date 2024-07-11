@@ -6,7 +6,7 @@ import time
 mysql_config = {
     'user': 'handy',
     'password': 'handy',
-    'host': 'ec2-13-60-50-75.eu-north-1.compute.amazonaws.com',
+    'host': 'ec2-13-51-79-239.eu-north-1.compute.amazonaws.com',
     'database': 'framework'
 }
 
@@ -92,7 +92,7 @@ def get_all_token():
     conn = mysql.connector.connect(**mysql_config)
     cursor = conn.cursor()
     
-    cursor.execute('''SELECT token FROM qiskit_token WHERE int_pending_jobs > 0 ''')
+    cursor.execute('''SELECT token FROM qiskit_token WHERE int_pending_jobs >= 0 and description = "updated" ''')
     
     results = cursor.fetchall()
     
@@ -120,7 +120,7 @@ for res in results:
 
     update_qiskit_usage_info(token)
 
-    time.sleep(10)
+    time.sleep(2)
 
 # for new token
 results = get_new_token()
@@ -128,5 +128,5 @@ for res in results:
     token = res[0]
     update_qiskit_usage_info(token)
 
-    time.sleep(10)
+    time.sleep(2)
     
